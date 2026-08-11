@@ -2,10 +2,15 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
+import ConsensusDevPage from './pages/consensus/ConsensusDevPage'
 import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+
+  if (new URLSearchParams(window.location.search).has('consensus-dev')) {
+    return <ConsensusDevPage />
+  }
 
   return (
     <>

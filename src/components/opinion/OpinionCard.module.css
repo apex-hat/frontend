@@ -1,0 +1,70 @@
+.card {
+  padding: 22px 24px;
+  border: 1px solid #dce2f0;
+  border-radius: 9px;
+  color: #1f2937;
+  background: #ffffff;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.authorName {
+  margin: 0;
+  color: #172554;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.company {
+  margin: 3px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.agree {
+  color: #2f7d5c;
+}
+
+.disagree {
+  color: #b04a4a;
+}
+
+.conditional {
+  color: #9a681c;
+}
+
+.comment {
+  margin: 20px 0 18px;
+  color: #374151;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.createdAt {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+}
