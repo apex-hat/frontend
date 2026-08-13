@@ -15,7 +15,7 @@ const TYPE_ICON: Record<NotificationType, string> = {
 };
 
 function timeAgo(iso: string) {
-  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffMs = Math.max(0, Date.now() - new Date(iso).getTime());
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
   if (hours < 1) return "방금 전";
   if (hours < 24) return `${hours}시간 전`;

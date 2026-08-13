@@ -37,7 +37,11 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     });
   }, [expandedId, opinionsByProposal]);
 
-  const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+  const markAllRead = () => {
+    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    unreadIds.forEach((id) => markNotificationRead(id));
+  };
 
   const selectNotification = (notification: Notification) => {
     setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n)));

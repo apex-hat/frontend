@@ -70,6 +70,8 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
     try {
       const user = await signup(name, email, password, country, timezone);
       onSignup(user);
+    } catch {
+      setError("회원가입에 실패했어요. 잠시 후 다시 시도해주세요.");
     } finally {
       setIsSubmitting(false);
     }

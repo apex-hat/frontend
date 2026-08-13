@@ -17,6 +17,14 @@ const USE_MOCK = true;
 const MOCK_DELAY_MS = 400;
 const delay = <T,>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value), MOCK_DELAY_MS));
 
+/** fetch는 401/500 같은 HTTP 에러도 reject하지 않으므로, 응답을 쓰기 전에 res.ok를 직접 확인한다. */
+async function parseJson<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
 function toAuthUser(u: (typeof MOCK_USERS)[number]): AuthUser {
   return { id: u.id, name: u.name, email: u.email, country: u.country, timezone: u.timezone, culture_tag: u.culture_tag };
 }
@@ -32,7 +40,7 @@ export async function login(email: string, _password: string): Promise<AuthUser>
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password: _password }),
-  }).then((r) => r.json());
+  }).then((r) => parseJson<AuthUser>(r));
 }
 
 export async function signup(
@@ -49,24 +57,25 @@ export async function signup(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, email, password: _password, country, timezone }),
-  }).then((r) => r.json());
+  }).then((r) => parseJson<AuthUser>(r));
 }
 
 export async function logout(): Promise<void> {
   if (USE_MOCK) return delay(undefined);
-  await fetch("/api/auth/logout", { method: "POST" });
+  const res = await fetch("/api/auth/logout", { method: "POST" });
+  if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
 }
 
 export async function getMe(): Promise<AuthUser> {
   if (USE_MOCK) return delay(toAuthUser(MOCK_USERS.find((u) => u.id === CURRENT_USER_ID)!));
-  return fetch("/api/users/me").then((r) => r.json());
+  return fetch("/api/users/me").then((r) => parseJson<AuthUser>(r));
 }
 
 // --- Teams --------------------------------------------------------------
 
 export async function getTeams(): Promise<Team[]> {
   if (USE_MOCK) return delay([MOCK_TEAM]);
-  return fetch("/api/teams").then((r) => r.json());
+  return fetch("/api/teams").then((r) => parseJson<Team[]>(r));
 }
 
 // --- Dashboard ------------------------------------------------------------
@@ -102,7 +111,7 @@ export async function getTimezones(teamId: string = MOCK_TEAM.id): Promise<Timez
       .filter((e): e is TimezoneEntry => e !== null);
     return delay(entries);
   }
-  return fetch(`/api/dashboard/timezones?teamId=${teamId}`).then((r) => r.json());
+  return fetch(`/api/dashboard/timezones?teamId=${teamId}`).then((r) => parseJson<TimezoneEntry[]>(r));
 }
 
 export interface ProposalStatusResult {
@@ -118,12 +127,12 @@ export async function getProposalStatus(proposalId: string): Promise<ProposalSta
     const opinions = MOCK_OPINIONS.filter((o) => o.proposal_id === proposalId);
     return delay({ proposal, opinions });
   }
-  return fetch(`/api/dashboard/status?proposalId=${proposalId}`).then((r) => r.json());
+  return fetch(`/api/dashboard/status?proposalId=${proposalId}`).then((r) => parseJson<ProposalStatusResult | null>(r));
 }
 
 export async function getProposals(teamId: string = MOCK_TEAM.id): Promise<Proposal[]> {
   if (USE_MOCK) return delay(MOCK_PROPOSALS.filter((p) => p.target_team_id === teamId));
-  return fetch(`/api/proposals?teamId=${teamId}`).then((r) => r.json());
+  return fetch(`/api/proposals?teamId=${teamId}`).then((r) => parseJson<Proposal[]>(r));
 }
 
 // --- Notifications --------------------------------------------------------
@@ -139,14 +148,15 @@ export async function getNotifications(userId: string = CURRENT_USER_ID): Promis
     });
     return delay(deduped);
   }
-  return fetch("/api/notifications").then((r) => r.json());
+  return fetch("/api/notifications").then((r) => parseJson<Notification[]>(r));
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
   if (USE_MOCK) return delay(undefined);
-  await fetch(`/api/notifications/${notificationId}`, {
+  const res = await fetch(`/api/notifications/${notificationId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ is_read: true }),
   });
+  if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
 }

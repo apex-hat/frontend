@@ -29,6 +29,8 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
     try {
       const user = await login(email, password);
       onLogin(user);
+    } catch {
+      setError("로그인에 실패했어요. 이메일과 비밀번호를 확인해주세요.");
     } finally {
       setIsSubmitting(false);
     }
