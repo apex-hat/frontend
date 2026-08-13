@@ -40,9 +40,11 @@ function OpinionCard({ opinion, canDelete = false, onDelete }: OpinionCardProps)
             <p className={styles.company}>{opinion.author.company}</p>
           )}
         </div>
-        <span className={`${styles.badge} ${opinionBadgeClasses[opinion.type]}`}>
-          {opinionLabels[opinion.type]}
-        </span>
+        <span
+          className={`${styles.badge} ${opinionBadgeClasses[opinion.type]}`}
+          aria-label={`의견: ${opinionLabels[opinion.type]}`}
+          title={opinionLabels[opinion.type]}
+        />
       </header>
 
       <p className={styles.comment}>{opinion.comment}</p>
@@ -58,9 +60,6 @@ function OpinionCard({ opinion, canDelete = false, onDelete }: OpinionCardProps)
             onClick={() => onDelete(opinion.id)}
             aria-label="내 의견 삭제"
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h10l-1 11H8L7 9Zm3 2v7h2v-7h-2Zm4 0v7h2v-7h-2Z" />
-            </svg>
             삭제
           </button>
         )}

@@ -27,10 +27,9 @@ const proposal = {
   description: '핵심 기능의 우선순위와 출시 전 테스트 기간을 함께 결정합니다.',
 }
 
-type OpinionFilter = 'ALL' | OpinionType
+type OpinionFilter = OpinionType | null
 
-const filterOptions: Array<{ value: OpinionFilter; label: string }> = [
-  { value: 'ALL', label: '전체' },
+const filterOptions: Array<{ value: OpinionType; label: string }> = [
   { value: 'AGREE', label: '찬성' },
   { value: 'CONDITIONAL', label: '조건부' },
   { value: 'DISAGREE', label: '반대' },
@@ -38,7 +37,7 @@ const filterOptions: Array<{ value: OpinionFilter; label: string }> = [
 
 function ConsensusDevPage() {
   const [opinions, setOpinions] = useState<Opinion[]>(loadOpinions)
-  const [opinionFilter, setOpinionFilter] = useState<OpinionFilter>('ALL')
+  const [opinionFilter, setOpinionFilter] = useState<OpinionFilter>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formStatus, setFormStatus] = useState<string | null>(null)
   const [isSummaryOpen, setIsSummaryOpen] = useState(false)
@@ -60,10 +59,9 @@ function ConsensusDevPage() {
       ),
     [opinions],
   )
-  const filteredOpinions =
-    opinionFilter === 'ALL'
-      ? opinions
-      : opinions.filter((opinion) => opinion.type === opinionFilter)
+  const filteredOpinions = opinionFilter
+    ? opinions.filter((opinion) => opinion.type === opinionFilter)
+    : opinions
   const participantCount = new Set(
     opinions.map((opinion) => opinion.author.id),
   ).size
@@ -155,7 +153,6 @@ function ConsensusDevPage() {
   return (
     <main className={styles.page} data-consensus-dev-page>
       <header className={styles.pageHeader}>
-        <p className={styles.eyebrow}>의견을 수렴 중인 제안</p>
         <h1 className={styles.title}>{proposal.title}</h1>
         <p className={styles.description}>{proposal.description}</p>
       </header>
@@ -195,9 +192,7 @@ function ConsensusDevPage() {
         <div className={styles.filters} aria-label="의견 유형 필터">
           {filterOptions.map((option) => {
             const count =
-              option.value === 'ALL'
-                ? opinions.length
-                : opinionCounts[option.value]
+              opinionCounts[option.value]
 
             return (
               <button
@@ -207,7 +202,11 @@ function ConsensusDevPage() {
                   opinionFilter === option.value ? styles.filterSelected : ''
                 }`}
                 aria-pressed={opinionFilter === option.value}
-                onClick={() => setOpinionFilter(option.value)}
+                onClick={() =>
+                  setOpinionFilter((currentFilter) =>
+                    currentFilter === option.value ? null : option.value,
+                  )
+                }
               >
                 <span>{option.label}</span>
                 <strong>{count}</strong>

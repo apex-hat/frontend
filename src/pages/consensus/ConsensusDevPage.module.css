@@ -22,13 +22,6 @@
   margin-bottom: 32px;
 }
 
-.eyebrow {
-  margin: 0 0 8px;
-  color: var(--meridian-primary);
-  font-size: 13px;
-  font-weight: 750;
-}
-
 .title {
   margin: 0;
   color: #172554;
@@ -114,7 +107,7 @@
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin: 0 0 16px;
 }
@@ -166,6 +159,6 @@
   }
 
   .filters {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
