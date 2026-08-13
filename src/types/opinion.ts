@@ -14,4 +14,10 @@ export interface Opinion {
   type: OpinionType
   comment: string
   createdAt: string
+  updatedAt?: string
+}
+
+export interface OpinionDraft {
+  type: OpinionType
+  comment: string
 }

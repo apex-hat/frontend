@@ -23,6 +23,13 @@
   flex-direction: column;
 }
 
+.characterCount {
+  align-self: flex-end;
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
 .label {
   display: block;
   margin-bottom: 10px;

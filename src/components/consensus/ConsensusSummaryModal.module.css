@@ -89,6 +89,30 @@
   font-size: 14px;
 }
 
+.error,
+.empty {
+  display: flex;
+  min-height: 280px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  color: #64748b;
+  text-align: center;
+}
+
+.error button {
+  padding: 9px 14px;
+  border: 1px solid #cfd8f3;
+  border-radius: 7px;
+  color: var(--meridian-primary-dark, #2747b3);
+  background: #f4f7ff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .spinner {
   width: 30px;
   height: 30px;

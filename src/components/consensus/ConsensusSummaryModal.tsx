@@ -6,17 +6,22 @@ import styles from './ConsensusSummaryModal.module.css'
 interface ConsensusSummaryModalProps {
   isOpen: boolean
   isLoading: boolean
-  consensus: ConsensusSummary
+  consensus: ConsensusSummary | null
+  error: string | null
   onClose: () => void
+  onRetry: () => void
 }
 
 function ConsensusSummaryModal({
   isOpen,
   isLoading,
   consensus,
+  error,
   onClose,
+  onRetry,
 }: ConsensusSummaryModalProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const modalRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     if (!isOpen) {
@@ -32,6 +37,27 @@ function ConsensusSummaryModal({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose()
+      }
+
+      if (event.key === 'Tab') {
+        const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        )
+
+        if (!focusableElements?.length) {
+          return
+        }
+
+        const firstElement = focusableElements[0]
+        const lastElement = focusableElements[focusableElements.length - 1]
+
+        if (event.shiftKey && document.activeElement === firstElement) {
+          event.preventDefault()
+          lastElement.focus()
+        } else if (!event.shiftKey && document.activeElement === lastElement) {
+          event.preventDefault()
+          firstElement.focus()
+        }
       }
     }
 
@@ -60,6 +86,7 @@ function ConsensusSummaryModal({
   return (
     <div className={styles.overlay} onMouseDown={handleOverlayClick}>
       <section
+        ref={modalRef}
         className={styles.modal}
         role="dialog"
         aria-modal="true"
@@ -85,8 +112,17 @@ function ConsensusSummaryModal({
               <span className={styles.spinner} aria-hidden="true" />
               <p>팀원 의견을 정리하고 있습니다.</p>
             </div>
-          ) : (
+          ) : error ? (
+            <div className={styles.error} role="alert">
+              <p>{error}</p>
+              <button type="button" onClick={onRetry}>
+                다시 시도
+              </button>
+            </div>
+          ) : consensus ? (
             <ConsensusCard consensus={consensus} />
+          ) : (
+            <p className={styles.empty}>요약 결과가 없습니다.</p>
           )}
         </div>
       </section>

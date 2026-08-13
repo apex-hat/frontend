@@ -3,6 +3,8 @@ import styles from './OpinionCard.module.css'
 
 interface OpinionCardProps {
   opinion: Opinion
+  canDelete?: boolean
+  onDelete?: (opinionId: string) => void
 }
 
 const opinionLabels: Record<OpinionType, string> = {
@@ -22,7 +24,7 @@ const dateFormatter = new Intl.DateTimeFormat('ko-KR', {
   timeStyle: 'short',
 })
 
-function OpinionCard({ opinion }: OpinionCardProps) {
+function OpinionCard({ opinion, canDelete = false, onDelete }: OpinionCardProps) {
   return (
     <article className={styles.card}>
       <header className={styles.header}>
@@ -38,9 +40,21 @@ function OpinionCard({ opinion }: OpinionCardProps) {
       </header>
 
       <p className={styles.comment}>{opinion.comment}</p>
-      <time className={styles.createdAt} dateTime={opinion.createdAt}>
-        {dateFormatter.format(new Date(opinion.createdAt))}
-      </time>
+      <footer className={styles.footer}>
+        <time className={styles.createdAt} dateTime={opinion.updatedAt ?? opinion.createdAt}>
+          {dateFormatter.format(new Date(opinion.updatedAt ?? opinion.createdAt))}
+          {opinion.updatedAt && ' 수정'}
+        </time>
+        {canDelete && onDelete && (
+          <button
+            type="button"
+            className={styles.deleteButton}
+            onClick={() => onDelete(opinion.id)}
+          >
+            내 의견 삭제
+          </button>
+        )}
+      </footer>
     </article>
   )
 }

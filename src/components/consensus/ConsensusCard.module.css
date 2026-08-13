@@ -35,6 +35,19 @@
   font-weight: 750;
 }
 
+.categoryCount {
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #64748b;
+  font-size: 11px;
+}
+
 .agree {
   color: #267354;
   border-top-color: #5a9b7e;
@@ -89,6 +102,14 @@
   color: #334155;
   font-size: 14px;
   line-height: 1.65;
+}
+
+.generatedAt {
+  display: block;
+  margin-top: 12px;
+  color: #94a3b8;
+  font-size: 11px;
+  text-align: right;
 }
 
 @media (max-width: 520px) {
