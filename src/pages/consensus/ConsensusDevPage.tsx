@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import ConsensusSummaryModal from '../../components/consensus/ConsensusSummaryModal'
 import OpinionForm from '../../components/opinion/OpinionForm'
 import OpinionList from '../../components/opinion/OpinionList'
+import { mockConsensus } from '../../mocks/consensus'
 import { mockOpinions } from '../../mocks/opinions'
 import type { Opinion, OpinionAuthor } from '../../types/opinion'
 import styles from './ConsensusDevPage.module.css'
@@ -15,9 +17,33 @@ const currentUser: OpinionAuthor = {
 
 function ConsensusDevPage() {
   const [opinions, setOpinions] = useState<Opinion[]>(() => [...mockOpinions])
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false)
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false)
+
+  useEffect(() => {
+    if (!isSummaryLoading) {
+      return
+    }
+
+    const loadingTimer = window.setTimeout(() => {
+      setIsSummaryLoading(false)
+    }, 700)
+
+    return () => window.clearTimeout(loadingTimer)
+  }, [isSummaryLoading])
 
   const handleOpinionSubmit = (opinion: Opinion) => {
     setOpinions((currentOpinions) => [opinion, ...currentOpinions])
+  }
+
+  const handleSummaryOpen = () => {
+    setIsSummaryOpen(true)
+    setIsSummaryLoading(true)
+  }
+
+  const handleSummaryClose = () => {
+    setIsSummaryOpen(false)
+    setIsSummaryLoading(false)
   }
 
   return (
@@ -35,10 +61,23 @@ function ConsensusDevPage() {
           <h2 id="opinion-list-title" className={styles.sectionTitle}>
             팀원 의견
           </h2>
-          <span className={styles.count}>{opinions.length}개</span>
+          <button
+            type="button"
+            className={styles.summaryButton}
+            onClick={handleSummaryOpen}
+          >
+            의견 요약
+          </button>
         </div>
         <OpinionList opinions={opinions} />
       </section>
+
+      <ConsensusSummaryModal
+        isOpen={isSummaryOpen}
+        isLoading={isSummaryLoading}
+        consensus={mockConsensus}
+        onClose={handleSummaryClose}
+      />
     </main>
   )
 }

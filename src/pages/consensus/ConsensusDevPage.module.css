@@ -3,10 +3,10 @@
 }
 
 .page {
-  --meridian-primary: #3157d5;
-  --meridian-primary-dark: #2747b3;
-  --meridian-primary-soft: #eef2ff;
-  --meridian-primary-border: #cbd5ff;
+  --meridian-primary: #526fbd;
+  --meridian-primary-dark: #405a9e;
+  --meridian-primary-soft: #f0f3fb;
+  --meridian-primary-border: #d2daf0;
 
   width: 100%;
   max-width: 800px;
@@ -25,7 +25,7 @@
 .title {
   margin: 0;
   color: #172554;
-  font-size: clamp(32px, 6vw, 48px);
+  font-size: clamp(30px, 5vw, 40px);
   font-weight: 750;
   letter-spacing: -0.04em;
   line-height: 1.15;
@@ -59,15 +59,27 @@
   justify-content: space-between;
 }
 
-.count {
+.summaryButton {
   margin-bottom: 16px;
-  padding: 4px 10px;
+  padding: 6px 12px;
   border: 1px solid var(--meridian-primary-border);
-  border-radius: 999px;
+  border-radius: 6px;
   color: var(--meridian-primary-dark);
   background: var(--meridian-primary-soft);
+  font: inherit;
   font-size: 13px;
   font-weight: 700;
+  cursor: pointer;
+}
+
+.summaryButton:hover {
+  border-color: #b9c5e5;
+  background: #e5eaf7;
+}
+
+.summaryButton:focus-visible {
+  outline: 3px solid rgb(49 87 213 / 22%);
+  outline-offset: 2px;
 }
 
 @media (max-width: 520px) {
