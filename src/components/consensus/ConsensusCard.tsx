@@ -17,9 +17,7 @@ interface CategorySectionProps {
 function CategorySection({ title, category, tone }: CategorySectionProps) {
   return (
     <section className={`${styles.category} ${styles[tone]}`}>
-      <h3 className={styles.categoryTitle}>
-        {title} <span className={styles.categoryCount}>{category.count}</span>
-      </h3>
+      <h3 className={styles.categoryTitle}>{title}</h3>
       <p className={styles.categorySummary}>{category.summary}</p>
     </section>
   )
@@ -57,12 +55,6 @@ function ConsensusCard({ consensus }: ConsensusCardProps) {
         )}
       </div>
 
-      <section className={styles.recommendation} aria-labelledby="recommendation-title">
-        <h3 id="recommendation-title" className={styles.recommendationTitle}>
-          다음 단계
-        </h3>
-        <p>{consensus.recommendation}</p>
-      </section>
       <time className={styles.generatedAt} dateTime={consensus.generatedAt}>
         {new Intl.DateTimeFormat('ko-KR', {
           dateStyle: 'medium',

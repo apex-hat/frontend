@@ -1,6 +1,5 @@
 export interface OpinionCategorySummary {
   summary: string
-  count: number
 }
 
 export interface ConsensusSummary {

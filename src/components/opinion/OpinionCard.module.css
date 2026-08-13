@@ -1,4 +1,6 @@
 .card {
+  position: relative;
+  overflow: hidden;
   padding: 22px 24px;
   border: 1px solid #dce2f0;
   border-radius: 9px;
@@ -31,7 +33,9 @@
   flex-shrink: 0;
   align-items: center;
   gap: 7px;
-  padding: 2px 0;
+  padding: 5px 10px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
 }
@@ -46,14 +50,17 @@
 
 .agree {
   color: #2f7d5c;
+  background: #f0faf5;
 }
 
 .disagree {
   color: #b04a4a;
+  background: #fff4f4;
 }
 
 .conditional {
   color: #9a681c;
+  background: #fff9ed;
 }
 
 .comment {
@@ -68,6 +75,26 @@
   font-size: 11px;
 }
 
+.card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: #94a3b8;
+  content: '';
+}
+
+.cardAgree::before {
+  background: #3c8b68;
+}
+
+.cardConditional::before {
+  background: #c08a35;
+}
+
+.cardDisagree::before {
+  background: #c55b5b;
+}
+
 .footer {
   display: flex;
   align-items: center;
@@ -76,17 +103,28 @@
 }
 
 .deleteButton {
-  padding: 4px 0;
-  border: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 1px solid #f0cccc;
+  border-radius: 6px;
   color: #b04a4a;
-  background: transparent;
+  background: #fff7f7;
   font: inherit;
   font-size: 12px;
   cursor: pointer;
 }
 
+.deleteButton svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
 .deleteButton:hover {
-  text-decoration: underline;
+  border-color: #dfa1a1;
+  background: #ffeded;
 }
 
 .deleteButton:focus-visible {

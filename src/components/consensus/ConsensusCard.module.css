@@ -35,19 +35,6 @@
   font-weight: 750;
 }
 
-.categoryCount {
-  display: inline-flex;
-  min-width: 20px;
-  height: 20px;
-  align-items: center;
-  justify-content: center;
-  margin-left: 4px;
-  border-radius: 999px;
-  color: #ffffff;
-  background: #64748b;
-  font-size: 11px;
-}
-
 .agree {
   color: #267354;
   border-top-color: #5a9b7e;
@@ -80,28 +67,6 @@
   color: #64748b;
   font-size: 14px;
   text-align: center;
-}
-
-.recommendation {
-  margin-top: 26px;
-  padding: 20px;
-  border: 1px solid #cfd8f3;
-  border-radius: 9px;
-  background: #f4f7ff;
-}
-
-.recommendationTitle {
-  margin: 0 0 8px;
-  color: var(--meridian-primary-dark, #2747b3);
-  font-size: 15px;
-  font-weight: 750;
-}
-
-.recommendation p {
-  margin: 0;
-  color: #334155;
-  font-size: 14px;
-  line-height: 1.65;
 }
 
 .generatedAt {

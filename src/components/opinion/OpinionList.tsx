@@ -6,11 +6,17 @@ interface OpinionListProps {
   opinions: Opinion[]
   currentUserId: string
   onDelete: (opinionId: string) => void
+  emptyMessage?: string
 }
 
-function OpinionList({ opinions, currentUserId, onDelete }: OpinionListProps) {
+function OpinionList({
+  opinions,
+  currentUserId,
+  onDelete,
+  emptyMessage = '아직 등록된 의견이 없습니다.',
+}: OpinionListProps) {
   if (opinions.length === 0) {
-    return <p className={styles.empty}>아직 등록된 의견이 없습니다.</p>
+    return <p className={styles.empty}>{emptyMessage}</p>
   }
 
   return (

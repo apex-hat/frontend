@@ -21,8 +21,24 @@ const currentUser: OpinionAuthor = {
   culturalRegion: '동아시아',
 }
 
+const TEAM_MEMBER_COUNT = 6
+const proposal = {
+  title: 'MVP 기능 범위 및 출시 일정 조정',
+  description: '핵심 기능의 우선순위와 출시 전 테스트 기간을 함께 결정합니다.',
+}
+
+type OpinionFilter = 'ALL' | OpinionType
+
+const filterOptions: Array<{ value: OpinionFilter; label: string }> = [
+  { value: 'ALL', label: '전체' },
+  { value: 'AGREE', label: '찬성' },
+  { value: 'CONDITIONAL', label: '조건부' },
+  { value: 'DISAGREE', label: '반대' },
+]
+
 function ConsensusDevPage() {
   const [opinions, setOpinions] = useState<Opinion[]>(loadOpinions)
+  const [opinionFilter, setOpinionFilter] = useState<OpinionFilter>('ALL')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formStatus, setFormStatus] = useState<string | null>(null)
   const [isSummaryOpen, setIsSummaryOpen] = useState(false)
@@ -44,6 +60,13 @@ function ConsensusDevPage() {
       ),
     [opinions],
   )
+  const filteredOpinions =
+    opinionFilter === 'ALL'
+      ? opinions
+      : opinions.filter((opinion) => opinion.type === opinionFilter)
+  const participantCount = new Set(
+    opinions.map((opinion) => opinion.author.id),
+  ).size
 
   const handleOpinionSubmit = async (draft: OpinionDraft) => {
     setIsSubmitting(true)
@@ -132,11 +155,9 @@ function ConsensusDevPage() {
   return (
     <main className={styles.page} data-consensus-dev-page>
       <header className={styles.pageHeader}>
-        <p className={styles.eyebrow}>제안 #proposal-1</p>
-        <h1 className={styles.title}>팀 의견 수렴</h1>
-        <p className={styles.description}>
-          MVP 범위와 일정에 대한 의견을 선택하고 근거를 남겨주세요.
-        </p>
+        <p className={styles.eyebrow}>의견을 수렴 중인 제안</p>
+        <h1 className={styles.title}>{proposal.title}</h1>
+        <p className={styles.description}>{proposal.description}</p>
       </header>
 
       <section className={styles.section} aria-label="의견 작성 폼">
@@ -160,7 +181,7 @@ function ConsensusDevPage() {
       <section className={styles.section} aria-labelledby="opinion-list-title">
         <div className={styles.listHeader}>
           <h2 id="opinion-list-title" className={styles.sectionTitle}>
-            팀원 의견 <span>{opinions.length}</span>
+            팀원 의견 <span>{participantCount}/{TEAM_MEMBER_COUNT}</span>
           </h2>
           <button
             type="button"
@@ -171,24 +192,34 @@ function ConsensusDevPage() {
             {isSummaryLoading ? '요약 중...' : '의견 요약'}
           </button>
         </div>
-        <dl className={styles.counts} aria-label="의견 현황">
-          <div>
-            <dt>찬성</dt>
-            <dd>{opinionCounts.AGREE}</dd>
-          </div>
-          <div>
-            <dt>조건부</dt>
-            <dd>{opinionCounts.CONDITIONAL}</dd>
-          </div>
-          <div>
-            <dt>반대</dt>
-            <dd>{opinionCounts.DISAGREE}</dd>
-          </div>
-        </dl>
+        <div className={styles.filters} aria-label="의견 유형 필터">
+          {filterOptions.map((option) => {
+            const count =
+              option.value === 'ALL'
+                ? opinions.length
+                : opinionCounts[option.value]
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`${styles.filterButton} ${
+                  opinionFilter === option.value ? styles.filterSelected : ''
+                }`}
+                aria-pressed={opinionFilter === option.value}
+                onClick={() => setOpinionFilter(option.value)}
+              >
+                <span>{option.label}</span>
+                <strong>{count}</strong>
+              </button>
+            )
+          })}
+        </div>
         <OpinionList
-          opinions={opinions}
+          opinions={filteredOpinions}
           currentUserId={currentUser.id}
           onDelete={handleOpinionDelete}
+          emptyMessage="선택한 유형의 의견이 아직 없습니다."
         />
       </section>
 
