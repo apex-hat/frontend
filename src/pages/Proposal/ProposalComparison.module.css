@@ -1,0 +1,82 @@
+.container {
+  max-width: 640px;
+  margin: 16px auto 0;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.compareRow {
+  display: flex;
+  gap: 16px;
+}
+
+.compareCol {
+  flex: 1;
+  min-width: 0;
+}
+
+.colLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.textBox {
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 90px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.originalBox {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.suggestedBox {
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.applyButton {
+  padding: 8px 16px;
+  background-color: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.appliedBadge {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}

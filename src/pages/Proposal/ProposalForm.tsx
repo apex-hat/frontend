@@ -2,6 +2,7 @@ import { useState } from "react";
 import styles from "./ProposalForm.module.css";
 import resultStyles from "./CultureAnalysisResult.module.css";
 import CultureAnalysisResult from "./CultureAnalysisResult";
+import ProposalComparison from "./ProposalComparison";
 import { getMockCultureAnalysis } from "../../mocks/cultureAnalysis";
 import {
   CULTURE_OPTIONS,
@@ -11,6 +12,8 @@ import {
 
 // 1단계: 제안 작성 폼
 // 2단계: "AI 문화 맥락 분석 요청" 버튼 → mock 데이터로 분석 결과 화면 표시
+// 3단계: 원문 / AI 수정 제안 비교 UI
+// 4단계: AI 수정안 적용 버튼 (적용 후에도 직접 수정 가능)
 
 const initialFormData: ProposalFormData = {
   title: "",
@@ -26,6 +29,9 @@ export default function ProposalForm() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] =
     useState<CultureAnalysisResultType | null>(null);
+  // 분석을 요청했던 시점의 원문 스냅샷 (비교 UI에서 "원문" 쪽에 고정으로 보여주기 위함)
+  const [originalContent, setOriginalContent] = useState("");
+  const [isApplied, setIsApplied] = useState(false);
 
   const handleChange = (field: keyof ProposalFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -45,6 +51,8 @@ export default function ProposalForm() {
     setError(null);
     setIsAnalyzing(true);
     setAnalysisResult(null);
+    setIsApplied(false);
+    setOriginalContent(formData.content);
 
     // TODO(나중에): getMockCultureAnalysis 대신 실제 백엔드 API 호출로 교체
     // 예: const result = await axios.post('/api/proposals/analyze', formData)
@@ -52,6 +60,15 @@ export default function ProposalForm() {
 
     setAnalysisResult(result);
     setIsAnalyzing(false);
+  };
+
+  const handleApplyRevision = () => {
+    if (!analysisResult) return;
+    setFormData((prev) => ({
+      ...prev,
+      content: analysisResult.suggestedRevision,
+    }));
+    setIsApplied(true);
   };
 
   return (
@@ -148,7 +165,18 @@ export default function ProposalForm() {
       {isAnalyzing && (
         <p className={resultStyles.loadingText}>AI가 분석하고 있습니다...</p>
       )}
-      {analysisResult && <CultureAnalysisResult result={analysisResult} />}
+
+      {analysisResult && (
+        <>
+          <CultureAnalysisResult result={analysisResult} />
+          <ProposalComparison
+            originalContent={originalContent}
+            suggestedRevision={analysisResult.suggestedRevision}
+            applied={isApplied}
+            onApply={handleApplyRevision}
+          />
+        </>
+      )}
     </div>
   );
 }
