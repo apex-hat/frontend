@@ -4,6 +4,7 @@ import resultStyles from "./CultureAnalysisResult.module.css";
 import CultureAnalysisResult from "./CultureAnalysisResult";
 import ProposalComparison from "./ProposalComparison";
 import { getMockCultureAnalysis } from "../../mocks/cultureAnalysis";
+import { submitMockProposal } from "../../mocks/proposal";
 import {
   CULTURE_OPTIONS,
   type ProposalFormData,
@@ -14,6 +15,7 @@ import {
 // 2단계: "AI 문화 맥락 분석 요청" 버튼 → mock 데이터로 분석 결과 화면 표시
 // 3단계: 원문 / AI 수정 제안 비교 UI
 // 4단계: AI 수정안 적용 버튼 (적용 후에도 직접 수정 가능)
+// 5단계: 최종 제안 등록 (mock, 백엔드 API 완성되면 axios 호출로 교체)
 
 const initialFormData: ProposalFormData = {
   title: "",
@@ -22,6 +24,17 @@ const initialFormData: ProposalFormData = {
   targetCulture: CULTURE_OPTIONS[0],
   deadline: "",
 };
+
+// 오늘 날짜를 date input의 min 속성에 쓸 수 있는 "yyyy-mm-dd" 형식으로 반환.
+// new Date().toISOString()은 UTC 기준이라 한국 시간대에서는 날짜가 하루 밀릴 수 있어서
+// 로컬 시간 기준으로 직접 조합함.
+function getTodayDateString(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export default function ProposalForm() {
   const [formData, setFormData] = useState<ProposalFormData>(initialFormData);
@@ -32,20 +45,32 @@ export default function ProposalForm() {
   // 분석을 요청했던 시점의 원문 스냅샷 (비교 UI에서 "원문" 쪽에 고정으로 보여주기 위함)
   const [originalContent, setOriginalContent] = useState("");
   const [isApplied, setIsApplied] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
+
+  // 마감 기한은 오늘 이전 날짜를 선택할 수 없도록 date input의 min으로 사용
+  const todayStr = getTodayDateString();
 
   const handleChange = (field: keyof ProposalFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const isDeadlineValid =
+    formData.deadline !== "" && formData.deadline >= todayStr;
+
   const isFormValid =
     formData.title.trim() !== "" &&
     formData.content.trim() !== "" &&
     formData.targetTeam.trim() !== "" &&
-    formData.deadline !== "";
+    isDeadlineValid;
 
   const handleAnalyzeClick = async () => {
     if (!isFormValid) {
-      setError("제목, 내용, 대상 팀, 마감 기한을 모두 입력해주세요.");
+      setError(
+        !isDeadlineValid && formData.deadline !== ""
+          ? "마감 기한은 오늘 이후 날짜로 설정해주세요."
+          : "제목, 내용, 대상 팀, 마감 기한을 모두 입력해주세요.",
+      );
       return;
     }
     setError(null);
@@ -69,6 +94,26 @@ export default function ProposalForm() {
       content: analysisResult.suggestedRevision,
     }));
     setIsApplied(true);
+  };
+
+  const handleSubmitClick = async () => {
+    if (!isFormValid) {
+      setError(
+        !isDeadlineValid && formData.deadline !== ""
+          ? "마감 기한은 오늘 이후 날짜로 설정해주세요."
+          : "제목, 내용, 대상 팀, 마감 기한을 모두 입력해주세요.",
+      );
+      return;
+    }
+    setError(null);
+    setIsSubmitting(true);
+
+    // TODO(나중에): submitMockProposal 대신 실제 백엔드 API 호출로 교체
+    // 예: const res = await axios.post('/api/proposals', formData)
+    const res = await submitMockProposal(formData);
+
+    setSubmittedId(res.id);
+    setIsSubmitting(false);
   };
 
   return (
@@ -144,6 +189,7 @@ export default function ProposalForm() {
           id="deadline"
           className={styles.input}
           type="date"
+          min={todayStr}
           value={formData.deadline}
           onChange={(e) => handleChange("deadline", e.target.value)}
         />
@@ -176,6 +222,23 @@ export default function ProposalForm() {
             onApply={handleApplyRevision}
           />
         </>
+      )}
+
+      {submittedId ? (
+        <div className={styles.successBox}>
+          제안이 등록되었습니다. (등록 ID: {submittedId})
+        </div>
+      ) : (
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.primaryButton}
+            onClick={handleSubmitClick}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "등록 중..." : "최종 제안 등록"}
+          </button>
+        </div>
       )}
     </div>
   );

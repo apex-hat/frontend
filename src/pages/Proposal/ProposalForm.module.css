@@ -84,3 +84,13 @@
   color: #dc2626;
   font-size: 12px;
 }
+
+.successBox {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  color: #166534;
+  font-size: 14px;
+}
