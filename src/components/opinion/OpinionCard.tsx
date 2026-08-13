@@ -13,12 +13,6 @@ const opinionLabels: Record<OpinionType, string> = {
   CONDITIONAL: '조건부 찬성',
 }
 
-const opinionBadgeClasses: Record<OpinionType, string> = {
-  AGREE: styles.agree,
-  DISAGREE: styles.disagree,
-  CONDITIONAL: styles.conditional,
-}
-
 const opinionCardClasses: Record<OpinionType, string> = {
   AGREE: styles.cardAgree,
   DISAGREE: styles.cardDisagree,
@@ -40,11 +34,9 @@ function OpinionCard({ opinion, canDelete = false, onDelete }: OpinionCardProps)
             <p className={styles.company}>{opinion.author.company}</p>
           )}
         </div>
-        <span
-          className={`${styles.badge} ${opinionBadgeClasses[opinion.type]}`}
-          aria-label={`의견: ${opinionLabels[opinion.type]}`}
-          title={opinionLabels[opinion.type]}
-        />
+        <span className={styles.visuallyHidden}>
+          의견: {opinionLabels[opinion.type]}
+        </span>
       </header>
 
       <p className={styles.comment}>{opinion.comment}</p>
