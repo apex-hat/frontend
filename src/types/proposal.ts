@@ -32,3 +32,13 @@ export const CULTURE_OPTIONS = [
   "일본",
   "독일",
 ] as const;
+
+// 6~7단계: 제안 목록/상세 화면에서 쓰는 타입.
+// 등록된 제안 하나 = 작성 폼 데이터 + 서버가 매겨준 id/생성일/위험도.
+// 실제 백엔드 API(GET /api/proposals, GET /api/proposals/{id})가 완성되면
+// 응답 형태에 맞춰 이 타입만 수정하면 됨.
+export interface Proposal extends ProposalFormData {
+  id: string;
+  createdAt: string; // ISO 문자열
+  riskLevel: CultureAnalysisResult["riskLevel"];
+}
