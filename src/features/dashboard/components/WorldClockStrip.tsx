@@ -39,9 +39,10 @@ export default function WorldClockStrip({ members }: WorldClockStripProps) {
       <div className="flex items-baseline justify-between mb-6">
         <div>
           <h2 className="font-display text-lg text-ink">지금, 팀은 어디쯤 깨어있을까요</h2>
-          <p className="text-xs text-ink-dim mt-1">현지 시각 기준 자동 갱신 · 1분마다 갱신</p>
         </div>
-        <span className="font-mono text-xs text-ink-faint">{now.toLocaleDateString("ko-KR")}</span>
+        <span className="font-mono text-xs text-ink-faint">
+          {now.toLocaleDateString("ko-KR").replace(/\.$/, "")}
+        </span>
       </div>
 
       <div className="relative pt-9 pb-7">

@@ -176,7 +176,7 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
         </div>
       </form>
 
-      <p className="flex items-center justify-center gap-2 text-sm text-ink-dim mt-6 text-center">
+      <p className="flex items-center justify-center gap-2 text-sm text-ink-dim mt-4 text-center">
         <span>이미 계정이 있으신가요?</span>
         <button
           type="button"

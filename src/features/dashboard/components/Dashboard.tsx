@@ -56,9 +56,6 @@ export default function Dashboard({ user, onLogout, onOpenProposals }: Dashboard
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="font-display text-lg text-ink">Meridian</span>
-            <span className="font-mono text-[10px] text-ink-faint border border-surface-3 rounded-full px-2 py-0.5">
-              MOCK DATA
-            </span>
           </div>
 
           <div className="flex items-center gap-3">
