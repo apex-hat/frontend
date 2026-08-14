@@ -36,8 +36,8 @@ const MEMBER_PROFILES = [
 
 function GroupAvatar({ compact = false }: { compact?: boolean }) {
   return (
-    <span className={`flex shrink-0 items-center justify-center rounded-xl border border-surface-3 bg-surface-2 text-ink-dim ${compact ? "h-8 w-8" : "h-10 w-10"}`} aria-hidden="true">
-      <svg width={compact ? 15 : 18} height={compact ? 15 : 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+    <span className={`flex shrink-0 items-center justify-center rounded-lg border border-surface-3 bg-surface-2 text-ink-dim ${compact ? "h-7 w-7" : "h-8 w-8"}`} aria-hidden="true">
+      <svg width={compact ? 13 : 15} height={compact ? 13 : 15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
         <circle cx="9" cy="8" r="3" />
         <circle cx="17" cy="10" r="2.5" />
         <path d="M3.5 18.5c.5-3.2 2.4-5 5.5-5s5 1.8 5.5 5" />
@@ -65,6 +65,7 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
   const [createdGroup, setCreatedGroup] = useState<WorkspaceGroup | null>(null);
   const [copied, setCopied] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ group: WorkspaceGroup; x: number; y: number } | null>(null);
+  const [chatContextMenu, setChatContextMenu] = useState<{ contact: WorkspaceContact; x: number; y: number } | null>(null);
   const [memberGroup, setMemberGroup] = useState<WorkspaceGroup | null>(null);
   const [leaveTarget, setLeaveTarget] = useState<WorkspaceGroup | null>(null);
   const [groupActionStatus, setGroupActionStatus] = useState<string | null>(null);
@@ -76,7 +77,10 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
   useEffect(() => {
     const syncGroups = () => setGroups(loadGroups());
     const syncContacts = () => setContacts(loadContacts());
-    const closeContextMenu = () => setContextMenu(null);
+    const closeContextMenu = () => {
+      setContextMenu(null);
+      setChatContextMenu(null);
+    };
     window.addEventListener(GROUPS_CHANGED_EVENT, syncGroups);
     window.addEventListener(CONTACTS_CHANGED_EVENT, syncContacts);
     window.addEventListener("click", closeContextMenu);
@@ -160,6 +164,7 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
       saveChatPreferences(next);
       return next;
     });
+    setChatContextMenu(null);
   };
 
   const sendMessage = (event: FormEvent) => {
@@ -201,7 +206,7 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
       <aside className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
         {mode === "groups" && <div>
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-ink">그룹 관리</h2>
+            <h2 className="text-xs font-semibold text-ink">그룹 관리</h2>
             <button
               type="button"
               onClick={openGroupModal}
@@ -214,21 +219,22 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
               </svg>
             </button>
           </div>
-          <div className="mt-4 border-t border-surface-3">
+          <div className="mt-3 border-t border-surface-3">
             {groups.map((group) => (
               <div
                 key={group.id}
                 onContextMenu={(event) => {
                   event.preventDefault();
+                  setChatContextMenu(null);
                   setContextMenu({ group, x: event.clientX, y: event.clientY });
                 }}
-                className="group flex items-center gap-3 border-b border-surface-3 px-1 py-3 transition hover:bg-surface-2/60"
+                className="group flex items-center gap-2.5 border-b border-surface-3 px-1 py-2.5 transition hover:bg-surface-2/60"
                 title="우클릭하여 그룹 관리"
               >
                 <GroupAvatar compact />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-medium text-ink">{group.name}</span>
-                  <span className="mt-0.5 block text-[10px] text-ink-faint">멤버 {group.memberCount}명</span>
+                  <span className="block truncate text-[11px] font-medium text-ink">{group.name}</span>
+                  <span className="mt-0.5 block text-[9px] text-ink-faint">멤버 {group.memberCount}명</span>
                 </span>
                 <button
                   type="button"
@@ -294,15 +300,23 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
             </div>
           ) : (
             <div>
-              <h2 className="text-sm font-semibold text-ink">메시지 관리</h2>
-              <div className="mt-4 border-t border-surface-3">
+              <h2 className="text-xs font-semibold text-ink">메시지 관리</h2>
+              <div className="mt-3 border-t border-surface-3">
                 {chatList.map(({ contact, latestMessage }) => (
-                  <div key={contact.id} className="group flex items-center gap-3 border-b border-surface-3 px-1 py-3 transition hover:bg-surface-2/60">
+                  <div
+                    key={contact.id}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      setContextMenu(null);
+                      setChatContextMenu({ contact, x: event.clientX, y: event.clientY });
+                    }}
+                    className="flex items-center gap-2.5 border-b border-surface-3 px-1 py-2.5 transition hover:bg-surface-2/60"
+                  >
                     <button type="button" onClick={() => openChat(contact)} aria-label={`${contact.name} 대화 열기`} className="shrink-0">
                       {contact.id.startsWith("group-") ? (
                         <GroupAvatar />
                       ) : (
-                        <span className="flex h-10 w-10 items-center justify-center rounded-full text-[11px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
                           {contact.name.slice(0, 1)}
                         </span>
                       )}
@@ -310,24 +324,13 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <button type="button" onClick={() => openChat(contact)} className="min-w-0 flex-1 truncate text-left text-xs font-medium text-ink">
+                        <button type="button" onClick={() => openChat(contact)} className="min-w-0 flex-1 truncate text-left text-[11px] font-medium text-ink">
                           {contact.name}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => togglePin(contact.id)}
-                          aria-label={chatPreferences.pinnedIds.includes(contact.id) ? `${contact.name} 고정 해제` : `${contact.name} 고정`}
-                          title={chatPreferences.pinnedIds.includes(contact.id) ? "고정 해제" : "상단 고정"}
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-ink-faint transition hover:bg-surface-3 hover:text-ink ${chatPreferences.pinnedIds.includes(contact.id) ? "opacity-100" : "opacity-40 group-hover:opacity-100"}`}
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill={chatPreferences.pinnedIds.includes(contact.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="m14 4 6 6-3 1-4 4-1 5-2-2-2-2-4 4-1-1 4-4-2-2 5-1 4-4 1-3Z" />
-                          </svg>
                         </button>
                         <span className="shrink-0 text-[9px] text-ink-faint">{formatChatTime(latestMessage?.createdAt)}</span>
                       </div>
                       <button type="button" onClick={() => openChat(contact)} className="mt-1 flex w-full items-center gap-2 text-left">
-                        <span className="min-w-0 flex-1 truncate text-[10px] text-ink-faint">
+                        <span className="min-w-0 flex-1 truncate text-[9px] text-ink-faint">
                           {latestMessage ? `${latestMessage.sender === "me" ? "나: " : ""}${latestMessage.text}` : "대화를 시작해보세요"}
                         </span>
                         {chatPreferences.unreadIds.includes(contact.id) && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-night" aria-label="읽지 않은 메시지" />}
@@ -351,6 +354,22 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
           <button type="button" onClick={() => void copyGroupLink(contextMenu.group)} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">그룹 링크 복사</button>
           <div className="my-1 border-t border-surface-3" />
           <button type="button" onClick={() => { setLeaveTarget(contextMenu.group); setContextMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-alert hover:bg-alert/10">그룹 나가기</button>
+        </div>
+      )}
+
+      {chatContextMenu && (
+        <div
+          className="fixed z-50 w-40 overflow-hidden rounded-lg border border-surface-3 bg-surface-2 py-1 shadow-panel"
+          style={{ left: Math.min(chatContextMenu.x, window.innerWidth - 175), top: Math.min(chatContextMenu.y, window.innerHeight - 70) }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => togglePin(chatContextMenu.contact.id)}
+            className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink"
+          >
+            {chatPreferences.pinnedIds.includes(chatContextMenu.contact.id) ? "고정 해제" : "상단 고정하기"}
+          </button>
         </div>
       )}
 

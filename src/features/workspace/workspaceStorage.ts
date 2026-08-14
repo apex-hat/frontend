@@ -30,7 +30,7 @@ export interface ChatPreferences {
 const GROUPS_KEY = "meridian.workspace-groups";
 const CONTACTS_KEY = "meridian.workspace-contacts";
 const MESSAGES_KEY = "meridian.workspace-messages";
-const CHAT_PREFERENCES_KEY = "meridian.workspace-chat-preferences";
+const CHAT_PREFERENCES_KEY = "meridian.workspace-chat-preferences-v2";
 export const GROUPS_CHANGED_EVENT = "meridian:groups-changed";
 export const CONTACTS_CHANGED_EVENT = "meridian:contacts-changed";
 
@@ -64,7 +64,7 @@ const DEFAULT_MESSAGES: Record<string, ChatMessage[]> = {
 };
 
 const DEFAULT_CHAT_PREFERENCES: ChatPreferences = {
-  pinnedIds: ["group-product-design"],
+  pinnedIds: [],
   unreadIds: ["u-mina", "group-global-development"],
 };
 

@@ -127,8 +127,8 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
         </div>
       </header>
 
-      <main className="grid w-full lg:grid-cols-[18%_64%_18%]">
-        <div className="hidden min-h-[calc(100vh-65px)] border-r border-surface-3 px-4 py-6 lg:block 2xl:px-5">
+      <main className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_64%_18%]">
+        <div className="hidden h-full border-r border-surface-3 px-4 py-5 lg:block">
           <WorkspaceSidebar user={user} mode="messages" />
         </div>
 
@@ -231,7 +231,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
           </section>
         </div>
 
-        <div className="hidden min-h-[calc(100vh-65px)] border-l border-surface-3 px-4 py-6 lg:block 2xl:px-5">
+        <div className="hidden h-full border-l border-surface-3 px-4 py-5 lg:block">
           <WorkspaceSidebar user={user} mode="groups" />
         </div>
       </main>

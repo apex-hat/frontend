@@ -146,8 +146,8 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
         </div>
       </header>
 
-      <div className="grid w-full lg:grid-cols-[18%_64%_18%]">
-        <div className="hidden min-h-[calc(100vh-65px)] border-r border-surface-3 px-4 py-6 lg:block 2xl:px-5">
+      <div className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_64%_18%]">
+        <div className="hidden h-full border-r border-surface-3 px-4 py-5 lg:block">
           <WorkspaceSidebar user={user} mode="messages" />
         </div>
         <div className="min-w-0 px-4 sm:px-6 2xl:px-8">
@@ -159,7 +159,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
             <Route path="*" element={<Navigate to="/proposals" replace />} />
           </Routes>
         </div>
-        <div className="hidden min-h-[calc(100vh-65px)] border-l border-surface-3 px-4 py-6 lg:block 2xl:px-5">
+        <div className="hidden h-full border-l border-surface-3 px-4 py-5 lg:block">
           <WorkspaceSidebar user={user} mode="groups" />
         </div>
       </div>
