@@ -47,3 +47,8 @@ body {
   scrollbar-color: #2e3650 transparent;
   scrollbar-width: thin;
 }
+
+.auth-navigating,
+.auth-navigating * {
+  cursor: wait !important;
+}

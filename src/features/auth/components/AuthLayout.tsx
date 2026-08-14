@@ -5,6 +5,7 @@ interface AuthLayoutProps {
   children: ReactNode;
   eyebrow: string;
   title: ReactNode;
+  isNavigating?: boolean;
 }
 
 /**
@@ -16,9 +17,14 @@ export default function AuthLayout({
   children,
   eyebrow,
   title,
+  isNavigating = false,
 }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen grid lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,1fr)]">
+    <div
+      className={`min-h-screen grid lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,1fr)] ${
+        isNavigating ? "auth-navigating" : ""
+      }`}
+    >
       <div className="relative hidden lg:flex flex-col justify-center overflow-hidden bg-surface px-10 py-10 xl:px-14 xl:py-12">
         <div
           className="pointer-events-none absolute inset-0 opacity-90"

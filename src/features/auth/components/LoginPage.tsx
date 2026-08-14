@@ -47,6 +47,7 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
     <AuthLayout
       eyebrow="로그인"
       title={<RotatingGreeting />}
+      isNavigating={isNavigating}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
