@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import ProposalForm from "./ProposalForm";
-import ProposalList from "./ProposalList";
-import ProposalDetail from "./ProposalDetail";
 import ConsensusDevPage from "../consensus/ConsensusDevPage";
 import { getMockProposalById } from "../../mocks/proposalList";
 import { loadSubmittedProposals } from "../../mocks/proposal";
@@ -12,6 +10,7 @@ import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSideb
 import UserHandleButton from "../../features/workspace/components/UserHandleButton";
 import FriendManagerModal from "../../features/workspace/components/FriendManagerModal";
 import NotificationPanel from "../../features/dashboard/components/NotificationPanel";
+import { MOCK_PROPOSAL_CONTENT } from "../../features/dashboard/data/mockData";
 
 interface Props {
   user: AuthUser;
@@ -20,33 +19,8 @@ interface Props {
   onLogout: () => void;
 }
 
-function ProposalListRoute() {
-  const navigate = useNavigate();
-
-  return (
-    <ProposalList
-      onSelect={(id) => navigate(`/proposals/${id}`)}
-      onCreateNew={() => navigate("/proposals/new")}
-    />
-  );
-}
-
 function ProposalFormRoute({ onSubmitted }: { onSubmitted: () => void }) {
   return <ProposalForm onSubmitted={onSubmitted} />;
-}
-
-function ProposalDetailRoute() {
-  const navigate = useNavigate();
-  const { proposalId } = useParams();
-
-  if (!proposalId) return <Navigate to="/proposals" replace />;
-
-  return (
-    <ProposalDetail
-      proposalId={proposalId}
-      onOpenOpinions={() => navigate(`/proposals/${proposalId}/opinions`)}
-    />
-  );
 }
 
 function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
@@ -70,7 +44,7 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
       setProposal(dashboardProposal ? {
         id: dashboardProposal.id,
         title: dashboardProposal.title,
-        content: submittedProposal?.content ?? "제안 내용을 확인하고 팀의 방향을 선택해 의견을 남겨주세요.",
+        content: submittedProposal?.content ?? MOCK_PROPOSAL_CONTENT[dashboardProposal.id] ?? "제안 내용을 확인하고 의견을 남겨주세요.",
       } : undefined);
     });
 
@@ -79,12 +53,12 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
     };
   }, [proposalId]);
 
-  if (!proposalId) return <Navigate to="/proposals" replace />;
+  if (!proposalId) return <Navigate to="/dashboard" replace />;
   if (proposal === null) {
     return <p className="py-16 text-center text-sm text-ink-dim">불러오는 중...</p>;
   }
   if (!proposal) {
-    return <Navigate to="/proposals" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (
@@ -105,7 +79,6 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
 
 export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, onLogout }: Props) {
   const navigate = useNavigate();
-  const location = useLocation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
 
@@ -133,23 +106,11 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
     if (notification.type === "FRIEND_REQUEST") {
       setIsFriendManagerOpen(true);
     } else if (notification.proposal_id) {
-      navigate(`/proposals/${notification.proposal_id}`);
+      navigate(`/proposals/${notification.proposal_id}/opinions`);
     }
   };
 
   const handleBack = () => {
-    if (location.pathname.endsWith("/opinions")) {
-      navigate(location.pathname.replace(/\/opinions$/, ""));
-      return;
-    }
-    if (location.pathname === "/proposals/new") {
-      onBackToDashboard();
-      return;
-    }
-    if (location.pathname !== "/proposals") {
-      navigate("/proposals");
-      return;
-    }
     onBackToDashboard();
   };
 
@@ -193,11 +154,10 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
             </svg>
           </button>
           <Routes>
-            <Route index element={<ProposalListRoute />} />
+            <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="new" element={<ProposalFormRoute onSubmitted={onBackToDashboard} />} />
-            <Route path=":proposalId" element={<ProposalDetailRoute />} />
             <Route path=":proposalId/opinions" element={<ProposalOpinionsRoute user={user} />} />
-            <Route path="*" element={<Navigate to="/proposals" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
       </div>

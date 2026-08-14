@@ -220,7 +220,7 @@ function ConsensusDevPage({
           opinions={filteredOpinions}
           currentUserId={currentUser.id}
           onDelete={handleOpinionDelete}
-          emptyMessage="선택한 유형의 의견이 아직 없습니다."
+          emptyMessage={opinionFilter ? "선택한 유형의 의견이 아직 없습니다." : "아직 작성된 의견이 없습니다."}
         />
       </section>
 

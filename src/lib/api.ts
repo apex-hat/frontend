@@ -16,7 +16,7 @@ import { loadStoredOpinions } from "../services/opinionStorage";
 // fetch/mock 분기는 절대 컴포넌트 안에 넣지 않는다.
 const USE_MOCK = true;
 
-const MOCK_DELAY_MS = 400;
+const MOCK_DELAY_MS = 120;
 const delay = <T,>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value), MOCK_DELAY_MS));
 
 /** fetch는 401/500 같은 HTTP 에러도 reject하지 않으므로, 응답을 쓰기 전에 res.ok를 직접 확인한다. */

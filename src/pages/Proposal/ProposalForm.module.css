@@ -142,7 +142,7 @@
 
 .deadlineRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 226px;
+  grid-template-columns: minmax(0, 1fr) 204px;
   gap: 8px;
 }
 

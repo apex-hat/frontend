@@ -81,6 +81,12 @@ export const MOCK_PROPOSALS: Proposal[] = [
   },
 ];
 
+export const MOCK_PROPOSAL_CONTENT: Record<string, string> = {
+  "p-1": "신규 입사자가 필요한 정보를 더 빠르게 확인할 수 있도록 온보딩 문서를 인터랙티브 체크리스트 형태로 전환하는 안입니다.",
+  "p-2": "시차가 있는 팀원도 부담 없이 참여할 수 있도록 주간 스탠드업을 비동기 텍스트 업데이트 방식으로 전환하는 안입니다.",
+  "p-3": "충분한 검토 시간을 확보하기 위해 코드 리뷰 응답 기준을 24시간에서 48시간으로 조정하는 안입니다.",
+};
+
 export const MOCK_OPINIONS: Opinion[] = [
   // p-1: 온보딩 문서 전환 — u-sofia, u-haruto, u-priya, u-jack 미응답
   { id: "o-1", proposal_id: "p-1", user_id: "u-jiwoo", stance: "AGREE", comment: "제작 비용도 줄고 유지보수도 쉬워질 것 같아요.", created_at: hoursAgo(30) },

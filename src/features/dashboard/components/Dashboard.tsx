@@ -207,18 +207,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                   </button>
 
                   {isOpen && (
-                    <div className="border-t border-surface-3 px-5 pb-4 pt-3">
-                      {!isComplete && (
-                        <div className="mb-2 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => onOpenProposal(proposal.id)}
-                            className="rounded-lg border border-surface-3 px-3 py-1.5 text-[11px] font-medium text-ink-dim transition hover:border-ink-faint hover:text-ink"
-                          >
-                            의견 작성
-                          </button>
-                        </div>
-                      )}
+                    <div className="border-t border-surface-3 px-5 pb-4 pt-1">
                       <div className="divide-y divide-surface-3/60">
                       {orderedMembers.map((member) => {
                         const opinion = opinions.find((o) => o.user_id === member.user_id);
@@ -229,6 +218,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                             opinion={opinion}
                             viewerTimezone={user.timezone}
                             viewerLanguage={user.preferred_language}
+                            onWriteOpinion={!isComplete && member.user_id === user.id ? () => onOpenProposal(proposal.id) : undefined}
                           />
                         );
                       })}

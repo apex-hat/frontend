@@ -15,9 +15,9 @@
   text-align: left;
 }
 
-.pageHeader { margin-bottom: 32px; }
-.title { margin: 0; color: #f3f4f6; font-family: "Outfit", system-ui, sans-serif; font-size: clamp(26px, 5vw, 36px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.18; }
-.description { margin: 11px 0 0; color: #9ca3af; font-size: 14px; line-height: 1.6; }
+.pageHeader { margin-bottom: 26px; }
+.title { margin: 0; color: #f3f4f6; font-family: "Outfit", system-ui, sans-serif; font-size: clamp(24px, 4vw, 31px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.22; }
+.description { margin: 13px 0 0; padding: 12px 14px; border: 1px solid #252b3c; border-radius: 11px; color: #b4bac7; background: #171a22; font-size: 13px; line-height: 1.65; }
 .status { margin: 10px 0 0; color: #a8b5ee; font-size: 12px; }
 .section + .section { margin-top: 40px; }
 .sectionTitle { display: flex; align-items: center; gap: 9px; margin: 0 0 16px; color: #f3f4f6; font-family: "Outfit", system-ui, sans-serif; font-size: 19px; font-weight: 600; }
