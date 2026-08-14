@@ -25,14 +25,16 @@ export default function AuthLayout({ children, eyebrow, title }: AuthLayoutProps
         />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.06),transparent_45%)]" />
 
-        <div className="relative z-10 max-w-md">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-dim mb-4">
-            Meridian
-          </p>
-          <h1 className="font-display text-4xl leading-tight text-ink mb-4">
-            지구 반대편 동료도,
-            <br />
-            같은 회의실에 있는 것처럼
+        <div className="relative z-10 max-w-xl -translate-y-4">
+          <div className="mb-8 flex items-center gap-4">
+            <span className="h-px w-10 bg-day" aria-hidden="true" />
+            <p className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink">
+              Meridian
+            </p>
+          </div>
+          <h1 className="font-display text-5xl xl:text-[3.5rem] font-medium leading-[1.12] tracking-[-0.035em] text-ink">
+            <span className="block">지구 반대편 동료도,</span>
+            <span className="mt-2 block text-day">같은 회의실에 있는 것처럼</span>
           </h1>
         </div>
 
