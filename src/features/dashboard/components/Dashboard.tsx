@@ -107,21 +107,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
               onSelect={selectNotification}
             />
             <div className="flex items-center gap-2 pl-3 border-l border-surface-3">
-              <UserHandleButton user={user} />
-              <button
-                type="button"
-                onClick={onOpenProfile}
-                className="text-xs text-ink-dim hover:text-ink border border-surface-3 rounded-full px-3 py-1.5 transition-colors"
-              >
-                내정보
-              </button>
-              <button
-                type="button"
-                onClick={onLogout}
-                className="text-xs text-ink-dim hover:text-ink border border-surface-3 rounded-full px-3 py-1.5 transition-colors"
-              >
-                로그아웃
-              </button>
+              <UserHandleButton user={user} onOpenProfile={onOpenProfile} onLogout={onLogout} />
             </div>
           </div>
         </div>

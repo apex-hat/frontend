@@ -106,14 +106,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <UserHandleButton user={user} />
-            <button
-              type="button"
-              onClick={onLogout}
-              className="rounded-full border border-surface-3 px-3 py-1.5 text-xs text-ink-dim transition-colors hover:text-ink"
-            >
-              로그아웃
-            </button>
+            <UserHandleButton user={user} onLogout={onLogout} />
           </div>
         </div>
       </header>
