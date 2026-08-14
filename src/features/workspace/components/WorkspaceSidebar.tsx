@@ -6,12 +6,12 @@ import {
   createGroup,
   getInviteUrl,
   leaveGroup,
-  loadChatPreferences,
   loadContacts,
   loadGroups,
   loadMessages,
+  loadUnreadChatIds,
   saveMessages,
-  saveChatPreferences,
+  saveUnreadChatIds,
   type ChatMessage,
   type WorkspaceContact,
   type WorkspaceGroup,
@@ -19,7 +19,6 @@ import {
 
 interface WorkspaceSidebarProps {
   user: AuthUser;
-  mode: "messages" | "groups";
 }
 
 const MEMBER_PROFILES = [
@@ -57,7 +56,7 @@ function formatChatTime(value?: string) {
     : `${date.getMonth() + 1}. ${date.getDate()}`;
 }
 
-export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) {
+export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
   const [groups, setGroups] = useState(loadGroups);
   const [contacts, setContacts] = useState(loadContacts);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -65,21 +64,19 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
   const [createdGroup, setCreatedGroup] = useState<WorkspaceGroup | null>(null);
   const [copied, setCopied] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ group: WorkspaceGroup; x: number; y: number } | null>(null);
-  const [chatContextMenu, setChatContextMenu] = useState<{ contact: WorkspaceContact; x: number; y: number } | null>(null);
   const [memberGroup, setMemberGroup] = useState<WorkspaceGroup | null>(null);
   const [leaveTarget, setLeaveTarget] = useState<WorkspaceGroup | null>(null);
   const [groupActionStatus, setGroupActionStatus] = useState<string | null>(null);
   const [activeContact, setActiveContact] = useState<WorkspaceContact | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageText, setMessageText] = useState("");
-  const [chatPreferences, setChatPreferences] = useState(loadChatPreferences);
+  const [unreadChatIds, setUnreadChatIds] = useState(loadUnreadChatIds);
 
   useEffect(() => {
     const syncGroups = () => setGroups(loadGroups());
     const syncContacts = () => setContacts(loadContacts());
     const closeContextMenu = () => {
       setContextMenu(null);
-      setChatContextMenu(null);
     };
     window.addEventListener(GROUPS_CHANGED_EVENT, syncGroups);
     window.addEventListener(CONTACTS_CHANGED_EVENT, syncContacts);
@@ -144,27 +141,13 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
       createdAt: new Date().toISOString(),
     }]);
     setMessageText("");
-    if (chatPreferences.unreadIds.includes(contact.id)) {
-      setChatPreferences((current) => {
-        const next = { ...current, unreadIds: current.unreadIds.filter((id) => id !== contact.id) };
-        saveChatPreferences(next);
+    if (unreadChatIds.includes(contact.id)) {
+      setUnreadChatIds((current) => {
+        const next = current.filter((id) => id !== contact.id);
+        saveUnreadChatIds(next);
         return next;
       });
     }
-  };
-
-  const togglePin = (contactId: string) => {
-    setChatPreferences((current) => {
-      const next = {
-        ...current,
-        pinnedIds: current.pinnedIds.includes(contactId)
-          ? current.pinnedIds.filter((id) => id !== contactId)
-          : [...current.pinnedIds, contactId],
-      };
-      saveChatPreferences(next);
-      return next;
-    });
-    setChatContextMenu(null);
   };
 
   const sendMessage = (event: FormEvent) => {
@@ -194,68 +177,12 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
       const conversationMessages = loadMessages(contact.id);
       return { contact, latestMessage: conversationMessages.at(-1) };
     })
-    .sort((a, b) => {
-      const aPinned = chatPreferences.pinnedIds.includes(a.contact.id);
-      const bPinned = chatPreferences.pinnedIds.includes(b.contact.id);
-      if (aPinned !== bPinned) return aPinned ? -1 : 1;
-      return new Date(b.latestMessage?.createdAt ?? 0).getTime() - new Date(a.latestMessage?.createdAt ?? 0).getTime();
-    });
+    .sort((a, b) => new Date(b.latestMessage?.createdAt ?? 0).getTime() - new Date(a.latestMessage?.createdAt ?? 0).getTime());
 
   return (
     <>
       <aside className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
-        {mode === "groups" && <div>
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-xs font-semibold text-ink">그룹 관리</h2>
-            <button
-              type="button"
-              onClick={openGroupModal}
-              aria-label="그룹 만들기"
-              title="그룹 만들기"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-2 text-ink-dim transition hover:bg-surface-3 hover:text-ink active:scale-95"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </button>
-          </div>
-          <div className="mt-3 border-t border-surface-3">
-            {groups.map((group) => (
-              <div
-                key={group.id}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  setChatContextMenu(null);
-                  setContextMenu({ group, x: event.clientX, y: event.clientY });
-                }}
-                className="group flex items-center gap-2.5 border-b border-surface-3 px-1 py-2.5 transition hover:bg-surface-2/60"
-                title="우클릭하여 그룹 관리"
-              >
-                <GroupAvatar compact />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[11px] font-medium text-ink">{group.name}</span>
-                  <span className="mt-0.5 block text-[9px] text-ink-faint">멤버 {group.memberCount}명</span>
-                </span>
-                <button
-                  type="button"
-                  aria-label={`${group.name} 관리`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    setContextMenu({ group, x: rect.right - 176, y: rect.bottom + 6 });
-                  }}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-base tracking-widest text-ink-faint opacity-70 transition hover:bg-surface-3 hover:text-ink group-hover:opacity-100"
-                >
-                  ···
-                </button>
-              </div>
-            ))}
-          </div>
-          {groupActionStatus && <p className="mt-2 text-[10px] leading-snug text-ink-faint">{groupActionStatus}</p>}
-        </div>}
-
-        {mode === "messages" && (
-          activeContact ? (
+        {activeContact ? (
             <div className="flex h-[calc(100vh-8.5rem)] min-h-[420px] flex-col">
               <div className="flex items-center gap-2 border-b border-surface-3 pb-3">
                 <button
@@ -300,15 +227,29 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
             </div>
           ) : (
             <div>
-              <h2 className="text-xs font-semibold text-ink">메시지 관리</h2>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-xs font-semibold text-ink">메시지</h2>
+                <button
+                  type="button"
+                  onClick={openGroupModal}
+                  aria-label="그룹 만들기"
+                  title="그룹 만들기"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-ink-dim transition hover:bg-surface-2 hover:text-ink"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+              </div>
               <div className="mt-3 border-t border-surface-3">
                 {chatList.map(({ contact, latestMessage }) => (
                   <div
                     key={contact.id}
                     onContextMenu={(event) => {
                       event.preventDefault();
-                      setContextMenu(null);
-                      setChatContextMenu({ contact, x: event.clientX, y: event.clientY });
+                      if (!contact.id.startsWith("group-")) return;
+                      const group = groups.find((item) => `group-${item.id}` === contact.id);
+                      if (group) setContextMenu({ group, x: event.clientX, y: event.clientY });
                     }}
                     className="flex items-center gap-2.5 border-b border-surface-3 px-1 py-2.5 transition hover:bg-surface-2/60"
                   >
@@ -333,15 +274,16 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
                         <span className="min-w-0 flex-1 truncate text-[9px] text-ink-faint">
                           {latestMessage ? `${latestMessage.sender === "me" ? "나: " : ""}${latestMessage.text}` : "대화를 시작해보세요"}
                         </span>
-                        {chatPreferences.unreadIds.includes(contact.id) && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-night" aria-label="읽지 않은 메시지" />}
+                        {unreadChatIds.includes(contact.id) && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-night" aria-label="읽지 않은 메시지" />}
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
+              {groupActionStatus && <p className="mt-2 text-[10px] leading-snug text-ink-faint">{groupActionStatus}</p>}
             </div>
           )
-        )}
+        }
       </aside>
 
       {contextMenu && (
@@ -353,23 +295,7 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
           <button type="button" onClick={() => { setMemberGroup(contextMenu.group); setContextMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">멤버 보기</button>
           <button type="button" onClick={() => void copyGroupLink(contextMenu.group)} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">그룹 링크 복사</button>
           <div className="my-1 border-t border-surface-3" />
-          <button type="button" onClick={() => { setLeaveTarget(contextMenu.group); setContextMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-alert hover:bg-alert/10">그룹 나가기</button>
-        </div>
-      )}
-
-      {chatContextMenu && (
-        <div
-          className="fixed z-50 w-40 overflow-hidden rounded-lg border border-surface-3 bg-surface-2 py-1 shadow-panel"
-          style={{ left: Math.min(chatContextMenu.x, window.innerWidth - 175), top: Math.min(chatContextMenu.y, window.innerHeight - 70) }}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <button
-            type="button"
-            onClick={() => togglePin(chatContextMenu.contact.id)}
-            className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink"
-          >
-            {chatPreferences.pinnedIds.includes(chatContextMenu.contact.id) ? "고정 해제" : "상단 고정하기"}
-          </button>
+          <button type="button" onClick={() => { setLeaveTarget(contextMenu.group); setContextMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-alert hover:bg-alert/10">채팅방 나가기</button>
         </div>
       )}
 

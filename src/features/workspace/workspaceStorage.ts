@@ -22,15 +22,10 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-export interface ChatPreferences {
-  pinnedIds: string[];
-  unreadIds: string[];
-}
-
 const GROUPS_KEY = "meridian.workspace-groups";
 const CONTACTS_KEY = "meridian.workspace-contacts";
 const MESSAGES_KEY = "meridian.workspace-messages";
-const CHAT_PREFERENCES_KEY = "meridian.workspace-chat-preferences-v2";
+const UNREAD_CHATS_KEY = "meridian.workspace-unread-chats";
 export const GROUPS_CHANGED_EVENT = "meridian:groups-changed";
 export const CONTACTS_CHANGED_EVENT = "meridian:contacts-changed";
 
@@ -63,10 +58,6 @@ const DEFAULT_MESSAGES: Record<string, ChatMessage[]> = {
   "u-omar": [{ id: "seed-omar", sender: "contact", text: "제안 내용 확인했어요.", createdAt: minutesAgo(165) }],
 };
 
-const DEFAULT_CHAT_PREFERENCES: ChatPreferences = {
-  pinnedIds: [],
-  unreadIds: ["u-mina", "group-global-development"],
-};
 
 function readStorage<T>(key: string, fallback: T): T {
   try {
@@ -146,12 +137,12 @@ export function saveMessages(contactId: string, messages: ChatMessage[]) {
   window.localStorage.setItem(MESSAGES_KEY, JSON.stringify({ ...allMessages, [contactId]: messages }));
 }
 
-export function loadChatPreferences() {
-  return readStorage<ChatPreferences>(CHAT_PREFERENCES_KEY, DEFAULT_CHAT_PREFERENCES);
+export function loadUnreadChatIds() {
+  return readStorage<string[]>(UNREAD_CHATS_KEY, ["u-mina", "group-global-development"]);
 }
 
-export function saveChatPreferences(preferences: ChatPreferences) {
-  window.localStorage.setItem(CHAT_PREFERENCES_KEY, JSON.stringify(preferences));
+export function saveUnreadChatIds(ids: string[]) {
+  window.localStorage.setItem(UNREAD_CHATS_KEY, JSON.stringify(ids));
 }
 
 export function getUserHandle(user: AuthUser) {

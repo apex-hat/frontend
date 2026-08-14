@@ -127,9 +127,9 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
         </div>
       </header>
 
-      <main className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_64%_18%]">
+      <main className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_82%]">
         <div className="hidden h-full border-r border-surface-3 px-4 py-5 lg:block">
-          <WorkspaceSidebar user={user} mode="messages" />
+          <WorkspaceSidebar user={user} />
         </div>
 
         <div className="min-w-0 space-y-8 px-4 py-8 sm:px-6 2xl:px-8">
@@ -229,10 +229,6 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
             })}
           </div>
           </section>
-        </div>
-
-        <div className="hidden h-full border-l border-surface-3 px-4 py-5 lg:block">
-          <WorkspaceSidebar user={user} mode="groups" />
         </div>
       </main>
       <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} />
