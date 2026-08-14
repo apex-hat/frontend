@@ -127,12 +127,12 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-[1400px] px-4 xl:grid-cols-[220px_minmax(0,1fr)_220px]">
-        <div className="hidden min-h-[calc(100vh-65px)] border-r border-surface-3 py-8 pr-5 xl:block">
+      <main className="mx-auto grid w-full max-w-[1400px] px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,4fr)_minmax(0,1fr)]">
+        <div className="hidden min-h-[calc(100vh-65px)] border-r border-surface-3 py-8 pr-5 lg:block">
           <WorkspaceSidebar user={user} mode="messages" />
         </div>
 
-        <div className="min-w-0 space-y-8 py-8 xl:px-6">
+        <div className="min-w-0 space-y-8 py-8 lg:px-6">
           <WorldClockStrip members={members} />
 
           <section>
@@ -231,7 +231,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
           </section>
         </div>
 
-        <div className="hidden min-h-[calc(100vh-65px)] border-l border-surface-3 py-8 pl-5 xl:block">
+        <div className="hidden min-h-[calc(100vh-65px)] border-l border-surface-3 py-8 pl-5 lg:block">
           <WorkspaceSidebar user={user} mode="groups" />
         </div>
       </main>
