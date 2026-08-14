@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./ProposalForm.module.css";
 import resultStyles from "./CultureAnalysisResult.module.css";
 import CultureAnalysisResult from "./CultureAnalysisResult";
 import ProposalComparison from "./ProposalComparison";
 import { getMockCultureAnalysis } from "../../mocks/cultureAnalysis";
 import { submitMockProposal } from "../../mocks/proposal";
+import { GROUPS_CHANGED_EVENT, loadGroups } from "../../features/workspace/workspaceStorage";
 import {
   type ProposalFormData,
   type CultureAnalysisResult as CultureAnalysisResultType,
@@ -23,12 +24,6 @@ const initialFormData: ProposalFormData = {
   deadline: "",
 };
 
-const GROUP_OPTIONS = [
-  { id: "product-design", name: "제품 디자인 그룹" },
-  { id: "global-development", name: "글로벌 개발 그룹" },
-  { id: "global-marketing", name: "글로벌 마케팅 그룹" },
-];
-
 // 오늘 날짜를 date input의 min 속성에 쓸 수 있는 "yyyy-mm-dd" 형식으로 반환.
 // new Date().toISOString()은 UTC 기준이라 한국 시간대에서는 날짜가 하루 밀릴 수 있어서
 // 로컬 시간 기준으로 직접 조합함.
@@ -41,6 +36,7 @@ function getTodayDateString(): string {
 }
 
 export default function ProposalForm() {
+  const [groups, setGroups] = useState(loadGroups);
   const [formData, setFormData] = useState<ProposalFormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -54,6 +50,12 @@ export default function ProposalForm() {
 
   // 마감 기한은 오늘 이전 날짜를 선택할 수 없도록 date input의 min으로 사용
   const todayStr = getTodayDateString();
+
+  useEffect(() => {
+    const syncGroups = () => setGroups(loadGroups());
+    window.addEventListener(GROUPS_CHANGED_EVENT, syncGroups);
+    return () => window.removeEventListener(GROUPS_CHANGED_EVENT, syncGroups);
+  }, []);
 
   const handleChange = (field: keyof ProposalFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -163,7 +165,7 @@ export default function ProposalForm() {
           required
         >
           <option value="" disabled>제안을 공유할 그룹을 선택하세요</option>
-          {GROUP_OPTIONS.map((group) => (
+          {groups.map((group) => (
             <option key={group.id} value={group.name}>{group.name}</option>
           ))}
         </select>

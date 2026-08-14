@@ -4,6 +4,7 @@ import LoginPage from "./features/auth/components/LoginPage";
 import SignupPage from "./features/auth/components/SignupPage";
 import Dashboard from "./features/dashboard/components/Dashboard";
 import ProfilePage from "./features/profile/components/ProfilePage";
+import GroupInvitePage from "./features/workspace/components/GroupInvitePage";
 import ProposalPage from "./pages/Proposal/ProposalPage";
 import type { AuthUser } from "./types";
 
@@ -108,6 +109,16 @@ export default function App() {
               onBack={() => navigate("/dashboard")}
               onLogout={logout}
             />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/invite/:inviteCode"
+        element={
+          user ? (
+            <GroupInvitePage user={user} onComplete={() => navigate("/dashboard")} />
           ) : (
             <Navigate to="/login" replace />
           )

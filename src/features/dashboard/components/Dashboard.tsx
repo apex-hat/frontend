@@ -6,6 +6,7 @@ import WorldClockStrip from "./WorldClockStrip";
 import NotificationPanel from "./NotificationPanel";
 import ProposalStatusBadge from "./ProposalStatusBadge";
 import TeamMemberRow from "./TeamMemberRow";
+import WorkspaceSidebar from "../../workspace/components/WorkspaceSidebar";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -81,7 +82,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
   return (
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-20 backdrop-blur bg-void/80 border-b border-surface-3">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="font-display text-lg text-ink">Meridian</span>
           </div>
@@ -118,10 +119,15 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-        <WorldClockStrip members={members} />
+      <main className="max-w-7xl mx-auto grid gap-6 px-6 py-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="hidden lg:block">
+          <WorkspaceSidebar user={user} />
+        </div>
 
-        <section>
+        <div className="min-w-0 space-y-8">
+          <WorldClockStrip members={members} />
+
+          <section>
           <div className="flex items-center justify-between gap-4 mb-4">
             <h2 className="font-display text-lg text-ink">제안 응답 현황</h2>
             <div className="flex items-center gap-3">
@@ -207,7 +213,8 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
               );
             })}
           </div>
-        </section>
+          </section>
+        </div>
       </main>
     </div>
   );

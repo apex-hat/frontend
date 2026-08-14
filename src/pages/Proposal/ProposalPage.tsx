@@ -8,6 +8,7 @@ import { getMockProposalById } from "../../mocks/proposalList";
 import type { AuthUser } from "../../types";
 import type { Proposal } from "../../types/proposal";
 import BackButton from "../../components/navigation/BackButton";
+import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSidebar";
 
 interface Props {
   user: AuthUser;
@@ -106,7 +107,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
   return (
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-30 border-b border-surface-3 bg-void/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <BackButton onClick={handleBack} />
             <button
@@ -143,13 +144,20 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
         </div>
       </header>
 
-      <Routes>
-        <Route index element={<ProposalListRoute />} />
-        <Route path="new" element={<ProposalFormRoute />} />
-        <Route path=":proposalId" element={<ProposalDetailRoute />} />
-        <Route path=":proposalId/opinions" element={<ProposalOpinionsRoute user={user} />} />
-        <Route path="*" element={<Navigate to="/proposals" replace />} />
-      </Routes>
+      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-6">
+        <div className="hidden pt-8 lg:block">
+          <WorkspaceSidebar user={user} />
+        </div>
+        <div className="min-w-0">
+          <Routes>
+            <Route index element={<ProposalListRoute />} />
+            <Route path="new" element={<ProposalFormRoute />} />
+            <Route path=":proposalId" element={<ProposalDetailRoute />} />
+            <Route path=":proposalId/opinions" element={<ProposalOpinionsRoute user={user} />} />
+            <Route path="*" element={<Navigate to="/proposals" replace />} />
+          </Routes>
+        </div>
+      </div>
     </div>
   );
 }
