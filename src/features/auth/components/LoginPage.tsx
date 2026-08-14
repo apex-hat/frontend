@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import AuthLayout from "./AuthLayout";
-import RotatingGreeting from "./RotatingGreeting";
 import type { AuthUser } from "../../../types";
 import { login } from "../../../lib/api";
 
@@ -38,9 +37,8 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
 
   return (
     <AuthLayout
-      eyebrow="로그인"
-      title={<RotatingGreeting />}
-      subtitle="계정으로 로그인하고 팀 대시보드를 확인하세요."
+      eyebrow="안녕하세요"
+      title="로그인"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -81,9 +79,13 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
         </button>
       </form>
 
-      <p className="text-sm text-ink-dim mt-6 text-center">
-        아직 계정이 없으신가요?{" "}
-        <button onClick={onNavigateSignup} className="text-ink underline underline-offset-4">
+      <p className="flex items-center justify-center gap-2 text-sm text-ink-dim mt-6 text-center">
+        <span>아직 계정이 없으신가요?</span>
+        <button
+          type="button"
+          onClick={onNavigateSignup}
+          className="cursor-pointer text-ink underline underline-offset-4 transition-all hover:text-night active:scale-95"
+        >
           회원가입
         </button>
       </p>

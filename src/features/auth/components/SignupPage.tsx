@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import AuthLayout from "./AuthLayout";
 import type { AuthUser } from "../../../types";
@@ -38,22 +38,25 @@ const COUNTRY_OPTIONS = [
   { code: "AU", label: "호주" },
 ];
 
-export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProps) {
-  const detectedTz = useMemo(() => {
-    try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone;
-    } catch {
-      return "Asia/Seoul";
-    }
-  }, []);
+const COUNTRY_TIMEZONE: Record<string, string> = {
+  KR: "Asia/Seoul",
+  US: "America/New_York",
+  JP: "Asia/Tokyo",
+  IN: "Asia/Kolkata",
+  SG: "Asia/Singapore",
+  GB: "Europe/London",
+  DE: "Europe/Berlin",
+  FR: "Europe/Paris",
+  BR: "America/Sao_Paulo",
+  AU: "Australia/Sydney",
+};
 
+export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [country, setCountry] = useState("KR");
-  const [timezone, setTimezone] = useState(
-    TIMEZONE_OPTIONS.includes(detectedTz) ? detectedTz : "Asia/Seoul"
-  );
+  const [timezone, setTimezone] = useState("Asia/Seoul");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,7 +84,6 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
     <AuthLayout
       eyebrow="회원가입"
       title="팀에 합류하기"
-      subtitle="시간대를 등록하면 동료들이 여러분의 근무 시간을 바로 알 수 있어요."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -129,7 +131,11 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
           <select
             id="country"
             value={country}
-            onChange={(e) => setCountry(e.target.value)}
+            onChange={(e) => {
+              const nextCountry = e.target.value;
+              setCountry(nextCountry);
+              setTimezone(COUNTRY_TIMEZONE[nextCountry] ?? "Asia/Seoul");
+            }}
             className="w-full rounded-lg bg-surface border border-surface-3 px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-night"
           >
             {COUNTRY_OPTIONS.map((c) => (
@@ -155,7 +161,6 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
               </option>
             ))}
           </select>
-          <p className="text-xs text-ink-faint mt-1.5">브라우저 기준으로 자동 감지했어요. 필요하면 변경하세요.</p>
         </div>
 
         {error && <p className="text-xs text-alert">{error}</p>}
@@ -169,9 +174,13 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
         </button>
       </form>
 
-      <p className="text-sm text-ink-dim mt-6 text-center">
-        이미 계정이 있으신가요?{" "}
-        <button onClick={onNavigateLogin} className="text-ink underline underline-offset-4">
+      <p className="flex items-center justify-center gap-2 text-sm text-ink-dim mt-6 text-center">
+        <span>이미 계정이 있으신가요?</span>
+        <button
+          type="button"
+          onClick={onNavigateLogin}
+          className="cursor-pointer text-ink underline underline-offset-4 transition-all hover:text-night active:scale-95"
+        >
           로그인
         </button>
       </p>
