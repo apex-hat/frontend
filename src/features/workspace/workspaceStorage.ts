@@ -26,6 +26,7 @@ const GROUPS_KEY = "meridian.workspace-groups";
 const CONTACTS_KEY = "meridian.workspace-contacts";
 const MESSAGES_KEY = "meridian.workspace-messages";
 export const GROUPS_CHANGED_EVENT = "meridian:groups-changed";
+export const CONTACTS_CHANGED_EVENT = "meridian:contacts-changed";
 
 const DEFAULT_GROUPS: WorkspaceGroup[] = [
   { id: "product-design", name: "제품 디자인 그룹", memberCount: 6, inviteCode: "PD6K2A" },
@@ -77,6 +78,13 @@ export function findGroupByInviteCode(inviteCode: string) {
   return loadGroups().find((group) => group.inviteCode === inviteCode);
 }
 
+export function leaveGroup(groupId: string) {
+  const groups = loadGroups().filter((group) => group.id !== groupId);
+  window.localStorage.setItem(GROUPS_KEY, JSON.stringify(groups));
+  window.dispatchEvent(new CustomEvent(GROUPS_CHANGED_EVENT));
+  return groups;
+}
+
 export function joinGroup(inviteCode: string) {
   const groups = loadGroups();
   const group = groups.find((item) => item.inviteCode === inviteCode);
@@ -99,6 +107,7 @@ export function addContact(contact: WorkspaceContact) {
   if (contacts.some((item) => item.handle === contact.handle)) return contacts;
   const next = [...contacts, contact];
   window.localStorage.setItem(CONTACTS_KEY, JSON.stringify(next));
+  window.dispatchEvent(new CustomEvent(CONTACTS_CHANGED_EVENT));
   return next;
 }
 

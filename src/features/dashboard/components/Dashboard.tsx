@@ -7,6 +7,8 @@ import NotificationPanel from "./NotificationPanel";
 import ProposalStatusBadge from "./ProposalStatusBadge";
 import TeamMemberRow from "./TeamMemberRow";
 import WorkspaceSidebar from "../../workspace/components/WorkspaceSidebar";
+import FriendManagerModal from "../../workspace/components/FriendManagerModal";
+import UserHandleButton from "../../workspace/components/UserHandleButton";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -27,6 +29,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [opinionsByProposal, setOpinionsByProposal] = useState<Record<string, Opinion[]>>({});
+  const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,13 +79,17 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
   const selectNotification = (notification: Notification) => {
     setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n)));
     markNotificationRead(notification.id);
+    if (notification.type === "FRIEND_REQUEST") {
+      setIsFriendManagerOpen(true);
+      return;
+    }
     if (notification.proposal_id) setExpandedId(notification.proposal_id);
   };
 
   return (
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-20 backdrop-blur bg-void/80 border-b border-surface-3">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="w-full px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="font-display text-lg text-ink">Meridian</span>
           </div>
@@ -100,6 +107,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
               >
                 {user.name.slice(0, 1)}
               </span>
+              <UserHandleButton user={user} />
               <button
                 type="button"
                 onClick={onOpenProfile}
@@ -119,7 +127,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto grid gap-6 px-6 py-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <main className="grid w-full gap-6 px-4 py-8 lg:grid-cols-[240px_minmax(0,1100px)]">
         <div className="hidden lg:block">
           <WorkspaceSidebar user={user} />
         </div>
@@ -132,6 +140,13 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
             <h2 className="font-display text-lg text-ink">제안 응답 현황</h2>
             <div className="flex items-center gap-3">
               <span className="text-xs text-ink-faint">{activeProposalCount}개 진행 중</span>
+              <button
+                type="button"
+                onClick={() => setIsFriendManagerOpen(true)}
+                className="text-xs text-ink border border-surface-3 rounded-full px-3 py-1.5 hover:bg-surface-2 transition"
+              >
+                친구 관리
+              </button>
               <button
                 type="button"
                 onClick={onOpenProposals}
@@ -216,6 +231,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
           </section>
         </div>
       </main>
+      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} />
     </div>
   );
 }

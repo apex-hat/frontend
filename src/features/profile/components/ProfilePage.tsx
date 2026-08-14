@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import type { AuthUser, SupportedLanguage } from "../../../types";
 import { getUtcOffsetLabel } from "../../../lib/timezone";
 import BackButton from "../../../components/navigation/BackButton";
+import UserHandleButton from "../../workspace/components/UserHandleButton";
 
 interface ProfilePageProps {
   user: AuthUser;
@@ -101,13 +102,16 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
               Meridian
             </button>
           </div>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="rounded-full border border-surface-3 px-3 py-1.5 text-xs text-ink-dim transition-colors hover:text-ink"
-          >
-            로그아웃
-          </button>
+          <div className="flex items-center gap-2">
+            <UserHandleButton user={user} />
+            <button
+              type="button"
+              onClick={onLogout}
+              className="rounded-full border border-surface-3 px-3 py-1.5 text-xs text-ink-dim transition-colors hover:text-ink"
+            >
+              로그아웃
+            </button>
+          </div>
         </div>
       </header>
 

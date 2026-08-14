@@ -12,6 +12,7 @@ const TYPE_ICON: Record<NotificationType, string> = {
   OPINION_REQUEST: "🗳️",
   DEADLINE_SOON: "⏳",
   CONSENSUS_DONE: "✅",
+  FRIEND_REQUEST: "👤",
 };
 
 function timeAgo(iso: string) {

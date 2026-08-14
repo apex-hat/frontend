@@ -138,6 +138,15 @@ export const MOCK_OPINIONS: Opinion[] = [
 // u-jiwoo는 p-1에 이미 응답했으므로 p-1에 대한 OPINION_REQUEST가 없고, DEADLINE_SOON만 존재.
 export const MOCK_NOTIFICATIONS: Notification[] = [
   {
+    id: "n-friend-1",
+    user_id: "u-jiwoo",
+    proposal_id: null,
+    type: "FRIEND_REQUEST",
+    message: "Nora Kim님이 친구 요청을 보냈습니다.",
+    is_read: false,
+    created_at: hoursAgo(1),
+  },
+  {
     id: "n-1",
     user_id: "u-jiwoo",
     proposal_id: "p-2",
