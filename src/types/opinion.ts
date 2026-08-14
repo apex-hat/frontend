@@ -1,4 +1,4 @@
-export type OpinionType = 'AGREE' | 'DISAGREE' | 'CONDITIONAL'
+export type OpinionType = 'AGREE' | 'DISAGREE' | 'CONDITIONAL_AGREE'
 
 export interface OpinionAuthor {
   id: string

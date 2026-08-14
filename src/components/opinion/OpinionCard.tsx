@@ -10,13 +10,13 @@ interface OpinionCardProps {
 const opinionLabels: Record<OpinionType, string> = {
   AGREE: '찬성',
   DISAGREE: '반대',
-  CONDITIONAL: '조건부 찬성',
+  CONDITIONAL_AGREE: '조건부 찬성',
 }
 
 const opinionCardClasses: Record<OpinionType, string> = {
   AGREE: styles.cardAgree,
   DISAGREE: styles.cardDisagree,
-  CONDITIONAL: styles.cardConditional,
+  CONDITIONAL_AGREE: styles.cardConditional,
 }
 
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', {

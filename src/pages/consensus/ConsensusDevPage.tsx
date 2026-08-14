@@ -25,7 +25,7 @@ type OpinionFilter = OpinionType | null
 
 const filterOptions: Array<{ value: OpinionType; label: string }> = [
   { value: 'AGREE', label: '찬성' },
-  { value: 'CONDITIONAL', label: '조건부' },
+  { value: 'CONDITIONAL_AGREE', label: '조건부' },
   { value: 'DISAGREE', label: '반대' },
 ]
 
@@ -58,7 +58,7 @@ function ConsensusDevPage({
           ...counts,
           [opinion.type]: counts[opinion.type] + 1,
         }),
-        { AGREE: 0, CONDITIONAL: 0, DISAGREE: 0 },
+        { AGREE: 0, CONDITIONAL_AGREE: 0, DISAGREE: 0 },
       ),
     [opinions],
   )

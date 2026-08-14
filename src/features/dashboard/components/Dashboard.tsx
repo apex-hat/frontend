@@ -29,14 +29,14 @@ import { MOCK_PROPOSAL_GROUP_NAMES } from "../data/mockData";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
-  CONDITIONAL: 1,
+  CONDITIONAL_AGREE: 1,
   DISAGREE: 2,
 };
 
 const COMPLETED_VISIBLE_MS = 48 * 60 * 60 * 1000;
 
 function isComplete(proposal: Proposal) {
-  return proposal.status === "CONSENSUS_DONE" || proposal.status === "CLOSED";
+  return proposal.status === "COMPLETED";
 }
 
 function sortProposals(list: Proposal[]) {
@@ -51,7 +51,7 @@ function sortProposals(list: Proposal[]) {
 
 function buildResultSummary(opinions: Opinion[]) {
   const agree = opinions.filter((opinion) => opinion.stance === "AGREE").length;
-  const conditional = opinions.filter((opinion) => opinion.stance === "CONDITIONAL").length;
+  const conditional = opinions.filter((opinion) => opinion.stance === "CONDITIONAL_AGREE").length;
   const disagree = opinions.filter((opinion) => opinion.stance === "DISAGREE").length;
   if (opinions.length === 0) return "집계된 의견 없이 대표의 최종 결정으로 협의를 마무리했습니다.";
   const direction = agree >= conditional + disagree
@@ -199,7 +199,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     }
 
     setProposals((current) => sortProposals(current.map((item) => item.id === completionTarget.id
-      ? { ...item, status: "CONSENSUS_DONE", completed_at: completed.completed_at }
+      ? { ...item, status: "COMPLETED", completed_at: completed.completed_at }
       : item)));
     setExpandedId(null);
     setCompletionTarget(null);
@@ -303,7 +303,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               const proposalMembers = members.slice(0, total);
               const proposalMemberIds = new Set(proposalMembers.map((member) => member.user_id));
               const responded = opinions.filter((opinion) => proposalMemberIds.has(opinion.user_id)).length;
-              const isComplete = proposal.status === "CONSENSUS_DONE" || proposal.status === "CLOSED";
+              const isComplete = proposal.status === "COMPLETED";
               const orderedMembers = [...proposalMembers].sort((a, b) => {
                 const aOpinion = opinions.find((opinion) => opinion.user_id === a.user_id);
                 const bOpinion = opinions.find((opinion) => opinion.user_id === b.user_id);

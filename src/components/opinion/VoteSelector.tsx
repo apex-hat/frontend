@@ -9,7 +9,7 @@ interface VoteSelectorProps {
 
 const voteOptions: Array<{ value: OpinionType; label: string }> = [
   { value: 'AGREE', label: '찬성' },
-  { value: 'CONDITIONAL', label: '조건부 찬성' },
+  { value: 'CONDITIONAL_AGREE', label: '조건부 찬성' },
   { value: 'DISAGREE', label: '반대' },
 ]
 

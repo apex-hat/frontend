@@ -13,7 +13,7 @@ interface TeamMemberRowProps {
 const STATUS_ICON: Record<Stance, { symbol: string; className: string }> = {
   AGREE: { symbol: "✓", className: "text-consensus bg-consensus/15" },
   DISAGREE: { symbol: "✕", className: "text-alert bg-alert/15" },
-  CONDITIONAL: { symbol: "△", className: "text-day bg-day/15" },
+  CONDITIONAL_AGREE: { symbol: "△", className: "text-day bg-day/15" },
 };
 const NO_RESPONSE_ICON = { symbol: "…", className: "text-ink-faint bg-surface-3" };
 

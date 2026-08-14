@@ -27,14 +27,14 @@ export function generateMockConsensus(
 ): ConsensusSummary {
   const agreeCount = opinions.filter((opinion) => opinion.type === 'AGREE').length
   const conditionalCount = opinions.filter(
-    (opinion) => opinion.type === 'CONDITIONAL',
+    (opinion) => opinion.type === 'CONDITIONAL_AGREE',
   ).length
   const disagreeCount = opinions.filter(
     (opinion) => opinion.type === 'DISAGREE',
   ).length
   const supportiveCount = agreeCount + conditionalCount
   const conditionalConcern = opinions.find(
-    (opinion) => opinion.type === 'CONDITIONAL',
+    (opinion) => opinion.type === 'CONDITIONAL_AGREE',
   )?.comment.replace(/[.!?。]+$/, '')
   const disagreeConcern = opinions.find(
     (opinion) => opinion.type === 'DISAGREE',
@@ -61,7 +61,7 @@ export function generateMockConsensus(
     proposalId,
     summary: `팀은 ${direction} ${nextStep}`,
     agree: summarizeCategory(opinions, 'AGREE'),
-    conditional: summarizeCategory(opinions, 'CONDITIONAL'),
+    conditional: summarizeCategory(opinions, 'CONDITIONAL_AGREE'),
     disagree: summarizeCategory(opinions, 'DISAGREE'),
     recommendation: nextStep,
     generatedAt: new Date().toISOString(),

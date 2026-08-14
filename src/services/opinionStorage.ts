@@ -5,7 +5,11 @@ import type { Opinion } from '../types/opinion'
 const getStorageKey = (proposalId: string) =>
   `meridian:${proposalId}:opinions`
 
-const isOpinion = (value: unknown): value is Opinion => {
+type StoredOpinion = Omit<Opinion, 'type'> & {
+  type: Opinion['type'] | 'CONDITIONAL'
+}
+
+const isOpinion = (value: unknown): value is StoredOpinion => {
   if (!value || typeof value !== 'object') {
     return false
   }
@@ -15,7 +19,7 @@ const isOpinion = (value: unknown): value is Opinion => {
   return (
     typeof opinion.id === 'string' &&
     typeof opinion.author?.id === 'string' &&
-    ['AGREE', 'CONDITIONAL', 'DISAGREE'].includes(opinion.type ?? '') &&
+    ['AGREE', 'CONDITIONAL_AGREE', 'CONDITIONAL', 'DISAGREE'].includes(opinion.type ?? '') &&
     typeof opinion.comment === 'string' &&
     typeof opinion.createdAt === 'string'
   )
@@ -27,7 +31,10 @@ export function loadStoredOpinions(proposalId: string): Opinion[] | null {
     if (!savedOpinions) return null
     const parsedOpinions: unknown = JSON.parse(savedOpinions)
     return Array.isArray(parsedOpinions) && parsedOpinions.every(isOpinion)
-      ? parsedOpinions
+      ? parsedOpinions.map((opinion) => ({
+          ...opinion,
+          type: opinion.type === 'CONDITIONAL' ? 'CONDITIONAL_AGREE' : opinion.type,
+        }))
       : null
   } catch {
     return null

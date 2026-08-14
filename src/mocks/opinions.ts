@@ -26,7 +26,7 @@ export const mockOpinions: Opinion[] = [
       country: '미국',
       culturalRegion: '북아메리카',
     },
-    type: 'CONDITIONAL',
+    type: 'CONDITIONAL_AGREE',
     comment: 'MVP 기능을 핵심 흐름으로 제한한다면 찬성합니다.',
     createdAt: getMockCreatedAt(95),
   },

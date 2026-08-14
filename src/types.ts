@@ -5,17 +5,17 @@
 
 export type TeamRole = "PM" | "MEMBER";
 
-export type ProposalStatus = "DRAFT" | "REVIEWING" | "OPEN" | "CONSENSUS_DONE" | "CLOSED";
+export type ProposalStatus = "DRAFT" | "OPEN" | "IN_PROGRESS" | "CONSENSUS_READY" | "COMPLETED";
 
-export type Stance = "AGREE" | "DISAGREE" | "CONDITIONAL";
+export type Stance = "AGREE" | "DISAGREE" | "CONDITIONAL_AGREE";
 
 export type SupportedLanguage = "ko" | "en" | "ja" | "de" | "pt";
 
 export type NotificationType =
-  | "NEW_PROPOSAL"
-  | "OPINION_REQUEST"
-  | "DEADLINE_SOON"
-  | "CONSENSUS_DONE"
+  | "PROPOSAL_CREATED"
+  | "OPINION_REQUESTED"
+  | "DEADLINE_APPROACHING"
+  | "CONSENSUS_SUMMARY_COMPLETED"
   | "FRIEND_REQUEST";
 
 export interface User {

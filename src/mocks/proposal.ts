@@ -23,7 +23,15 @@ export interface SubmittedProposal extends DashboardProposal {
 
 export function loadSubmittedProposals(): SubmittedProposal[] {
   try {
-    return JSON.parse(window.localStorage.getItem(SUBMITTED_PROPOSALS_KEY) ?? "[]") as SubmittedProposal[];
+    const stored = JSON.parse(window.localStorage.getItem(SUBMITTED_PROPOSALS_KEY) ?? "[]") as Array<Omit<SubmittedProposal, "status"> & { status: string }>;
+    return stored.map((proposal) => ({
+      ...proposal,
+      status: ["CONSENSUS_DONE", "CLOSED"].includes(proposal.status)
+        ? "COMPLETED"
+        : proposal.status === "REVIEWING"
+          ? "IN_PROGRESS"
+          : proposal.status as SubmittedProposal["status"],
+    }));
   } catch {
     return [];
   }
@@ -85,7 +93,7 @@ export function completeSubmittedProposal(id: string, finalComment: string, resu
   const proposals = loadSubmittedProposals().map((proposal) => proposal.id === id
     ? {
         ...proposal,
-        status: "CONSENSUS_DONE" as const,
+        status: "COMPLETED" as const,
         completed_at: completedAt,
         final_comment: finalComment,
         result_summary: resultSummary,
