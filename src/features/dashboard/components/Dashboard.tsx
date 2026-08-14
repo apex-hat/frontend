@@ -128,7 +128,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
       </header>
 
       <main className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_82%]">
-        <div className="hidden h-full border-r border-surface-3 px-4 py-3 lg:block">
+        <div className="hidden h-full border-r border-surface-3 px-4 lg:block">
           <WorkspaceSidebar user={user} />
         </div>
 

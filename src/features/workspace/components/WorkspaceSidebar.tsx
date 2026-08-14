@@ -176,7 +176,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
       <aside className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
         {activeContact ? (
             <div className="flex h-[calc(100vh-8.5rem)] min-h-[420px] flex-col">
-              <div className="flex items-center gap-2 border-b border-surface-3 pb-3">
+              <div className="flex h-9 items-center gap-1.5 border-b border-surface-3">
                 <button
                   type="button"
                   onClick={() => setActiveContact(null)}
@@ -187,14 +187,14 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                     <path d="m15 18-6-6 6-6" />
                   </svg>
                 </button>
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-1.5">
                   <h2 className="truncate text-xs font-semibold text-ink">{activeContact.name}</h2>
-                  {activeContact.id.startsWith("group-") && <p className="mt-0.5 text-[10px] text-ink-faint">{activeContact.handle}</p>}
+                  {activeContact.id.startsWith("group-") && <p className="shrink-0 text-[9px] text-ink-faint">{activeContact.handle}</p>}
                 </div>
               </div>
 
               <div className="flex-1 space-y-2.5 overflow-y-auto py-4">
-                <p className="px-2 pb-2 text-center text-[9px] leading-relaxed text-ink-faint">메시지를 보내 대화를 시작하세요.</p>
+                <p className="mx-auto mb-3 w-fit rounded-md border border-night/20 bg-night/5 px-3 py-1.5 text-center text-[9px] leading-relaxed text-night/80">메시지를 보내 대화를 시작하세요.</p>
                 {messages.map((message) => {
                   const senderName = message.senderName ?? (activeContact.id.startsWith("group-") ? "팀원" : activeContact.name);
                   const senderColor = message.senderAvatarColor ?? activeContact.avatarColor;
@@ -206,7 +206,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                       </div>
                     </div>
                   ) : (
-                    <div key={message.id} className="flex items-end gap-2">
+                    <div key={message.id} className="flex items-start gap-2">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[8px] font-semibold text-void" style={{ backgroundColor: senderColor }}>
                         {senderName.slice(0, 1)}
                       </span>
@@ -236,7 +236,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
             </div>
           ) : (
             <div>
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex h-9 items-center justify-between gap-2">
                 <h2 className="text-xs font-semibold text-ink">메시지</h2>
                 <button
                   type="button"
@@ -250,7 +250,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                   </svg>
                 </button>
               </div>
-              <div className="mt-3 border-t border-surface-3">
+              <div className="border-t border-surface-3">
                 {chatList.map(({ contact, latestMessage }) => (
                   <div
                     key={contact.id}
