@@ -45,7 +45,7 @@ export default function WorldClockStrip({ members }: WorldClockStripProps) {
         </span>
       </div>
 
-      <div className="relative pt-10 pb-16">
+      <div className="relative pt-12 pb-9">
         {/* 배경 그라데이션: 자정→새벽→낮→저녁→자정 */}
         <div
           className="h-2.5 rounded-full overflow-hidden"
@@ -56,18 +56,18 @@ export default function WorldClockStrip({ members }: WorldClockStripProps) {
         />
 
         {/* 시각 눈금 */}
-        <div className="absolute left-0 right-0 top-6 flex justify-between font-mono text-[10px] text-ink-faint px-0">
+        <div className="absolute left-0 right-0 top-16 flex justify-between font-mono text-[10px] text-ink-faint px-0">
           {HOUR_MARKS.map((h) => (
             <span key={h}>{String(h % 24).padStart(2, "0")}</span>
           ))}
         </div>
 
         {/* 팀원 마커 */}
-        {positioned.map(({ member, hour, minute, pct, phase }, idx) => (
+        {positioned.map(({ member, hour, minute, pct, phase }) => (
           <div
             key={member.user_id}
             className="group absolute -translate-x-1/2 cursor-default"
-            style={{ left: `${pct}%`, top: idx % 2 === 0 ? "-24px" : "52px" }}
+            style={{ left: `${pct}%`, top: "0" }}
           >
             <div className="flex flex-col items-center">
               <div
