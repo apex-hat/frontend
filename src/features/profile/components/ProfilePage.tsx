@@ -132,7 +132,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-[1fr_1.2fr]">
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div>
                 <label htmlFor="profile-name" className="mb-1.5 block text-xs text-ink-dim">이름</label>
                 <input
@@ -142,10 +142,8 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
                   className="w-full rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-night"
                 />
               </div>
-              <div>
-                <label htmlFor="profile-handle" className="mb-1.5 block text-xs text-ink-dim">고유 ID</label>
-                <div className="flex gap-1.5">
-                  <input id="profile-handle" value={userHandle} readOnly className="min-w-0 flex-1 cursor-default rounded-lg border border-surface-3 bg-void/40 px-3 py-2.5 font-mono text-xs text-ink-faint" />
+              <div className="flex gap-1.5">
+                  <input id="profile-handle" aria-label="고유 ID" value={userHandle} readOnly className="w-24 cursor-default rounded-lg border border-surface-3 bg-void/40 px-2.5 py-2.5 font-mono text-[11px] text-ink-faint" />
                   <button
                     type="button"
                     onClick={async () => {
@@ -158,7 +156,6 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
                   >
                     {tagCopied ? "완료" : "복사"}
                   </button>
-                </div>
               </div>
             </div>
 

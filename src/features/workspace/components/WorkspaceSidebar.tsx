@@ -173,7 +173,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
 
   return (
     <>
-      <aside className="lg:sticky lg:top-[65px] lg:max-h-[calc(100vh-65px)] lg:overflow-y-auto">
+      <aside className="pt-2 lg:sticky lg:top-[65px] lg:max-h-[calc(100vh-65px)] lg:overflow-y-auto">
         {activeContact ? (
             <div className="flex h-[calc(100vh-8.5rem)] min-h-[420px] flex-col">
               <div className="flex h-9 items-center gap-1.5 border-b border-surface-3">
@@ -201,18 +201,18 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                   return message.sender === "me" ? (
                     <div key={message.id} className="flex justify-end">
                       <div className="max-w-[82%]">
-                        <p className="rounded-lg rounded-br-sm bg-night px-3 py-2 text-[11px] leading-relaxed text-ink">{message.text}</p>
+                        <p className="rounded-lg rounded-br-sm bg-night px-2.5 py-1.5 text-[10px] leading-relaxed text-ink">{message.text}</p>
                         <p className="mt-1 text-right text-[8px] text-ink-faint">{formatChatTime(message.createdAt, user.timezone)}</p>
                       </div>
                     </div>
                   ) : (
                     <div key={message.id} className="flex items-start gap-2">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[8px] font-semibold text-void" style={{ backgroundColor: senderColor }}>
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-void" style={{ backgroundColor: senderColor }}>
                         {senderName.slice(0, 1)}
                       </span>
                       <div className="max-w-[78%]">
                         {activeContact.id.startsWith("group-") && <p className="mb-1 text-[8px] text-ink-faint">{senderName}</p>}
-                        <p className="rounded-lg rounded-bl-sm bg-surface-2 px-3 py-2 text-[11px] leading-relaxed text-ink-dim">{message.text}</p>
+                        <p className="rounded-lg rounded-bl-sm bg-surface-2 px-2.5 py-1.5 text-[10px] leading-relaxed text-ink-dim">{message.text}</p>
                         <p className="mt-1 text-[8px] text-ink-faint">{formatChatTime(message.createdAt, user.timezone)}</p>
                       </div>
                     </div>
