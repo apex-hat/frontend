@@ -22,9 +22,15 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+export interface ChatPreferences {
+  pinnedIds: string[];
+  unreadIds: string[];
+}
+
 const GROUPS_KEY = "meridian.workspace-groups";
 const CONTACTS_KEY = "meridian.workspace-contacts";
 const MESSAGES_KEY = "meridian.workspace-messages";
+const CHAT_PREFERENCES_KEY = "meridian.workspace-chat-preferences";
 export const GROUPS_CHANGED_EVENT = "meridian:groups-changed";
 export const CONTACTS_CHANGED_EVENT = "meridian:contacts-changed";
 
@@ -42,6 +48,25 @@ const DEFAULT_CONTACTS: WorkspaceContact[] = [
   { id: "u-alex", name: "Alex Turner", handle: "#MER-ALEX", avatarColor: "#7C8FE0", online: false },
   { id: "u-omar", name: "Omar Haddad", handle: "#MER-OMAR", avatarColor: "#63C7A6", online: true },
 ];
+
+const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+
+const DEFAULT_MESSAGES: Record<string, ChatMessage[]> = {
+  "group-product-design": [{ id: "seed-design", sender: "contact", text: "수정된 시안 확인 부탁드려요.", createdAt: minutesAgo(18) }],
+  "group-global-development": [{ id: "seed-development", sender: "contact", text: "API 연결 일정 공유했습니다.", createdAt: minutesAgo(7) }],
+  "group-global-marketing": [{ id: "seed-marketing", sender: "contact", text: "캠페인 문구 최종본 올렸어요.", createdAt: minutesAgo(52) }],
+  "group-frontend-chapter": [{ id: "seed-frontend", sender: "me", text: "확인하고 의견 남길게요.", createdAt: minutesAgo(84) }],
+  "group-launch-taskforce": [{ id: "seed-launch", sender: "contact", text: "오늘 점검 항목부터 확인해 주세요.", createdAt: minutesAgo(130) }],
+  "group-research-lab": [{ id: "seed-research", sender: "contact", text: "인터뷰 내용 정리해서 공유했어요.", createdAt: minutesAgo(210) }],
+  "u-mina": [{ id: "seed-mina", sender: "contact", text: "회의 전에 잠깐 이야기 가능해요?", createdAt: minutesAgo(3) }],
+  "u-alex": [{ id: "seed-alex", sender: "me", text: "자료 확인했습니다. 고마워요!", createdAt: minutesAgo(96) }],
+  "u-omar": [{ id: "seed-omar", sender: "contact", text: "제안 내용 확인했어요.", createdAt: minutesAgo(165) }],
+};
+
+const DEFAULT_CHAT_PREFERENCES: ChatPreferences = {
+  pinnedIds: ["group-product-design"],
+  unreadIds: ["u-mina", "group-global-development"],
+};
 
 function readStorage<T>(key: string, fallback: T): T {
   try {
@@ -113,12 +138,20 @@ export function addContact(contact: WorkspaceContact) {
 
 export function loadMessages(contactId: string) {
   const allMessages = readStorage<Record<string, ChatMessage[]>>(MESSAGES_KEY, {});
-  return allMessages[contactId] ?? [];
+  return allMessages[contactId] ?? DEFAULT_MESSAGES[contactId] ?? [];
 }
 
 export function saveMessages(contactId: string, messages: ChatMessage[]) {
   const allMessages = readStorage<Record<string, ChatMessage[]>>(MESSAGES_KEY, {});
   window.localStorage.setItem(MESSAGES_KEY, JSON.stringify({ ...allMessages, [contactId]: messages }));
+}
+
+export function loadChatPreferences() {
+  return readStorage<ChatPreferences>(CHAT_PREFERENCES_KEY, DEFAULT_CHAT_PREFERENCES);
+}
+
+export function saveChatPreferences(preferences: ChatPreferences) {
+  window.localStorage.setItem(CHAT_PREFERENCES_KEY, JSON.stringify(preferences));
 }
 
 export function getUserHandle(user: AuthUser) {

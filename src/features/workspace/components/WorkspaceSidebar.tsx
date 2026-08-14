@@ -6,10 +6,12 @@ import {
   createGroup,
   getInviteUrl,
   leaveGroup,
+  loadChatPreferences,
   loadContacts,
   loadGroups,
   loadMessages,
   saveMessages,
+  saveChatPreferences,
   type ChatMessage,
   type WorkspaceContact,
   type WorkspaceGroup,
@@ -45,6 +47,16 @@ function GroupAvatar({ compact = false }: { compact?: boolean }) {
   );
 }
 
+function formatChatTime(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  return isToday
+    ? new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" }).format(date)
+    : `${date.getMonth() + 1}. ${date.getDate()}`;
+}
+
 export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) {
   const [groups, setGroups] = useState(loadGroups);
   const [contacts, setContacts] = useState(loadContacts);
@@ -59,6 +71,7 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
   const [activeContact, setActiveContact] = useState<WorkspaceContact | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageText, setMessageText] = useState("");
+  const [chatPreferences, setChatPreferences] = useState(loadChatPreferences);
 
   useEffect(() => {
     const syncGroups = () => setGroups(loadGroups());
@@ -127,6 +140,26 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
       createdAt: new Date().toISOString(),
     }]);
     setMessageText("");
+    if (chatPreferences.unreadIds.includes(contact.id)) {
+      setChatPreferences((current) => {
+        const next = { ...current, unreadIds: current.unreadIds.filter((id) => id !== contact.id) };
+        saveChatPreferences(next);
+        return next;
+      });
+    }
+  };
+
+  const togglePin = (contactId: string) => {
+    setChatPreferences((current) => {
+      const next = {
+        ...current,
+        pinnedIds: current.pinnedIds.includes(contactId)
+          ? current.pinnedIds.filter((id) => id !== contactId)
+          : [...current.pinnedIds, contactId],
+      };
+      saveChatPreferences(next);
+      return next;
+    });
   };
 
   const sendMessage = (event: FormEvent) => {
@@ -151,7 +184,17 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
     avatarColor: "#7C8FE0",
     online: false,
   }));
-  const chatList = [...groupChats, ...contacts];
+  const chatList = [...groupChats, ...contacts]
+    .map((contact) => {
+      const conversationMessages = loadMessages(contact.id);
+      return { contact, latestMessage: conversationMessages.at(-1) };
+    })
+    .sort((a, b) => {
+      const aPinned = chatPreferences.pinnedIds.includes(a.contact.id);
+      const bPinned = chatPreferences.pinnedIds.includes(b.contact.id);
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      return new Date(b.latestMessage?.createdAt ?? 0).getTime() - new Date(a.latestMessage?.createdAt ?? 0).getTime();
+    });
 
   return (
     <>
@@ -253,25 +296,44 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
             <div>
               <h2 className="text-sm font-semibold text-ink">메시지 관리</h2>
               <div className="mt-4 border-t border-surface-3">
-                {chatList.map((contact) => (
-              <button
-                key={contact.id}
-                type="button"
-                onClick={() => openChat(contact)}
-                className="flex w-full items-center gap-3 border-b border-surface-3 px-1 py-3 text-left transition hover:bg-surface-2/60"
-              >
-                {contact.id.startsWith("group-") ? (
-                  <GroupAvatar />
-                ) : (
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
-                    {contact.name.slice(0, 1)}
-                  </span>
-                )}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-medium text-ink">{contact.name}</span>
-                  {contact.id.startsWith("group-") && <span className="mt-1 block truncate text-[10px] text-ink-faint">{contact.handle}</span>}
-                </span>
-              </button>
+                {chatList.map(({ contact, latestMessage }) => (
+                  <div key={contact.id} className="group flex items-center gap-3 border-b border-surface-3 px-1 py-3 transition hover:bg-surface-2/60">
+                    <button type="button" onClick={() => openChat(contact)} aria-label={`${contact.name} 대화 열기`} className="shrink-0">
+                      {contact.id.startsWith("group-") ? (
+                        <GroupAvatar />
+                      ) : (
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full text-[11px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
+                          {contact.name.slice(0, 1)}
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <button type="button" onClick={() => openChat(contact)} className="min-w-0 flex-1 truncate text-left text-xs font-medium text-ink">
+                          {contact.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => togglePin(contact.id)}
+                          aria-label={chatPreferences.pinnedIds.includes(contact.id) ? `${contact.name} 고정 해제` : `${contact.name} 고정`}
+                          title={chatPreferences.pinnedIds.includes(contact.id) ? "고정 해제" : "상단 고정"}
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-ink-faint transition hover:bg-surface-3 hover:text-ink ${chatPreferences.pinnedIds.includes(contact.id) ? "opacity-100" : "opacity-40 group-hover:opacity-100"}`}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill={chatPreferences.pinnedIds.includes(contact.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="m14 4 6 6-3 1-4 4-1 5-2-2-2-2-4 4-1-1 4-4-2-2 5-1 4-4 1-3Z" />
+                          </svg>
+                        </button>
+                        <span className="shrink-0 text-[9px] text-ink-faint">{formatChatTime(latestMessage?.createdAt)}</span>
+                      </div>
+                      <button type="button" onClick={() => openChat(contact)} className="mt-1 flex w-full items-center gap-2 text-left">
+                        <span className="min-w-0 flex-1 truncate text-[10px] text-ink-faint">
+                          {latestMessage ? `${latestMessage.sender === "me" ? "나: " : ""}${latestMessage.text}` : "대화를 시작해보세요"}
+                        </span>
+                        {chatPreferences.unreadIds.includes(contact.id) && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-night" aria-label="읽지 않은 메시지" />}
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
