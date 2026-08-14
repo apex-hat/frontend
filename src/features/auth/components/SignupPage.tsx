@@ -91,7 +91,6 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
     <AuthLayout
       eyebrow="회원가입"
       title="팀에 합류하기"
-      isLeaving={isNavigating}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -190,9 +189,9 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
           type="button"
           onClick={handleNavigateLogin}
           disabled={isNavigating}
-          className="min-w-[3.5rem] cursor-pointer text-ink underline underline-offset-4 transition-all hover:text-night active:scale-95 disabled:cursor-wait disabled:text-ink-dim"
+          className="cursor-pointer text-ink underline underline-offset-4 transition-colors hover:text-night"
         >
-          {isNavigating ? "이동 중..." : "로그인"}
+          로그인
         </button>
       </p>
     </AuthLayout>

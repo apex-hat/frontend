@@ -16,6 +16,24 @@ const PHASE_DOT: Record<string, string> = {
 
 const HOUR_MARKS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 
+const TIMEZONE_LABELS: Record<string, string> = {
+  "Asia/Seoul": "서울",
+  "Asia/Tokyo": "도쿄",
+  "Asia/Kolkata": "콜카타",
+  "Asia/Singapore": "싱가포르",
+  "Europe/London": "런던",
+  "Europe/Berlin": "베를린",
+  "Europe/Paris": "파리",
+  "America/New_York": "뉴욕",
+  "America/Los_Angeles": "새너제이",
+  "America/Sao_Paulo": "상파울루",
+  "Australia/Sydney": "시드니",
+};
+
+function getShortTimezoneLabel(timezone: string) {
+  return TIMEZONE_LABELS[timezone] ?? timezone.split("/").at(-1)?.replaceAll("_", " ") ?? timezone;
+}
+
 /**
  * 하루 24시간을 가로축으로 펼쳐, 팀원 각자의 "지금 현지 시각"을 같은 축 위에 점으로 찍는다.
  * 실시간 회의 없이도 "지금 누가 깨어있는지"를 한눈에 보여주는 것이 이 서비스의 핵심 화면.
@@ -31,7 +49,7 @@ export default function WorldClockStrip({ members }: WorldClockStripProps) {
   const positioned = members.map((m) => {
     const { hour, minute } = getLocalTimeParts(m.timezone, now);
     const pct = ((hour + minute / 60) / 24) * 100;
-    return { member: m, hour, minute, pct, phase: getDayPhase(hour) };
+    return { member: m, pct, phase: getDayPhase(hour) };
   });
 
   return (
@@ -63,39 +81,41 @@ export default function WorldClockStrip({ members }: WorldClockStripProps) {
         </div>
 
         {/* 팀원 마커 */}
-        {positioned.map(({ member, hour, minute, pct, phase }) => (
-          <div
-            key={member.user_id}
-            className="group absolute -translate-x-1/2 cursor-default"
-            style={{ left: `${pct}%`, top: "0" }}
-          >
-            <div className="flex flex-col items-center">
-              <div
-                className="w-7 h-7 rounded-full border-2 border-void flex items-center justify-center text-[10px] font-semibold text-void"
-                style={{ backgroundColor: member.avatarColor }}
-                title={member.name}
-              >
-                {member.name.slice(0, 1)}
-              </div>
-              <span className={`mt-1 w-1.5 h-1.5 rounded-full ${PHASE_DOT[phase]}`} />
-            </div>
+        {positioned.map(({ member, pct, phase }) => {
+          const isAvailable = !getUnavailabilityHint(member.timezone, now);
 
-            {/* 호버 툴팁 */}
-            <div className="pointer-events-none absolute z-20 left-1/2 -translate-x-1/2 top-full mt-2 w-52 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition origin-top">
-              <div className="rounded-lg bg-surface-2 border border-surface-3 shadow-panel px-3 py-2.5">
-                <p className="text-xs font-medium text-ink">{member.name}</p>
-                <p className="text-[11px] text-ink-dim">{member.role === "PM" ? "PM" : "멤버"}</p>
-                <p className="font-mono text-xs text-ink mt-1.5">
-                  {formatLocalTime(member.timezone, now)} · {member.timezone.replace("_", " ")}
-                </p>
-                <p className="text-[11px] text-ink-faint mt-1">
-                  {getUnavailabilityHint(member.timezone, now) ??
-                    `${hour}시 ${String(minute).padStart(2, "0")}분, 근무 가능 시간대예요`}
-                </p>
+          return (
+            <div
+              key={member.user_id}
+              className="group absolute -translate-x-1/2 cursor-default"
+              style={{ left: `${pct}%`, top: "0" }}
+            >
+              <div className="flex flex-col items-center">
+                <div
+                  className="w-7 h-7 rounded-full border-2 border-void flex items-center justify-center text-[10px] font-semibold text-void"
+                  style={{ backgroundColor: member.avatarColor }}
+                  title={member.name}
+                >
+                  {member.name.slice(0, 1)}
+                </div>
+                <span className={`mt-1 w-1.5 h-1.5 rounded-full ${PHASE_DOT[phase]}`} />
+              </div>
+
+              {/* 호버 툴팁 */}
+              <div className="pointer-events-none absolute z-20 left-1/2 -translate-x-1/2 top-full mt-2 w-44 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition origin-top">
+                <div className="rounded-lg bg-surface-2 border border-surface-3 shadow-panel px-3 py-2.5">
+                  <p className="text-xs font-medium text-ink">{member.name}</p>
+                  <p className="font-mono text-[11px] text-ink mt-1 whitespace-nowrap">
+                    {formatLocalTime(member.timezone, now)} · {getShortTimezoneLabel(member.timezone)}
+                  </p>
+                  <p className={`text-[11px] mt-1 ${isAvailable ? "text-consensus" : "text-ink-faint"}`}>
+                    {isAvailable ? "현재 근무 가능한 시간이에요" : "현재 근무 시간이 아니에요"}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
     </div>

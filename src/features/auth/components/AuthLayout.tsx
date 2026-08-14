@@ -5,7 +5,6 @@ interface AuthLayoutProps {
   children: ReactNode;
   eyebrow: string;
   title: ReactNode;
-  isLeaving?: boolean;
 }
 
 /**
@@ -17,14 +16,9 @@ export default function AuthLayout({
   children,
   eyebrow,
   title,
-  isLeaving = false,
 }: AuthLayoutProps) {
   return (
-    <div
-      className={`min-h-screen grid transition-all duration-300 ease-out lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,1fr)] ${
-        isLeaving ? "scale-[0.997] opacity-60" : "scale-100 opacity-100"
-      }`}
-    >
+    <div className="min-h-screen grid lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,1fr)]">
       <div className="relative hidden lg:flex flex-col justify-center overflow-hidden bg-surface px-10 py-10 xl:px-14 xl:py-12">
         <div
           className="pointer-events-none absolute inset-0 opacity-90"

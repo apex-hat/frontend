@@ -1,6 +1,6 @@
 import type { Opinion, Stance } from "../../../types";
 import type { TimezoneEntry } from "../../../lib/api";
-import { formatLocalTime, getUnavailabilityHint } from "../../../lib/timezone";
+import { formatLocalTime } from "../../../lib/timezone";
 
 interface TeamMemberRowProps {
   member: TimezoneEntry;
@@ -15,15 +15,14 @@ const STATUS_ICON: Record<Stance, { symbol: string; className: string }> = {
 };
 const NO_RESPONSE_ICON = { symbol: "…", className: "text-ink-faint bg-surface-3" };
 
-/** 응답 현황 대시보드에서 "누가 아직 안 봤는지 + 왜 그런지"를 함께 보여주는 한 줄 */
+/** 응답 현황 대시보드에서 팀원의 응답 여부와 의견을 보여주는 한 줄 */
 export default function TeamMemberRow({ member, opinion }: TeamMemberRowProps) {
   const icon = opinion ? STATUS_ICON[opinion.stance] : NO_RESPONSE_ICON;
-  const hint = !opinion ? getUnavailabilityHint(member.timezone) : null;
 
   return (
-    <div className="flex items-start gap-3 py-2.5">
+    <div className="flex items-center gap-3 py-2.5">
       <div
-        className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[9px] font-semibold text-void mt-0.5"
+        className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[9px] font-semibold text-void"
         style={{ backgroundColor: member.avatarColor }}
       >
         {member.name.slice(0, 1)}
@@ -33,13 +32,12 @@ export default function TeamMemberRow({ member, opinion }: TeamMemberRowProps) {
         <div className="flex items-center gap-2">
           <span className="text-sm text-ink truncate">{member.name}</span>
           <span className="font-mono text-[10px] text-ink-faint shrink-0">
-            {formatLocalTime(member.timezone)}
+            현지 {formatLocalTime(member.timezone)}
           </span>
         </div>
         {opinion?.comment && (
           <p className="text-xs text-ink-dim mt-0.5 leading-snug">{opinion.comment}</p>
         )}
-        {hint && <p className="text-[11px] text-day mt-0.5 leading-snug">💤 {hint}</p>}
       </div>
 
       <span

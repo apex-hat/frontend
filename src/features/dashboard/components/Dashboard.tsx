@@ -116,7 +116,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals }: Dashboard
                     <div className="min-w-0">
                       <p className="text-sm text-ink truncate">{proposal.title}</p>
                       <p className="text-[11px] text-ink-faint mt-1">
-                        {isOpen ? `${responded}/${total}명 응답 완료` : "펼쳐서 응답 현황 보기"}
+                        {responded}/{total}명 응답 완료
                       </p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">

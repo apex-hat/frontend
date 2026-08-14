@@ -47,7 +47,6 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
     <AuthLayout
       eyebrow="로그인"
       title={<RotatingGreeting />}
-      isLeaving={isNavigating}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -96,9 +95,9 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
           type="button"
           onClick={handleNavigateSignup}
           disabled={isNavigating}
-          className="min-w-[3.5rem] cursor-pointer text-ink underline underline-offset-4 transition-all hover:text-night active:scale-95 disabled:cursor-wait disabled:text-ink-dim"
+          className="cursor-pointer text-ink underline underline-offset-4 transition-colors hover:text-night"
         >
-          {isNavigating ? "이동 중..." : "회원가입"}
+          회원가입
         </button>
       </p>
     </AuthLayout>
