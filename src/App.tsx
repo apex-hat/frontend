@@ -18,7 +18,10 @@ function readStoredUser(): AuthUser | null {
       window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
       return null;
     }
-    return user as AuthUser;
+    return {
+      ...user,
+      preferred_language: user.preferred_language ?? "ko",
+    } as AuthUser;
   } catch {
     window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
     return null;

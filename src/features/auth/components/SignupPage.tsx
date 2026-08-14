@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import AuthLayout from "./AuthLayout";
-import type { AuthUser } from "../../../types";
+import type { AuthUser, SupportedLanguage } from "../../../types";
 import { getUtcOffsetLabel } from "../../../lib/timezone";
 import { signup } from "../../../lib/api";
 
@@ -51,12 +51,34 @@ const COUNTRY_TIMEZONE: Record<string, string> = {
   AU: "Australia/Sydney",
 };
 
+const LANGUAGE_OPTIONS: Array<{ code: SupportedLanguage; label: string }> = [
+  { code: "ko", label: "한국어" },
+  { code: "en", label: "English" },
+  { code: "ja", label: "日本語" },
+  { code: "de", label: "Deutsch" },
+  { code: "pt", label: "Português" },
+];
+
+const COUNTRY_LANGUAGE: Record<string, SupportedLanguage> = {
+  KR: "ko",
+  US: "en",
+  JP: "ja",
+  IN: "en",
+  SG: "en",
+  GB: "en",
+  DE: "de",
+  FR: "en",
+  BR: "pt",
+  AU: "en",
+};
+
 export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [country, setCountry] = useState("KR");
   const [timezone, setTimezone] = useState("Asia/Seoul");
+  const [language, setLanguage] = useState<SupportedLanguage>("ko");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +94,7 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
 
     setIsSubmitting(true);
     try {
-      const user = await signup(name, email, password, country, timezone);
+      const user = await signup(name, email, password, country, timezone, language);
       onSignup(user);
     } catch {
       setError("회원가입에 실패했어요. 잠시 후 다시 시도해주세요.");
@@ -143,12 +165,30 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
               const nextCountry = e.target.value;
               setCountry(nextCountry);
               setTimezone(COUNTRY_TIMEZONE[nextCountry] ?? "Asia/Seoul");
+              setLanguage(COUNTRY_LANGUAGE[nextCountry] ?? "en");
             }}
             className="w-full rounded-lg bg-surface border border-surface-3 px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-night"
           >
             {COUNTRY_OPTIONS.map((c) => (
               <option key={c.code} value={c.code}>
                 {c.label} ({c.code})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-ink-dim mb-1.5" htmlFor="language">
+            표시 언어
+          </label>
+          <select
+            id="language"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
+            className="w-full rounded-lg bg-surface border border-surface-3 px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-night"
+          >
+            {LANGUAGE_OPTIONS.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.label}
               </option>
             ))}
           </select>

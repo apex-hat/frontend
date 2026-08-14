@@ -183,6 +183,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals }: Dashboard
                             member={member}
                             opinion={opinion}
                             viewerTimezone={user.timezone}
+                            viewerLanguage={user.preferred_language}
                           />
                         );
                       })}

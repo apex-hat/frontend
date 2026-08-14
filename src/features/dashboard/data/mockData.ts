@@ -18,15 +18,15 @@ export const MOCK_TEAM: Team = {
 };
 
 export const MOCK_USERS: User[] = [
-  { id: "u-jiwoo", name: "테스트유저", email: "test@meridian.team", country: "KR", timezone: "Asia/Seoul", culture_tag: "high-context", created_at: hoursAgo(24 * 90) },
-  { id: "u-mina", name: "이민아", email: "mina@meridian.team", country: "KR", timezone: "Asia/Seoul", culture_tag: "high-context", created_at: hoursAgo(24 * 88) },
-  { id: "u-alex", name: "Alex Turner", email: "alex@meridian.team", country: "US", timezone: "America/Los_Angeles", culture_tag: "low-context", created_at: hoursAgo(24 * 80) },
-  { id: "u-sofia", name: "Sofia Almeida", email: "sofia@meridian.team", country: "BR", timezone: "America/Sao_Paulo", culture_tag: "high-context", created_at: hoursAgo(24 * 75) },
-  { id: "u-lena", name: "Lena Schmidt", email: "lena@meridian.team", country: "DE", timezone: "Europe/Berlin", culture_tag: "low-context", created_at: hoursAgo(24 * 70) },
-  { id: "u-omar", name: "Omar Haddad", email: "omar@meridian.team", country: "GB", timezone: "Europe/London", culture_tag: "low-context", created_at: hoursAgo(24 * 60) },
-  { id: "u-haruto", name: "佐藤 陽翔", email: "haruto@meridian.team", country: "JP", timezone: "Asia/Tokyo", culture_tag: "high-context", created_at: hoursAgo(24 * 50) },
-  { id: "u-priya", name: "Priya Nair", email: "priya@meridian.team", country: "IN", timezone: "Asia/Kolkata", culture_tag: "high-context", created_at: hoursAgo(24 * 40) },
-  { id: "u-jack", name: "Jack Wilson", email: "jack@meridian.team", country: "AU", timezone: "Australia/Sydney", culture_tag: "low-context", created_at: hoursAgo(24 * 30) },
+  { id: "u-jiwoo", name: "테스트유저", email: "test@meridian.team", country: "KR", timezone: "Asia/Seoul", culture_tag: "high-context", preferred_language: "ko", created_at: hoursAgo(24 * 90) },
+  { id: "u-mina", name: "이민아", email: "mina@meridian.team", country: "KR", timezone: "Asia/Seoul", culture_tag: "high-context", preferred_language: "ko", created_at: hoursAgo(24 * 88) },
+  { id: "u-alex", name: "Alex Turner", email: "alex@meridian.team", country: "US", timezone: "America/Los_Angeles", culture_tag: "low-context", preferred_language: "en", created_at: hoursAgo(24 * 80) },
+  { id: "u-sofia", name: "Sofia Almeida", email: "sofia@meridian.team", country: "BR", timezone: "America/Sao_Paulo", culture_tag: "high-context", preferred_language: "pt", created_at: hoursAgo(24 * 75) },
+  { id: "u-lena", name: "Lena Schmidt", email: "lena@meridian.team", country: "DE", timezone: "Europe/Berlin", culture_tag: "low-context", preferred_language: "de", created_at: hoursAgo(24 * 70) },
+  { id: "u-omar", name: "Omar Haddad", email: "omar@meridian.team", country: "GB", timezone: "Europe/London", culture_tag: "low-context", preferred_language: "en", created_at: hoursAgo(24 * 60) },
+  { id: "u-haruto", name: "佐藤 陽翔", email: "haruto@meridian.team", country: "JP", timezone: "Asia/Tokyo", culture_tag: "high-context", preferred_language: "ja", created_at: hoursAgo(24 * 50) },
+  { id: "u-priya", name: "Priya Nair", email: "priya@meridian.team", country: "IN", timezone: "Asia/Kolkata", culture_tag: "high-context", preferred_language: "en", created_at: hoursAgo(24 * 40) },
+  { id: "u-jack", name: "Jack Wilson", email: "jack@meridian.team", country: "AU", timezone: "Australia/Sydney", culture_tag: "low-context", preferred_language: "en", created_at: hoursAgo(24 * 30) },
 ];
 
 export const MOCK_TEAM_MEMBERS: TeamMember[] = [
@@ -87,7 +87,21 @@ export const MOCK_OPINIONS: Opinion[] = [
   { id: "o-2", proposal_id: "p-1", user_id: "u-mina", stance: "AGREE", comment: "체크리스트 UI 시안 바로 만들어볼게요.", created_at: hoursAgo(28) },
   { id: "o-3", proposal_id: "p-1", user_id: "u-alex", stance: "CONDITIONAL", comment: "완전히 반대는 아닌데, 기존 신규 입사자 설문에서 영상 선호가 높았던 게 걸려요.", created_at: hoursAgo(20) },
   { id: "o-4", proposal_id: "p-1", user_id: "u-lena", stance: "DISAGREE", comment: "흥미로운 아이디어지만, 우리 팀 온보딩엔 아직 시기상조인 것 같습니다.", created_at: hoursAgo(10) },
-  { id: "o-5", proposal_id: "p-1", user_id: "u-omar", stance: "AGREE", comment: "Sounds good to me.", created_at: hoursAgo(9) },
+  {
+    id: "o-5",
+    proposal_id: "p-1",
+    user_id: "u-omar",
+    stance: "AGREE",
+    comment: "Sounds good to me.",
+    original_language: "en",
+    translations: {
+      ko: "좋은 방향이라고 생각합니다.",
+      ja: "良い方向性だと思います。",
+      de: "Ich halte das für eine gute Richtung.",
+      pt: "Acho que é uma boa direção.",
+    },
+    created_at: hoursAgo(9),
+  },
 
   // p-2: 스탠드업 비동기 전환 — u-jiwoo, u-mina, u-alex, u-sofia, u-priya, u-jack 미응답
   { id: "o-6", proposal_id: "p-2", user_id: "u-lena", stance: "AGREE", comment: "시차 때문에 실시간 참석이 항상 힘들었어요.", created_at: hoursAgo(12) },
@@ -96,13 +110,13 @@ export const MOCK_OPINIONS: Opinion[] = [
 
   // p-3: 코드 리뷰 SLA — 전원 응답 완료(합의)
   { id: "o-9", proposal_id: "p-3", user_id: "u-jiwoo", stance: "AGREE", comment: "리뷰 품질을 유지하려면 48시간이 현실적인 기준이라고 생각합니다.", created_at: hoursAgo(50) },
-  { id: "o-10", proposal_id: "p-3", user_id: "u-mina", stance: "AGREE", comment: "긴급 리뷰만 별도로 표시한다면 48시간 기준에 동의해요.", created_at: hoursAgo(49) },
+  { id: "o-10", proposal_id: "p-3", user_id: "u-mina", stance: "CONDITIONAL", comment: "긴급 리뷰를 별도로 표시하는 조건이라면 48시간 기준에 동의해요.", created_at: hoursAgo(49) },
   { id: "o-11", proposal_id: "p-3", user_id: "u-alex", stance: "AGREE", comment: "시차를 고려하면 48시간이 모든 지역의 팀원에게 더 공평합니다.", created_at: hoursAgo(52) },
-  { id: "o-12", proposal_id: "p-3", user_id: "u-sofia", stance: "AGREE", comment: "일정 예측이 쉬워질 것 같아 찬성합니다.", created_at: hoursAgo(44) },
+  { id: "o-12", proposal_id: "p-3", user_id: "u-sofia", stance: "DISAGREE", comment: "48시간은 긴급한 작업의 병목을 키울 수 있어 기존 기준을 유지하는 편이 좋겠습니다.", created_at: hoursAgo(44) },
   { id: "o-13", proposal_id: "p-3", user_id: "u-lena", stance: "AGREE", comment: "현재 업무량을 보면 24시간보다 48시간이 안정적이에요.", created_at: hoursAgo(40) },
-  { id: "o-14", proposal_id: "p-3", user_id: "u-omar", stance: "AGREE", comment: "명확한 우선순위 규칙과 함께 적용하면 좋겠습니다.", created_at: hoursAgo(38) },
+  { id: "o-14", proposal_id: "p-3", user_id: "u-omar", stance: "CONDITIONAL", comment: "명확한 우선순위 규칙을 함께 적용하는 조건으로 동의합니다.", created_at: hoursAgo(38) },
   { id: "o-15", proposal_id: "p-3", user_id: "u-haruto", stance: "AGREE", comment: "리뷰 요청이 밤에 도착하는 경우가 많아 변경에 동의합니다.", created_at: hoursAgo(30) },
-  { id: "o-16", proposal_id: "p-3", user_id: "u-priya", stance: "AGREE", comment: "48시간이면 충분히 검토하면서 다른 업무도 조율할 수 있어요.", created_at: hoursAgo(20) },
+  { id: "o-16", proposal_id: "p-3", user_id: "u-priya", stance: "DISAGREE", comment: "리뷰 대기 시간이 길어질 수 있어 24시간 기준을 유지하는 편이 낫다고 생각합니다.", created_at: hoursAgo(20) },
   { id: "o-17", proposal_id: "p-3", user_id: "u-jack", stance: "AGREE", comment: "팀 전체 기준을 통일하는 방향에 찬성합니다.", created_at: hoursAgo(15) },
 ];
 
@@ -132,7 +146,7 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
     user_id: "u-jiwoo",
     proposal_id: "p-3",
     type: "CONSENSUS_DONE",
-    message: "'코드 리뷰 SLA 조정' 제안이 전원 합의로 마무리됐어요.",
+    message: "'코드 리뷰 SLA 조정' 제안의 합의 절차가 마무리됐어요.",
     is_read: true,
     created_at: hoursAgo(15),
   },

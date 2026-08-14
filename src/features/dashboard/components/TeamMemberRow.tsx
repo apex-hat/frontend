@@ -1,4 +1,4 @@
-import type { Opinion, Stance } from "../../../types";
+import type { Opinion, Stance, SupportedLanguage } from "../../../types";
 import type { TimezoneEntry } from "../../../lib/api";
 
 interface TeamMemberRowProps {
@@ -6,6 +6,7 @@ interface TeamMemberRowProps {
   /** 해당 제안에 대한 이 팀원의 Opinion. 레코드가 없으면 미응답. */
   opinion: Opinion | undefined;
   viewerTimezone: string;
+  viewerLanguage: SupportedLanguage;
 }
 
 const STATUS_ICON: Record<Stance, { symbol: string; className: string }> = {
@@ -15,20 +16,46 @@ const STATUS_ICON: Record<Stance, { symbol: string; className: string }> = {
 };
 const NO_RESPONSE_ICON = { symbol: "…", className: "text-ink-faint bg-surface-3" };
 
-function formatSubmittedAt(createdAt: string, timezone: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
+const LANGUAGE_LOCALE: Record<SupportedLanguage, string> = {
+  ko: "ko-KR",
+  en: "en-US",
+  ja: "ja-JP",
+  de: "de-DE",
+  pt: "pt-BR",
+};
+
+function formatSubmittedAt(createdAt: string, timezone: string, language: SupportedLanguage) {
+  const date = new Date(createdAt);
+
+  if (language === "ko") {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date);
+    const getPart = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((part) => part.type === type)?.value ?? "";
+
+    return `${getPart("month")}월 ${getPart("day")}일 ${getPart("hour")}:${getPart("minute")}`;
+  }
+
+  return new Intl.DateTimeFormat(LANGUAGE_LOCALE[language], {
     timeZone: timezone,
-    month: "numeric",
-    day: "numeric",
+    month: "short",
+    day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(new Date(createdAt));
+  }).format(date);
 }
 
 /** 응답 현황 대시보드에서 팀원의 응답 여부와 의견을 보여주는 한 줄 */
-export default function TeamMemberRow({ member, opinion, viewerTimezone }: TeamMemberRowProps) {
+export default function TeamMemberRow({ member, opinion, viewerTimezone, viewerLanguage }: TeamMemberRowProps) {
   const icon = opinion ? STATUS_ICON[opinion.stance] : NO_RESPONSE_ICON;
+  const displayedComment = opinion?.translations?.[viewerLanguage] ?? opinion?.comment;
 
   return (
     <div className="flex items-center gap-3 py-2.5">
@@ -42,12 +69,14 @@ export default function TeamMemberRow({ member, opinion, viewerTimezone }: TeamM
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm text-ink truncate">{member.name}</span>
-          <span className="font-mono text-[10px] text-ink-faint shrink-0">
-            {opinion ? `내 시간 ${formatSubmittedAt(opinion.created_at, viewerTimezone)}` : "미응답"}
-          </span>
+          {opinion && (
+            <span className="font-mono text-[10px] text-ink-faint shrink-0">
+              {formatSubmittedAt(opinion.created_at, viewerTimezone, viewerLanguage)}
+            </span>
+          )}
         </div>
-        {opinion?.comment && (
-          <p className="text-xs text-ink-dim mt-0.5 leading-snug">{opinion.comment}</p>
+        {displayedComment && (
+          <p className="text-xs text-ink-dim mt-0.5 leading-snug">{displayedComment}</p>
         )}
       </div>
 

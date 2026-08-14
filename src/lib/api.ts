@@ -1,4 +1,4 @@
-import type { AuthUser, Notification, Opinion, Proposal, Team } from "../types";
+import type { AuthUser, Notification, Opinion, Proposal, SupportedLanguage, Team } from "../types";
 import {
   AVATAR_COLORS,
   CURRENT_USER_ID,
@@ -26,7 +26,15 @@ async function parseJson<T>(res: Response): Promise<T> {
 }
 
 function toAuthUser(u: (typeof MOCK_USERS)[number]): AuthUser {
-  return { id: u.id, name: u.name, email: u.email, country: u.country, timezone: u.timezone, culture_tag: u.culture_tag };
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    country: u.country,
+    timezone: u.timezone,
+    culture_tag: u.culture_tag,
+    preferred_language: u.preferred_language,
+  };
 }
 
 // --- Auth -------------------------------------------------------------
@@ -48,15 +56,24 @@ export async function signup(
   email: string,
   _password: string,
   country: string,
-  timezone: string
+  timezone: string,
+  preferredLanguage: SupportedLanguage,
 ): Promise<AuthUser> {
   if (USE_MOCK) {
-    return delay({ id: `u-${Date.now()}`, name, email, country, timezone, culture_tag: "high-context" });
+    return delay({
+      id: `u-${Date.now()}`,
+      name,
+      email,
+      country,
+      timezone,
+      culture_tag: "high-context",
+      preferred_language: preferredLanguage,
+    });
   }
   return fetch("/api/auth/signup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password: _password, country, timezone }),
+    body: JSON.stringify({ name, email, password: _password, country, timezone, preferred_language: preferredLanguage }),
   }).then((r) => parseJson<AuthUser>(r));
 }
 

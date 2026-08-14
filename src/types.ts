@@ -9,6 +9,8 @@ export type ProposalStatus = "DRAFT" | "REVIEWING" | "OPEN" | "CONSENSUS_DONE" |
 
 export type Stance = "AGREE" | "DISAGREE" | "CONDITIONAL";
 
+export type SupportedLanguage = "ko" | "en" | "ja" | "de" | "pt";
+
 export type NotificationType =
   | "NEW_PROPOSAL"
   | "OPINION_REQUEST"
@@ -26,6 +28,7 @@ export interface User {
   timezone: string;
   /** 예: "high-context", "low-context" */
   culture_tag: string;
+  preferred_language: SupportedLanguage;
   created_at: string;
 }
 
@@ -59,6 +62,8 @@ export interface Opinion {
   user_id: string;
   stance: Stance;
   comment?: string;
+  original_language?: SupportedLanguage;
+  translations?: Partial<Record<SupportedLanguage, string>>;
   created_at: string;
 }
 
@@ -73,4 +78,7 @@ export interface Notification {
 }
 
 /** POST /api/auth/login, /api/auth/signup 응답 형태 */
-export type AuthUser = Pick<User, "id" | "name" | "email" | "country" | "timezone" | "culture_tag">;
+export type AuthUser = Pick<
+  User,
+  "id" | "name" | "email" | "country" | "timezone" | "culture_tag" | "preferred_language"
+>;
