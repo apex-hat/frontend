@@ -2,7 +2,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { AuthUser, Notification, SupportedLanguage } from "../../../types";
 import { getUtcOffsetLabel } from "../../../lib/timezone";
 import { getNotifications, markNotificationRead } from "../../../lib/api";
-import BackButton from "../../../components/navigation/BackButton";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
 import { getUserHandle } from "../../workspace/workspaceStorage";
 import BrandMark from "../../../components/branding/BrandMark";
@@ -148,8 +147,10 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
       </header>
 
       <main className="px-6 pb-10">
-        <div className="mx-auto flex max-w-5xl py-4">
-          <BackButton onClick={onBack} />
+        <div className="-mx-2 flex py-3">
+          <button type="button" onClick={onBack} aria-label="대시보드로 돌아가기" className="px-2 py-1 text-xl leading-none text-ink-dim transition hover:text-ink">
+            &lt;
+          </button>
         </div>
         <div className="mx-auto max-w-lg">
         <section className="rounded-2xl border border-surface-3 bg-surface p-6 sm:p-8">
