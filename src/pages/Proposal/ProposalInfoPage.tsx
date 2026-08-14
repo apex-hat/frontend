@@ -16,7 +16,7 @@ export default function ProposalInfoPage({ title, content, deadline }: ProposalI
   return (
     <main className="mx-auto w-full max-w-[680px] px-6 py-12 text-ink">
       <article className="rounded-2xl border border-surface-3 bg-surface px-7 py-7 shadow-panel sm:px-9 sm:py-9">
-        <h1 className="text-balance font-display text-[25px] font-semibold leading-[1.35] tracking-[-0.03em] text-ink sm:text-[28px]">{title}</h1>
+        <h1 className="text-balance font-display text-[25px] font-semibold leading-[1.35] tracking-[-0.03em] text-ink sm:text-[28px]" style={{ wordBreak: "keep-all", overflowWrap: "break-word" }}>{title}</h1>
 
         <section className="mt-8">
           <h2 className="mb-3 text-[11px] font-semibold text-ink-faint">내용</h2>

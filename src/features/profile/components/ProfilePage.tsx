@@ -148,8 +148,10 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
 
       <main className="px-6 pb-10">
         <div className="-mx-2 flex py-3">
-          <button type="button" onClick={onBack} aria-label="대시보드로 돌아가기" className="px-2 py-1 text-xl leading-none text-ink-dim transition hover:text-ink">
-            &lt;
+          <button type="button" onClick={onBack} aria-label="대시보드로 돌아가기" className="flex h-8 w-8 items-center justify-center text-ink-dim transition hover:text-ink">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
           </button>
         </div>
         <div className="mx-auto max-w-lg">
