@@ -58,6 +58,7 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
   const [country, setCountry] = useState("KR");
   const [timezone, setTimezone] = useState("Asia/Seoul");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -78,6 +79,12 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleNavigateLogin = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
+    window.setTimeout(onNavigateLogin, 350);
   };
 
   return (
@@ -180,10 +187,11 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
         <span>이미 계정이 있으신가요?</span>
         <button
           type="button"
-          onClick={onNavigateLogin}
-          className="cursor-pointer text-ink underline underline-offset-4 transition-all hover:text-night active:scale-95"
+          onClick={handleNavigateLogin}
+          disabled={isNavigating}
+          className="min-w-[3.5rem] cursor-pointer text-ink underline underline-offset-4 transition-all hover:text-night active:scale-95 disabled:cursor-wait disabled:text-ink-dim"
         >
-          로그인
+          {isNavigating ? "이동 중..." : "로그인"}
         </button>
       </p>
     </AuthLayout>

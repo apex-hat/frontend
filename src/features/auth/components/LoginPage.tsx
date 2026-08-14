@@ -14,6 +14,7 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -34,6 +35,12 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleNavigateSignup = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
+    window.setTimeout(onNavigateSignup, 350);
   };
 
   return (
@@ -86,10 +93,11 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
         <span>아직 계정이 없으신가요?</span>
         <button
           type="button"
-          onClick={onNavigateSignup}
-          className="cursor-pointer text-ink underline underline-offset-4 transition-all hover:text-night active:scale-95"
+          onClick={handleNavigateSignup}
+          disabled={isNavigating}
+          className="min-w-[3.5rem] cursor-pointer text-ink underline underline-offset-4 transition-all hover:text-night active:scale-95 disabled:cursor-wait disabled:text-ink-dim"
         >
-          회원가입
+          {isNavigating ? "이동 중..." : "회원가입"}
         </button>
       </p>
     </AuthLayout>

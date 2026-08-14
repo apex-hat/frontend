@@ -36,7 +36,7 @@ export default function WorldClockStrip({ members }: WorldClockStripProps) {
 
   return (
     <div className="rounded-2xl bg-surface border border-surface-3 p-6">
-      <div className="flex items-baseline justify-between mb-6">
+      <div className="flex items-baseline justify-between mb-8">
         <div>
           <h2 className="font-display text-lg text-ink">지금, 팀은 어디쯤 깨어있을까요</h2>
         </div>
@@ -45,7 +45,7 @@ export default function WorldClockStrip({ members }: WorldClockStripProps) {
         </span>
       </div>
 
-      <div className="relative pt-9 pb-7">
+      <div className="relative pt-10 pb-16">
         {/* 배경 그라데이션: 자정→새벽→낮→저녁→자정 */}
         <div
           className="h-2.5 rounded-full overflow-hidden"
@@ -67,7 +67,7 @@ export default function WorldClockStrip({ members }: WorldClockStripProps) {
           <div
             key={member.user_id}
             className="group absolute -translate-x-1/2 cursor-default"
-            style={{ left: `${pct}%`, top: idx % 2 === 0 ? "-30px" : "8px" }}
+            style={{ left: `${pct}%`, top: idx % 2 === 0 ? "-24px" : "52px" }}
           >
             <div className="flex flex-col items-center">
               <div
@@ -98,20 +98,6 @@ export default function WorldClockStrip({ members }: WorldClockStripProps) {
         ))}
       </div>
 
-      <div className="flex items-center gap-4 mt-2 font-mono text-[10px] text-ink-faint">
-        <LegendDot className="bg-night" label="한밤중" />
-        <LegendDot className="bg-day-dim" label="아침/저녁" />
-        <LegendDot className="bg-day" label="근무시간대" />
-      </div>
     </div>
-  );
-}
-
-function LegendDot({ className, label }: { className: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`w-2 h-2 rounded-full ${className}`} />
-      {label}
-    </span>
   );
 }
