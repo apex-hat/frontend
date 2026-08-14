@@ -22,21 +22,37 @@ export default function Dashboard({ user, onLogout, onOpenProposals }: Dashboard
   const [opinionsByProposal, setOpinionsByProposal] = useState<Record<string, Opinion[]>>({});
 
   useEffect(() => {
-    getTimezones().then(setMembers);
-    getProposals().then((list) => {
-      setProposals(list);
-      setExpandedId((prev) => prev ?? list[0]?.id ?? null);
+    let cancelled = false;
+
+    getTimezones().then((list) => {
+      if (!cancelled) setMembers(list);
     });
-    getNotifications().then(setNotifications);
+
+    getNotifications().then((list) => {
+      if (!cancelled) setNotifications(list);
+    });
+
+    getProposals().then(async (list) => {
+      const results = await Promise.all(
+        list.map((proposal) => getProposalStatus(proposal.id).catch(() => null)),
+      );
+      if (cancelled) return;
+
+      const opinionMap = results.reduce<Record<string, Opinion[]>>((acc, result) => {
+        if (result) acc[result.proposal.id] = result.opinions;
+        return acc;
+      }, {});
+
+      setOpinionsByProposal(opinionMap);
+      setProposals(list);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    if (!expandedId || opinionsByProposal[expandedId]) return;
-    getProposalStatus(expandedId).then((result) => {
-      if (!result) return;
-      setOpinionsByProposal((prev) => ({ ...prev, [expandedId]: result.opinions }));
-    });
-  }, [expandedId, opinionsByProposal]);
+  const activeProposalCount = proposals.filter((proposal) => proposal.status === "OPEN").length;
 
   const markAllRead = () => {
     const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
@@ -89,7 +105,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals }: Dashboard
           <div className="flex items-center justify-between gap-4 mb-4">
             <h2 className="font-display text-lg text-ink">제안 응답 현황</h2>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-ink-faint">{proposals.length}개 진행 중</span>
+              <span className="text-xs text-ink-faint">{activeProposalCount}개 진행 중</span>
               <button
                 type="button"
                 onClick={onOpenProposals}

@@ -5,7 +5,7 @@ const STATUS_CONFIG: Record<ProposalStatus, { label: string; className: string }
   OPEN: { label: "진행 중", className: "bg-day/15 text-day border-day/30" },
   DRAFT: { label: "종료됨", className: "bg-surface-3 text-ink-faint border-surface-3" },
   REVIEWING: { label: "종료됨", className: "bg-surface-3 text-ink-faint border-surface-3" },
-  CONSENSUS_DONE: { label: "종료됨 · 합의 완료", className: "bg-consensus/15 text-consensus border-consensus/30" },
+  CONSENSUS_DONE: { label: "합의 완료", className: "bg-consensus/15 text-consensus border-consensus/30" },
   CLOSED: { label: "종료됨", className: "bg-surface-3 text-ink-faint border-surface-3" },
 };
 
