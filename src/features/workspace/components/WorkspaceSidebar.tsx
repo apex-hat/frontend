@@ -133,7 +133,7 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
 
   return (
     <>
-      <aside className="rounded-2xl border border-surface-3 bg-surface p-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+      <aside className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
         {mode === "groups" && <div>
           <div className="mb-2 flex items-center justify-between gap-2">
             <h2 className="text-xs font-semibold text-ink">그룹 관리</h2>
