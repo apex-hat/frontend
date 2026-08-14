@@ -89,7 +89,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
   return (
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-20 backdrop-blur bg-void/80 border-b border-surface-3">
-        <div className="w-full px-4 py-4 flex items-center justify-between">
+        <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2.5">
             <span className="font-display text-lg text-ink">Meridian</span>
           </div>
@@ -127,9 +127,9 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
         </div>
       </header>
 
-      <main className="grid w-full gap-6 px-4 py-8 lg:grid-cols-[240px_minmax(0,1100px)]">
-        <div className="hidden lg:block">
-          <WorkspaceSidebar user={user} />
+      <main className="mx-auto grid w-full max-w-[1400px] gap-5 px-4 py-8 xl:grid-cols-[220px_minmax(0,1fr)_220px]">
+        <div className="hidden xl:block">
+          <WorkspaceSidebar user={user} mode="messages" />
         </div>
 
         <div className="min-w-0 space-y-8">
@@ -229,6 +229,10 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
             })}
           </div>
           </section>
+        </div>
+
+        <div className="hidden xl:block">
+          <WorkspaceSidebar user={user} mode="groups" />
         </div>
       </main>
       <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} />

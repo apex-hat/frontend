@@ -17,6 +17,7 @@ import {
 
 interface WorkspaceSidebarProps {
   user: AuthUser;
+  mode: "messages" | "groups";
 }
 
 const MEMBER_PROFILES = [
@@ -31,7 +32,7 @@ const MEMBER_PROFILES = [
   { name: "Noah Williams", color: "#7C8FE0" },
 ];
 
-export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
+export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) {
   const [groups, setGroups] = useState(loadGroups);
   const [contacts, setContacts] = useState(loadContacts);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -133,9 +134,9 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
   return (
     <>
       <aside className="rounded-2xl border border-surface-3 bg-surface p-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
-        <div className="mb-5">
+        {mode === "groups" && <div>
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className="text-xs font-semibold text-ink">그룹</h2>
+            <h2 className="text-xs font-semibold text-ink">그룹 관리</h2>
             <button
               type="button"
               onClick={openGroupModal}
@@ -161,10 +162,32 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
             ))}
           </div>
           {groupActionStatus && <p className="mt-2 text-[10px] leading-snug text-ink-faint">{groupActionStatus}</p>}
-        </div>
+        </div>}
 
-        <div className="border-t border-surface-3 pt-4">
-          <h2 className="mb-2 text-xs font-semibold text-ink">메시지</h2>
+        {mode === "messages" && <div>
+          <h2 className="mb-3 text-xs font-semibold text-ink">메시지 관리</h2>
+          <p className="mb-1.5 px-2 text-[10px] text-ink-faint">그룹 채팅</p>
+          <div className="mb-4 space-y-1">
+            {groups.slice(0, 4).map((group) => (
+              <button
+                key={group.id}
+                type="button"
+                onClick={() => openChat({
+                  id: `group-${group.id}`,
+                  name: group.name,
+                  handle: `${group.memberCount}명`,
+                  avatarColor: "#7C8FE0",
+                  online: false,
+                })}
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition hover:bg-surface-2"
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-night/15 text-[11px] font-semibold text-night">#</span>
+                <span className="min-w-0 truncate text-xs text-ink-dim">{group.name}</span>
+              </button>
+            ))}
+          </div>
+
+          <p className="mb-1.5 border-t border-surface-3 px-2 pt-4 text-[10px] text-ink-faint">개인 메시지</p>
           <div className="space-y-1">
             {contacts.map((contact) => (
               <button
@@ -180,7 +203,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
               </button>
             ))}
           </div>
-        </div>
+        </div>}
       </aside>
 
       {contextMenu && (
@@ -225,8 +248,8 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
       {leaveTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
           <section role="dialog" aria-modal="true" aria-labelledby="leave-group-title" className="w-full max-w-sm rounded-2xl border border-surface-3 bg-surface p-6 text-center shadow-panel">
-            <h2 id="leave-group-title" className="font-display text-lg text-ink">그룹에서 나갈까요?</h2>
-            <p className="mt-2 text-sm text-ink-dim">{leaveTarget.name}의 제안과 대화를 더 이상 볼 수 없습니다.</p>
+            <h2 id="leave-group-title" className="font-display text-lg text-ink">{leaveTarget.name}에서 나갈까요?</h2>
+            <p className="mt-2 text-sm text-ink-dim">나간 뒤에는 이 그룹의 제안과 대화를 볼 수 없습니다.</p>
             <div className="mt-6 flex gap-2">
               <button type="button" onClick={() => setLeaveTarget(null)} className="flex-1 rounded-lg border border-surface-3 py-2.5 text-sm text-ink-dim hover:text-ink">취소</button>
               <button type="button" onClick={confirmLeaveGroup} className="flex-1 rounded-lg bg-alert py-2.5 text-sm font-semibold text-void">나가기</button>
