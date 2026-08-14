@@ -142,7 +142,7 @@
 
 .deadlineRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 210px;
+  grid-template-columns: minmax(0, 1fr) 226px;
   gap: 8px;
 }
 
@@ -179,10 +179,10 @@
   min-height: 42px;
   box-sizing: border-box;
   align-items: center;
-  gap: 8px;
-  padding: 9px 11px;
+  gap: 6px;
+  padding: 6px 8px;
   border: 1px solid #2e3650;
-  border-radius: 9px;
+  border-radius: 12px;
   color: #6b7280;
   background: #171a22;
   transition: border-color 150ms ease, box-shadow 150ms ease;
@@ -196,20 +196,29 @@
 .timeField select {
   min-width: 0;
   border: 0;
+  border-radius: 7px;
   outline: 0;
+  padding: 0 7px;
   color: #f3f4f6;
-  background: transparent;
+  background: #202431;
   font: inherit;
   font-size: 12px;
+  font-weight: 600;
+  line-height: 28px;
+  text-align: center;
+  appearance: none;
+  -webkit-appearance: none;
   color-scheme: dark;
   cursor: pointer;
 }
 
-.timeField select:first-of-type { width: 48px; }
-.timeField select:not(:first-of-type) { width: 30px; }
+.timeField select:first-of-type { width: 52px; }
+.timeField select:not(:first-of-type) { width: 40px; }
+
+.timeField select:hover { background: #272c3b; }
 
 .timeField span {
-  margin: 0 -3px;
+  margin: 0 -2px;
   color: #6b7280;
   font-size: 12px;
 }

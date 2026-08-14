@@ -13,9 +13,14 @@ export interface SubmitProposalResponse {
 
 const SUBMITTED_PROPOSALS_KEY = "meridian.mock-submitted-proposals";
 
-export function loadSubmittedProposals(): DashboardProposal[] {
+export interface SubmittedProposal extends DashboardProposal {
+  content?: string;
+  targetGroup?: string;
+}
+
+export function loadSubmittedProposals(): SubmittedProposal[] {
   try {
-    return JSON.parse(window.localStorage.getItem(SUBMITTED_PROPOSALS_KEY) ?? "[]") as DashboardProposal[];
+    return JSON.parse(window.localStorage.getItem(SUBMITTED_PROPOSALS_KEY) ?? "[]") as SubmittedProposal[];
   } catch {
     return [];
   }
@@ -28,9 +33,11 @@ export function submitMockProposal(
     setTimeout(() => {
       const id = `mock-${Date.now()}`;
       const submittedAt = new Date().toISOString();
-      const proposal: DashboardProposal = {
+      const proposal: SubmittedProposal = {
         id,
         title: data.title,
+        content: data.content,
+        targetGroup: data.targetGroup,
         target_team_id: "t-1",
         status: "OPEN",
         deadline: data.deadline,

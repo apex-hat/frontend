@@ -46,12 +46,12 @@ export default function NotificationPanel({ notifications, onMarkAllRead, onMark
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="relative w-9 h-9 rounded-full bg-surface border border-surface-3 flex items-center justify-center hover:bg-surface-2 transition"
+        className="relative flex h-7 w-7 items-center justify-center rounded-full border border-surface-3 bg-surface transition hover:bg-surface-2"
         aria-label="알림"
       >
         <BellIcon />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-alert text-[10px] leading-4 text-center text-void font-semibold">
+          <span className="absolute -right-1.5 -top-1.5 h-3.5 min-w-[14px] rounded-full bg-alert px-1 text-center text-[9px] font-semibold leading-[14px] text-void">
             {unreadCount}
           </span>
         )}
@@ -117,7 +117,7 @@ export default function NotificationPanel({ notifications, onMarkAllRead, onMark
 
 function BellIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-dim">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="text-ink-dim">
       <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>

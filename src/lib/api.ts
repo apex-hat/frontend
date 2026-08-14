@@ -10,6 +10,7 @@ import {
   MOCK_USERS,
 } from "../features/dashboard/data/mockData";
 import { loadSubmittedProposals } from "../mocks/proposal";
+import { loadStoredOpinions } from "../services/opinionStorage";
 
 // mock/실서버 전환은 이 플래그 하나로. 컴포넌트는 아래 함수들만 호출하고
 // fetch/mock 분기는 절대 컴포넌트 안에 넣지 않는다.
@@ -142,7 +143,17 @@ export async function getProposalStatus(proposalId: string): Promise<ProposalSta
   if (USE_MOCK) {
     const proposal = [...loadSubmittedProposals(), ...MOCK_PROPOSALS].find((p) => p.id === proposalId);
     if (!proposal) return delay(null);
-    const opinions = MOCK_OPINIONS.filter((o) => o.proposal_id === proposalId);
+    const storedOpinions = loadStoredOpinions(proposalId);
+    const opinions = storedOpinions
+      ? storedOpinions.map((opinion) => ({
+          id: opinion.id,
+          proposal_id: proposalId,
+          user_id: opinion.author.id,
+          stance: opinion.type,
+          comment: opinion.comment,
+          created_at: opinion.updatedAt ?? opinion.createdAt,
+        }))
+      : MOCK_OPINIONS.filter((o) => o.proposal_id === proposalId);
     return delay({ proposal, opinions });
   }
   return fetch(`/api/dashboard/status?proposalId=${proposalId}`).then((r) => parseJson<ProposalStatusResult | null>(r));

@@ -91,6 +91,7 @@ export default function App() {
             <Dashboard
               user={user}
               onCreateProposal={() => navigate("/proposals/new")}
+              onOpenProposal={(proposalId) => navigate(`/proposals/${proposalId}/opinions`)}
               onOpenProfile={() => navigate("/profile")}
               onLogout={logout}
             />

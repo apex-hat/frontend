@@ -22,9 +22,10 @@ interface DashboardProps {
   onLogout: () => void;
   onCreateProposal: () => void;
   onOpenProfile: () => void;
+  onOpenProposal: (proposalId: string) => void;
 }
 
-export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProfile }: DashboardProps) {
+export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProfile, onOpenProposal }: DashboardProps) {
   const [members, setMembers] = useState<TimezoneEntry[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -206,7 +207,19 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 pb-4 pt-1 border-t border-surface-3 divide-y divide-surface-3/60">
+                    <div className="border-t border-surface-3 px-5 pb-4 pt-3">
+                      {!isComplete && (
+                        <div className="mb-2 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => onOpenProposal(proposal.id)}
+                            className="rounded-lg border border-surface-3 px-3 py-1.5 text-[11px] font-medium text-ink-dim transition hover:border-ink-faint hover:text-ink"
+                          >
+                            의견 작성
+                          </button>
+                        </div>
+                      )}
+                      <div className="divide-y divide-surface-3/60">
                       {orderedMembers.map((member) => {
                         const opinion = opinions.find((o) => o.user_id === member.user_id);
                         return (
@@ -219,6 +232,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                           />
                         );
                       })}
+                      </div>
                     </div>
                   )}
                 </div>

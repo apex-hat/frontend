@@ -5,9 +5,9 @@ import ProposalList from "./ProposalList";
 import ProposalDetail from "./ProposalDetail";
 import ConsensusDevPage from "../consensus/ConsensusDevPage";
 import { getMockProposalById } from "../../mocks/proposalList";
-import { getNotifications, markNotificationRead } from "../../lib/api";
+import { loadSubmittedProposals } from "../../mocks/proposal";
+import { getNotifications, getProposals, markNotificationRead } from "../../lib/api";
 import type { AuthUser, Notification } from "../../types";
-import type { Proposal } from "../../types/proposal";
 import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSidebar";
 import UserHandleButton from "../../features/workspace/components/UserHandleButton";
 import FriendManagerModal from "../../features/workspace/components/FriendManagerModal";
@@ -51,15 +51,27 @@ function ProposalDetailRoute() {
 
 function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
   const { proposalId } = useParams();
-  const [proposal, setProposal] = useState<Proposal | null | undefined>(null);
+  const [proposal, setProposal] = useState<{ id: string; title: string; content: string } | null | undefined>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     if (!proposalId) return;
 
-    getMockProposalById(proposalId).then((result) => {
-      if (!cancelled) setProposal(result ?? undefined);
+    Promise.all([getMockProposalById(proposalId), getProposals()]).then(([legacyProposal, dashboardProposals]) => {
+      if (cancelled) return;
+      if (legacyProposal) {
+        setProposal(legacyProposal);
+        return;
+      }
+
+      const dashboardProposal = dashboardProposals.find((item) => item.id === proposalId);
+      const submittedProposal = loadSubmittedProposals().find((item) => item.id === proposalId);
+      setProposal(dashboardProposal ? {
+        id: dashboardProposal.id,
+        title: dashboardProposal.title,
+        content: submittedProposal?.content ?? "제안 내용을 확인하고 팀의 방향을 선택해 의견을 남겨주세요.",
+      } : undefined);
     });
 
     return () => {
@@ -155,9 +167,11 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <NotificationPanel notifications={notifications} onMarkAllRead={markAllRead} onMarkRead={markRead} onSelect={selectNotification} />
-            <UserHandleButton user={user} onOpenProfile={onOpenProfile} onLogout={onLogout} />
+            <div className="flex items-center gap-2 border-l border-surface-3 pl-3">
+              <UserHandleButton user={user} onOpenProfile={onOpenProfile} onLogout={onLogout} />
+            </div>
           </div>
         </div>
       </header>
