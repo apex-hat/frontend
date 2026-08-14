@@ -44,7 +44,7 @@ export default function ProposalList({ onSelect, onCreateNew }: Props) {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>제안 목록</h1>
+        <h1 className={styles.title}>제안 관리</h1>
         <button
           type="button"
           className={styles.newButton}
