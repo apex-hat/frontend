@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import AuthLayout from "./AuthLayout";
+import RotatingGreeting from "./RotatingGreeting";
 import type { AuthUser } from "../../../types";
 import { login } from "../../../lib/api";
 
@@ -37,8 +38,8 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
 
   return (
     <AuthLayout
-      eyebrow="안녕하세요"
-      title="로그인"
+      eyebrow="로그인"
+      title={<RotatingGreeting />}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -70,13 +71,15 @@ export default function LoginPage({ onLogin, onNavigateSignup }: LoginPageProps)
 
         {error && <p className="text-xs text-alert">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded-lg bg-ink text-void font-medium text-sm py-2.5 mt-2 hover:opacity-90 transition disabled:opacity-50"
-        >
-          {isSubmitting ? "확인 중..." : "로그인"}
-        </button>
+        <div className="pt-3">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full cursor-pointer rounded-lg bg-ink text-void font-medium text-sm py-2.5 hover:opacity-90 active:scale-[0.99] transition disabled:cursor-default disabled:opacity-50"
+          >
+            {isSubmitting ? "확인 중..." : "로그인"}
+          </button>
+        </div>
       </form>
 
       <p className="flex items-center justify-center gap-2 text-sm text-ink-dim mt-6 text-center">

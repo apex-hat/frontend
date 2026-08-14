@@ -165,13 +165,15 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
 
         {error && <p className="text-xs text-alert">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded-lg bg-ink text-void font-medium text-sm py-2.5 mt-2 hover:opacity-90 transition disabled:opacity-50"
-        >
-          {isSubmitting ? "생성 중..." : "계정 만들기"}
-        </button>
+        <div className="pt-3">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full cursor-pointer rounded-lg bg-ink text-void font-medium text-sm py-2.5 hover:opacity-90 active:scale-[0.99] transition disabled:cursor-default disabled:opacity-50"
+          >
+            {isSubmitting ? "생성 중..." : "계정 만들기"}
+          </button>
+        </div>
       </form>
 
       <p className="flex items-center justify-center gap-2 text-sm text-ink-dim mt-6 text-center">
