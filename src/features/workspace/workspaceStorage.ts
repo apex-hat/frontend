@@ -20,6 +20,8 @@ export interface ChatMessage {
   sender: "me" | "contact";
   text: string;
   createdAt: string;
+  senderName?: string;
+  senderAvatarColor?: string;
 }
 
 const GROUPS_KEY = "meridian.workspace-groups";
@@ -47,15 +49,15 @@ const DEFAULT_CONTACTS: WorkspaceContact[] = [
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
 
 const DEFAULT_MESSAGES: Record<string, ChatMessage[]> = {
-  "group-product-design": [{ id: "seed-design", sender: "contact", text: "수정된 시안 확인 부탁드려요.", createdAt: minutesAgo(18) }],
-  "group-global-development": [{ id: "seed-development", sender: "contact", text: "API 연결 일정 공유했습니다.", createdAt: minutesAgo(7) }],
-  "group-global-marketing": [{ id: "seed-marketing", sender: "contact", text: "캠페인 문구 최종본 올렸어요.", createdAt: minutesAgo(52) }],
+  "group-product-design": [{ id: "seed-design", sender: "contact", senderName: "이민아", senderAvatarColor: "#63C7A6", text: "수정된 시안 확인 부탁드려요.", createdAt: minutesAgo(18) }],
+  "group-global-development": [{ id: "seed-development", sender: "contact", senderName: "Alex Turner", senderAvatarColor: "#7C8FE0", text: "API 연결 일정 공유했습니다.", createdAt: minutesAgo(7) }],
+  "group-global-marketing": [{ id: "seed-marketing", sender: "contact", senderName: "Sofia Almeida", senderAvatarColor: "#E8607A", text: "캠페인 문구 최종본 올렸어요.", createdAt: minutesAgo(52) }],
   "group-frontend-chapter": [{ id: "seed-frontend", sender: "me", text: "확인하고 의견 남길게요.", createdAt: minutesAgo(84) }],
-  "group-launch-taskforce": [{ id: "seed-launch", sender: "contact", text: "오늘 점검 항목부터 확인해 주세요.", createdAt: minutesAgo(130) }],
-  "group-research-lab": [{ id: "seed-research", sender: "contact", text: "인터뷰 내용 정리해서 공유했어요.", createdAt: minutesAgo(210) }],
-  "u-mina": [{ id: "seed-mina", sender: "contact", text: "회의 전에 잠깐 이야기 가능해요?", createdAt: minutesAgo(3) }],
+  "group-launch-taskforce": [{ id: "seed-launch", sender: "contact", senderName: "Omar Haddad", senderAvatarColor: "#63C7A6", text: "오늘 점검 항목부터 확인해 주세요.", createdAt: minutesAgo(130) }],
+  "group-research-lab": [{ id: "seed-research", sender: "contact", senderName: "Priya Nair", senderAvatarColor: "#E8607A", text: "인터뷰 내용 정리해서 공유했어요.", createdAt: minutesAgo(210) }],
+  "u-mina": [{ id: "seed-mina", sender: "contact", senderName: "이민아", senderAvatarColor: "#63C7A6", text: "회의 전에 잠깐 이야기 가능해요?", createdAt: minutesAgo(3) }],
   "u-alex": [{ id: "seed-alex", sender: "me", text: "자료 확인했습니다. 고마워요!", createdAt: minutesAgo(96) }],
-  "u-omar": [{ id: "seed-omar", sender: "contact", text: "제안 내용 확인했어요.", createdAt: minutesAgo(165) }],
+  "u-omar": [{ id: "seed-omar", sender: "contact", senderName: "Omar Haddad", senderAvatarColor: "#63C7A6", text: "제안 내용 확인했어요.", createdAt: minutesAgo(165) }],
 };
 
 

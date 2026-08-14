@@ -108,7 +108,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
   return (
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-30 border-b border-surface-3 bg-void/80 backdrop-blur">
-        <div className="flex w-full items-center justify-between px-4 py-4 sm:px-6 lg:px-10">
+        <div className="flex w-full items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
             <BackButton onClick={handleBack} />
             <button
@@ -121,12 +121,6 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </div>
 
           <div className="flex items-center gap-2">
-            <span
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-day text-[10px] font-semibold text-void"
-              aria-hidden="true"
-            >
-              {user.name.slice(0, 1)}
-            </span>
             <UserHandleButton user={user} />
             <button
               type="button"
@@ -147,7 +141,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
       </header>
 
       <div className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_82%]">
-        <div className="hidden h-full border-r border-surface-3 px-4 py-5 lg:block">
+        <div className="hidden h-full border-r border-surface-3 px-4 py-3 lg:block">
           <WorkspaceSidebar user={user} />
         </div>
         <div className="min-w-0 px-4 sm:px-6 2xl:px-8">

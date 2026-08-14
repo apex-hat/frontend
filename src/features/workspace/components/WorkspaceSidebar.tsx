@@ -46,14 +46,16 @@ function GroupAvatar({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function formatChatTime(value?: string) {
+function formatChatTime(value?: string, timeZone?: string) {
   if (!value) return "";
   const date = new Date(value);
   const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
+  const dateFormatter = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone });
+  const isToday = dateFormatter.format(date) === dateFormatter.format(now);
+  const dateParts = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", timeZone }).format(date);
   return isToday
-    ? new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" }).format(date)
-    : `${date.getMonth() + 1}. ${date.getDate()}`;
+    ? new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit", timeZone }).format(date)
+    : dateParts;
 }
 
 export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
@@ -66,7 +68,6 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
   const [contextMenu, setContextMenu] = useState<{ group: WorkspaceGroup; x: number; y: number } | null>(null);
   const [memberGroup, setMemberGroup] = useState<WorkspaceGroup | null>(null);
   const [leaveTarget, setLeaveTarget] = useState<WorkspaceGroup | null>(null);
-  const [groupActionStatus, setGroupActionStatus] = useState<string | null>(null);
   const [activeContact, setActiveContact] = useState<WorkspaceContact | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageText, setMessageText] = useState("");
@@ -117,29 +118,20 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
   const copyGroupLink = async (group: WorkspaceGroup) => {
     try {
       await navigator.clipboard.writeText(getInviteUrl(group));
-      setGroupActionStatus(`${group.name} 초대 링크를 복사했습니다.`);
-    } catch {
-      setGroupActionStatus("링크를 복사하지 못했습니다.");
-    }
+    } catch { /* 브라우저 권한이 없으면 별도 상태 문구 없이 유지 */ }
     setContextMenu(null);
   };
 
   const confirmLeaveGroup = () => {
     if (!leaveTarget) return;
     setGroups(leaveGroup(leaveTarget.id));
-    setGroupActionStatus(null);
     setLeaveTarget(null);
   };
 
   const openChat = (contact: WorkspaceContact) => {
     const saved = loadMessages(contact.id);
     setActiveContact(contact);
-    setMessages(saved.length > 0 ? saved : [{
-      id: `welcome-${contact.id}`,
-      sender: "contact",
-      text: `${user.name}님, 안녕하세요. 여기서 편하게 이야기해요.`,
-      createdAt: new Date().toISOString(),
-    }]);
+    setMessages(saved);
     setMessageText("");
     if (unreadChatIds.includes(contact.id)) {
       setUnreadChatIds((current) => {
@@ -189,7 +181,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                   type="button"
                   onClick={() => setActiveContact(null)}
                   aria-label="대화 목록으로 돌아가기"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-dim transition hover:bg-surface-2 hover:text-ink"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center text-ink-dim transition hover:text-ink"
                 >
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="m15 18-6-6 6-6" />
@@ -202,13 +194,30 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
               </div>
 
               <div className="flex-1 space-y-2.5 overflow-y-auto py-4">
-                {messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.sender === "me" ? "justify-end" : "justify-start"}`}>
-                    <p className={`max-w-[88%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed ${message.sender === "me" ? "rounded-br-md bg-night text-ink" : "rounded-bl-md bg-surface-2 text-ink-dim"}`}>
-                      {message.text}
-                    </p>
-                  </div>
-                ))}
+                <p className="px-2 pb-2 text-center text-[9px] leading-relaxed text-ink-faint">메시지를 보내 대화를 시작하세요.</p>
+                {messages.map((message) => {
+                  const senderName = message.senderName ?? (activeContact.id.startsWith("group-") ? "팀원" : activeContact.name);
+                  const senderColor = message.senderAvatarColor ?? activeContact.avatarColor;
+                  return message.sender === "me" ? (
+                    <div key={message.id} className="flex justify-end">
+                      <div className="max-w-[82%]">
+                        <p className="rounded-2xl rounded-br-md bg-night px-3 py-2 text-[11px] leading-relaxed text-ink">{message.text}</p>
+                        <p className="mt-1 text-right text-[8px] text-ink-faint">{formatChatTime(message.createdAt, user.timezone)}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={message.id} className="flex items-end gap-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[8px] font-semibold text-void" style={{ backgroundColor: senderColor }}>
+                        {senderName.slice(0, 1)}
+                      </span>
+                      <div className="max-w-[78%]">
+                        {activeContact.id.startsWith("group-") && <p className="mb-1 text-[8px] text-ink-faint">{senderName}</p>}
+                        <p className="rounded-2xl rounded-bl-md bg-surface-2 px-3 py-2 text-[11px] leading-relaxed text-ink-dim">{message.text}</p>
+                        <p className="mt-1 text-[8px] text-ink-faint">{formatChatTime(message.createdAt, user.timezone)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <form onSubmit={sendMessage} className="flex items-center gap-2 border-t border-surface-3 pt-3">
@@ -234,7 +243,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                   onClick={openGroupModal}
                   aria-label="그룹 만들기"
                   title="그룹 만들기"
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-ink-dim transition hover:bg-surface-2 hover:text-ink"
+                  className="flex h-5 w-5 items-center justify-center text-ink-dim transition hover:text-ink"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
                     <path d="M12 5v14M5 12h14" />
@@ -268,7 +277,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                         <button type="button" onClick={() => openChat(contact)} className="min-w-0 flex-1 truncate text-left text-[11px] font-medium text-ink">
                           {contact.name}
                         </button>
-                        <span className="shrink-0 text-[9px] text-ink-faint">{formatChatTime(latestMessage?.createdAt)}</span>
+                        <span className="shrink-0 text-[9px] text-ink-faint">{formatChatTime(latestMessage?.createdAt, user.timezone)}</span>
                       </div>
                       <button type="button" onClick={() => openChat(contact)} className="mt-1 flex w-full items-center gap-2 text-left">
                         <span className="min-w-0 flex-1 truncate text-[9px] text-ink-faint">
@@ -280,7 +289,6 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                   </div>
                 ))}
               </div>
-              {groupActionStatus && <p className="mt-2 text-[10px] leading-snug text-ink-faint">{groupActionStatus}</p>}
             </div>
           )
         }
@@ -307,7 +315,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                 <h2 id="member-list-title" className="font-display text-lg text-ink">{memberGroup.name}</h2>
                 <p className="mt-0.5 text-xs text-ink-faint">멤버 {memberGroup.memberCount}명</p>
               </div>
-              <button type="button" onClick={() => setMemberGroup(null)} aria-label="닫기" className="flex h-8 w-8 items-center justify-center rounded-full text-xl text-ink-dim hover:bg-surface-2 hover:text-ink">×</button>
+              <button type="button" onClick={() => setMemberGroup(null)} aria-label="닫기" className="flex h-6 w-6 items-center justify-center text-lg text-ink-dim hover:text-ink">×</button>
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-3 rounded-lg px-2 py-2">
@@ -343,7 +351,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
           <section role="dialog" aria-modal="true" aria-labelledby="group-modal-title" className="w-full max-w-md rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
             <div className="mb-5 flex items-center justify-between">
               <h2 id="group-modal-title" className="font-display text-xl text-ink">그룹 만들기</h2>
-              <button type="button" onClick={() => setIsGroupModalOpen(false)} aria-label="닫기" className="flex h-8 w-8 items-center justify-center rounded-full text-xl text-ink-dim hover:bg-surface-2 hover:text-ink">×</button>
+              <button type="button" onClick={() => setIsGroupModalOpen(false)} aria-label="닫기" className="flex h-6 w-6 items-center justify-center text-lg text-ink-dim hover:text-ink">×</button>
             </div>
 
             {!createdGroup ? (

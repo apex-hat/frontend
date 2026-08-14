@@ -3,6 +3,7 @@ import type { AuthUser, SupportedLanguage } from "../../../types";
 import { getUtcOffsetLabel } from "../../../lib/timezone";
 import BackButton from "../../../components/navigation/BackButton";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
+import { getUserHandle } from "../../workspace/workspaceStorage";
 
 interface ProfilePageProps {
   user: AuthUser;
@@ -77,6 +78,8 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
   const [country, setCountry] = useState(user.country);
   const [timezone, setTimezone] = useState(user.timezone);
   const [language, setLanguage] = useState<SupportedLanguage>(user.preferred_language);
+  const [tagCopied, setTagCopied] = useState(false);
+  const userHandle = getUserHandle(user);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -147,6 +150,24 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
                 readOnly
                 className="w-full cursor-default rounded-lg border border-surface-3 bg-void/40 px-3.5 py-2.5 text-sm text-ink-faint"
               />
+            </div>
+
+            <div>
+              <label htmlFor="profile-handle" className="mb-1.5 block text-xs text-ink-dim">고유 ID</label>
+              <div className="flex gap-2">
+                <input id="profile-handle" value={userHandle} readOnly className="min-w-0 flex-1 cursor-default rounded-lg border border-surface-3 bg-void/40 px-3.5 py-2.5 font-mono text-sm text-ink-faint" />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(userHandle);
+                    setTagCopied(true);
+                    window.setTimeout(() => setTagCopied(false), 1200);
+                  }}
+                  className="rounded-lg border border-surface-3 px-3 text-xs text-ink-dim hover:text-ink"
+                >
+                  {tagCopied ? "복사됨" : "복사"}
+                </button>
+              </div>
             </div>
 
             <div>

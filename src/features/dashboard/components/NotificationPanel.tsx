@@ -4,6 +4,7 @@ import type { Notification, NotificationType } from "../../../types";
 interface NotificationPanelProps {
   notifications: Notification[];
   onMarkAllRead: () => void;
+  onMarkRead: (notification: Notification) => void;
   onSelect: (notification: Notification) => void;
 }
 
@@ -24,14 +25,18 @@ function timeAgo(iso: string) {
 }
 
 /** TODO(백엔드 연동): 실시간 알림은 이후 WebSocket/SSE 구독으로 대체 예정. 지금은 목데이터 폴링 대신 정적 표시. */
-export default function NotificationPanel({ notifications, onMarkAllRead, onSelect }: NotificationPanelProps) {
+export default function NotificationPanel({ notifications, onMarkAllRead, onMarkRead, onSelect }: NotificationPanelProps) {
   const [open, setOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ notification: Notification; x: number; y: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setContextMenu(null);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -56,7 +61,7 @@ export default function NotificationPanel({ notifications, onMarkAllRead, onSele
         <div className="absolute right-0 mt-2 w-80 rounded-xl bg-surface-2 border border-surface-3 shadow-panel z-30 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-surface-3">
             <span className="text-sm font-medium text-ink">알림</span>
-            <button onClick={onMarkAllRead} className="text-xs text-ink-dim hover:text-ink">
+            <button onClick={onMarkAllRead} className="text-xs text-ink-dim underline-offset-4 hover:text-ink hover:underline">
               모두 읽음 처리
             </button>
           </div>
@@ -67,6 +72,10 @@ export default function NotificationPanel({ notifications, onMarkAllRead, onSele
             {notifications.map((n) => (
               <button
                 key={n.id}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  if (!n.is_read) setContextMenu({ notification: n, x: event.clientX, y: event.clientY });
+                }}
                 onClick={() => {
                   onSelect(n);
                   setOpen(false);
@@ -82,6 +91,24 @@ export default function NotificationPanel({ notifications, onMarkAllRead, onSele
               </button>
             ))}
           </div>
+          {contextMenu && (
+            <div
+              className="fixed z-50 w-32 overflow-hidden rounded-lg border border-surface-3 bg-surface-2 py-1 shadow-panel"
+              style={{ left: Math.min(contextMenu.x, window.innerWidth - 145), top: Math.min(contextMenu.y, window.innerHeight - 60) }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onMarkRead(contextMenu.notification);
+                  setContextMenu(null);
+                }}
+                className="w-full px-3 py-2 text-left text-xs text-ink-dim underline-offset-4 hover:text-ink hover:underline"
+              >
+                읽음 처리
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

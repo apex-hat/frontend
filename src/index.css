@@ -48,6 +48,14 @@ body {
   scrollbar-width: thin;
 }
 
+html {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
 .auth-navigating,
 .auth-navigating * {
   cursor: wait !important;

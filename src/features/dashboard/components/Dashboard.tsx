@@ -76,6 +76,11 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
     unreadIds.forEach((id) => markNotificationRead(id));
   };
 
+  const markRead = (notification: Notification) => {
+    setNotifications((prev) => prev.map((item) => (item.id === notification.id ? { ...item, is_read: true } : item)));
+    markNotificationRead(notification.id);
+  };
+
   const selectNotification = (notification: Notification) => {
     setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n)));
     markNotificationRead(notification.id);
@@ -89,7 +94,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
   return (
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-20 backdrop-blur bg-void/80 border-b border-surface-3">
-        <div className="flex w-full items-center justify-between px-4 py-4 sm:px-6 lg:px-10">
+        <div className="flex w-full items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2.5">
             <span className="font-display text-lg text-ink">Meridian</span>
           </div>
@@ -98,15 +103,10 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
             <NotificationPanel
               notifications={notifications}
               onMarkAllRead={markAllRead}
+              onMarkRead={markRead}
               onSelect={selectNotification}
             />
             <div className="flex items-center gap-2 pl-3 border-l border-surface-3">
-              <span
-                className="w-7 h-7 shrink-0 rounded-full bg-day flex items-center justify-center text-[10px] font-semibold text-void"
-                aria-hidden="true"
-              >
-                {user.name.slice(0, 1)}
-              </span>
               <UserHandleButton user={user} />
               <button
                 type="button"
@@ -128,7 +128,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
       </header>
 
       <main className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_82%]">
-        <div className="hidden h-full border-r border-surface-3 px-4 py-5 lg:block">
+        <div className="hidden h-full border-r border-surface-3 px-4 py-3 lg:block">
           <WorkspaceSidebar user={user} />
         </div>
 
@@ -140,13 +140,6 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
             <h2 className="font-display text-lg text-ink">제안 응답 현황</h2>
             <div className="flex items-center gap-3">
               <span className="text-xs text-ink-faint">{activeProposalCount}개 진행 중</span>
-              <button
-                type="button"
-                onClick={() => setIsFriendManagerOpen(true)}
-                className="text-xs text-ink border border-surface-3 rounded-full px-3 py-1.5 hover:bg-surface-2 transition"
-              >
-                친구 관리
-              </button>
               <button
                 type="button"
                 onClick={onOpenProposals}
