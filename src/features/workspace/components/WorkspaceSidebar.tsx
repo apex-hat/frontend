@@ -32,6 +32,19 @@ const MEMBER_PROFILES = [
   { name: "Noah Williams", color: "#7C8FE0" },
 ];
 
+function GroupAvatar({ compact = false }: { compact?: boolean }) {
+  return (
+    <span className={`flex shrink-0 items-center justify-center rounded-xl border border-surface-3 bg-surface-2 text-ink-dim ${compact ? "h-8 w-8" : "h-10 w-10"}`} aria-hidden="true">
+      <svg width={compact ? 15 : 18} height={compact ? 15 : 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+        <circle cx="9" cy="8" r="3" />
+        <circle cx="17" cy="10" r="2.5" />
+        <path d="M3.5 18.5c.5-3.2 2.4-5 5.5-5s5 1.8 5.5 5" />
+        <path d="M15 14.5c2.8-.5 4.7.8 5.5 3.5" />
+      </svg>
+    </span>
+  );
+}
+
 export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) {
   const [groups, setGroups] = useState(loadGroups);
   const [contacts, setContacts] = useState(loadContacts);
@@ -135,19 +148,21 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
     <>
       <aside className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
         {mode === "groups" && <div>
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className="text-xs font-semibold text-ink">그룹 관리</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-ink">그룹 관리</h2>
             <button
               type="button"
               onClick={openGroupModal}
               aria-label="그룹 만들기"
               title="그룹 만들기"
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-2 text-lg font-light leading-none text-ink-dim transition hover:bg-night hover:text-ink active:scale-95"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-2 text-ink-dim transition hover:bg-surface-3 hover:text-ink active:scale-95"
             >
-              +
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
             </button>
           </div>
-          <div className="space-y-1">
+          <div className="mt-4 border-t border-surface-3">
             {groups.map((group) => (
               <div
                 key={group.id}
@@ -155,11 +170,26 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
                   event.preventDefault();
                   setContextMenu({ group, x: event.clientX, y: event.clientY });
                 }}
-                className="flex items-center justify-between gap-2 rounded-lg px-2 py-2 hover:bg-surface-2"
+                className="group flex items-center gap-3 border-b border-surface-3 px-1 py-3 transition hover:bg-surface-2/60"
                 title="우클릭하여 그룹 관리"
               >
-                <span className="min-w-0 truncate text-xs text-ink-dim">{group.name}</span>
-                <span className="shrink-0 font-mono text-[9px] text-ink-faint">{group.memberCount}</span>
+                <GroupAvatar compact />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-medium text-ink">{group.name}</span>
+                  <span className="mt-0.5 block text-[10px] text-ink-faint">멤버 {group.memberCount}명</span>
+                </span>
+                <button
+                  type="button"
+                  aria-label={`${group.name} 관리`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    setContextMenu({ group, x: rect.right - 176, y: rect.bottom + 6 });
+                  }}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-base tracking-widest text-ink-faint opacity-70 transition hover:bg-surface-3 hover:text-ink group-hover:opacity-100"
+                >
+                  ···
+                </button>
               </div>
             ))}
           </div>
@@ -167,9 +197,9 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
         </div>}
 
         {mode === "messages" && <div>
-          <h2 className="mb-3 text-xs font-semibold text-ink">메시지 관리</h2>
-          <p className="mb-1.5 px-2 text-[10px] text-ink-faint">그룹 채팅</p>
-          <div className="mb-4 divide-y divide-surface-3 border-y border-surface-3">
+          <h2 className="text-sm font-semibold text-ink">메시지 관리</h2>
+          <p className="mb-2 mt-5 text-[10px] font-medium text-ink-faint">그룹</p>
+          <div className="mb-5 border-t border-surface-3">
             {groups.slice(0, 4).map((group) => (
               <button
                 key={group.id}
@@ -181,34 +211,31 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
                   avatarColor: "#7C8FE0",
                   online: false,
                 })}
-                className="flex w-full items-center gap-3 px-2 py-3 text-left transition hover:bg-surface-2"
+                className="flex w-full items-center gap-3 border-b border-surface-3 px-1 py-3 text-left transition hover:bg-surface-2/60"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-night/20 text-xs font-semibold text-night">
-                  {group.name.slice(0, 1)}
-                </span>
+                <GroupAvatar />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs text-ink">{group.name}</span>
-                  <span className="mt-0.5 block truncate text-[10px] text-ink-faint">그룹 대화 · {group.memberCount}명</span>
+                  <span className="block truncate text-xs font-medium text-ink">{group.name}</span>
+                  <span className="mt-1 block truncate text-[10px] text-ink-faint">{group.memberCount}명 참여 중</span>
                 </span>
               </button>
             ))}
           </div>
 
-          <p className="mb-1.5 px-2 text-[10px] text-ink-faint">개인 메시지</p>
-          <div className="divide-y divide-surface-3 border-y border-surface-3">
+          <p className="mb-2 text-[10px] font-medium text-ink-faint">개인</p>
+          <div className="border-t border-surface-3">
             {contacts.map((contact) => (
               <button
                 key={contact.id}
                 type="button"
                 onClick={() => openChat(contact)}
-                className="flex w-full items-center gap-3 px-2 py-3 text-left transition hover:bg-surface-2"
+                className="flex w-full items-center gap-3 border-b border-surface-3 px-1 py-3 text-left transition hover:bg-surface-2/60"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
                   {contact.name.slice(0, 1)}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs text-ink">{contact.name}</span>
-                  <span className="mt-0.5 block text-[10px] text-ink-faint">개인 대화</span>
+                  <span className="block truncate text-xs font-medium text-ink">{contact.name}</span>
                 </span>
               </button>
             ))}
