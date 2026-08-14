@@ -21,8 +21,12 @@ export function getMockCultureAnalysis(
               "완곡한 반대 또는 우려의 표현으로 읽힐 수 있습니다.",
           },
           {
-            culture: data.targetCulture,
-            interpretation: "단순 긍정 의견으로 받아들여질 가능성이 있습니다.",
+            culture: `${data.targetGroup} · 저맥락 문화권 구성원`,
+            interpretation: "의견의 결론과 요청 사항이 모호하게 느껴질 수 있습니다.",
+          },
+          {
+            culture: `${data.targetGroup} · 고맥락 문화권 구성원`,
+            interpretation: "완곡한 우려 또는 추가 논의 요청으로 받아들일 수 있습니다.",
           },
         ],
         riskyExpressions: [

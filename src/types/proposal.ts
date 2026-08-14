@@ -4,8 +4,7 @@
 export interface ProposalFormData {
   title: string; // 제목
   content: string; // 내용
-  targetTeam: string; // 대상 팀
-  targetCulture: string; // 대상 문화권 (예: 한국, 미국, 인도, 브라질 등)
+  targetGroup: string; // 제안을 공유할 대상 그룹
   deadline: string; // 마감 기한 (yyyy-mm-dd)
 }
 
@@ -22,16 +21,6 @@ export interface CultureAnalysisResult {
   riskLevel: "LOW" | "MEDIUM" | "HIGH"; // 문화적 위험도
   suggestedRevision: string; // AI가 제안하는 수정 문장
 }
-
-// 자주 쓰일 문화권 옵션 (셀렉트박스용, 필요에 따라 수정)
-export const CULTURE_OPTIONS = [
-  "한국",
-  "미국",
-  "인도",
-  "브라질",
-  "일본",
-  "독일",
-] as const;
 
 // 6~7단계: 제안 목록/상세 화면에서 쓰는 타입.
 // 등록된 제안 하나 = 작성 폼 데이터 + 서버가 매겨준 id/생성일/위험도.

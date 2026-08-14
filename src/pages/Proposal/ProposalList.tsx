@@ -50,7 +50,7 @@ export default function ProposalList({ onSelect, onCreateNew }: Props) {
           className={styles.newButton}
           onClick={onCreateNew}
         >
-          새 제안 작성
+          제안 작성
         </button>
       </div>
 
@@ -80,8 +80,7 @@ export default function ProposalList({ onSelect, onCreateNew }: Props) {
                 </span>
               </div>
               <div className={styles.cardMeta}>
-                {proposal.targetTeam} · {proposal.targetCulture} · 마감{" "}
-                {proposal.deadline}
+                {proposal.targetGroup} · 마감 {proposal.deadline}
               </div>
             </button>
           ))}

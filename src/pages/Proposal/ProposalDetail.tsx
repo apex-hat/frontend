@@ -65,8 +65,7 @@ export default function ProposalDetail({
           </div>
 
           <div className={styles.metaRow}>
-            <span>대상 팀: {proposal.targetTeam}</span>
-            <span>대상 문화권: {proposal.targetCulture}</span>
+            <span>대상 그룹: {proposal.targetGroup}</span>
             <span>마감 기한: {proposal.deadline}</span>
           </div>
 
