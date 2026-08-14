@@ -106,6 +106,7 @@ export default function App() {
               user={user}
               onSave={updateProfile}
               onBack={() => navigate("/dashboard")}
+              onLogout={logout}
             />
           ) : (
             <Navigate to="/login" replace />
@@ -116,7 +117,12 @@ export default function App() {
         path="/proposals/*"
         element={
           user ? (
-            <ProposalPage user={user} onBackToDashboard={() => navigate("/dashboard")} />
+            <ProposalPage
+              user={user}
+              onBackToDashboard={() => navigate("/dashboard")}
+              onOpenProfile={() => navigate("/profile")}
+              onLogout={logout}
+            />
           ) : (
             <Navigate to="/login" replace />
           )

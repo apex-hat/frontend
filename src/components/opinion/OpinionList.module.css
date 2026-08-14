@@ -1,17 +1,2 @@
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.empty {
-  margin: 0;
-  padding: 28px;
-  border: 1px dashed #cbd5e1;
-  border-radius: 14px;
-  color: #64748b;
-  text-align: center;
-}
+.list { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.empty { margin: 0; padding: 32px; border: 1px dashed #2e3650; border-radius: 16px; color: #6b7280; text-align: center; }

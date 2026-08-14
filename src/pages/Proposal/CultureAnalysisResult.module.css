@@ -1,96 +1,49 @@
 .container {
-  max-width: 640px;
+  max-width: 720px;
+  box-sizing: border-box;
   margin: 24px auto 0;
-  padding: 20px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background-color: #f9fafb;
+  padding: 22px;
+  border: 1px solid #2e3650;
+  border-radius: 16px;
+  color: #f3f4f6;
+  background: #171a22;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
+.header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.title { margin: 0; color: #f3f4f6; font-family: "Outfit", system-ui, sans-serif; font-size: 18px; font-weight: 600; }
 
-.title {
-  font-size: 18px;
-  font-weight: 700;
-}
+.riskBadge { padding: 4px 10px; border: 1px solid transparent; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.riskLow { color: #63c7a6; border-color: rgb(99 199 166 / 30%); background: rgb(99 199 166 / 12%); }
+.riskMedium { color: #f2a65a; border-color: rgb(242 166 90 / 30%); background: rgb(242 166 90 / 12%); }
+.riskHigh { color: #e8607a; border-color: rgb(232 96 122 / 30%); background: rgb(232 96 122 / 12%); }
 
-.riskBadge {
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.riskLow {
-  background-color: #16a34a;
-}
-
-.riskMedium {
-  background-color: #d97706;
-}
-
-.riskHigh {
-  background-color: #dc2626;
-}
-
-.section {
-  margin-bottom: 16px;
-}
-
-.sectionLabel {
-  font-size: 13px;
-  font-weight: 700;
-  color: #6b7280;
-  margin-bottom: 8px;
-}
+.section { margin-bottom: 20px; }
+.section:last-child { margin-bottom: 0; }
+.sectionLabel { margin: 0 0 9px; color: #9ca3af; font-size: 12px; font-weight: 600; }
 
 .interpretationItem {
-  padding: 8px 12px;
-  background-color: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin-bottom: 6px;
-  font-size: 14px;
-}
-
-.cultureLabel {
-  font-weight: 700;
-  margin-right: 6px;
-}
-
-.riskyExpression {
-  display: inline-block;
-  padding: 2px 6px;
-  background-color: #fef3c7;
-  border-radius: 4px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.riskyReason {
+  margin-bottom: 8px;
+  padding: 11px 13px;
+  border: 1px solid #2e3650;
+  border-radius: 9px;
+  color: #d1d5db;
+  background: #1e2230;
   font-size: 13px;
-  color: #6b7280;
-  margin-top: 2px;
+  line-height: 1.55;
 }
+
+.cultureLabel { margin-right: 6px; color: #f3f4f6; font-weight: 700; }
+.riskyExpression { display: inline-block; margin-bottom: 5px; padding: 3px 7px; border-radius: 5px; color: #f2a65a; background: rgb(242 166 90 / 13%); font-weight: 600; }
+.riskyReason { margin: 2px 0 0; color: #9ca3af; font-size: 12px; }
 
 .suggestedRevisionBox {
-  padding: 12px;
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
+  padding: 14px;
+  border: 1px solid rgb(124 143 224 / 32%);
+  border-radius: 9px;
+  color: #d1d5db;
+  background: rgb(124 143 224 / 10%);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-.loadingText {
-  padding: 20px;
-  text-align: center;
-  color: #6b7280;
-  font-size: 14px;
-}
+.loadingText { padding: 24px; color: #9ca3af; text-align: center; font-size: 13px; }

@@ -6,6 +6,7 @@ interface ProfilePageProps {
   user: AuthUser;
   onSave: (user: AuthUser) => void;
   onBack: () => void;
+  onLogout: () => void;
 }
 
 const COUNTRY_OPTIONS = [
@@ -69,7 +70,7 @@ const COUNTRY_LANGUAGE: Record<string, SupportedLanguage> = {
   AU: "en",
 };
 
-export default function ProfilePage({ user, onSave, onBack }: ProfilePageProps) {
+export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfilePageProps) {
   const [name, setName] = useState(user.name);
   const [country, setCountry] = useState(user.country);
   const [timezone, setTimezone] = useState(user.timezone);
@@ -90,8 +91,24 @@ export default function ProfilePage({ user, onSave, onBack }: ProfilePageProps) 
   };
 
   return (
-    <main className="min-h-screen bg-void px-6 py-10">
-      <div className="mx-auto max-w-lg">
+    <div className="min-h-screen bg-void">
+      <header className="sticky top-0 z-30 border-b border-surface-3 bg-void/80 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+          <button type="button" onClick={onBack} className="font-display text-lg text-ink">
+            Meridian
+          </button>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="rounded-full border border-surface-3 px-3 py-1.5 text-xs text-ink-dim transition-colors hover:text-ink"
+          >
+            로그아웃
+          </button>
+        </div>
+      </header>
+
+      <main className="px-6 py-10">
+        <div className="mx-auto max-w-lg">
         <button
           type="button"
           onClick={onBack}
@@ -189,7 +206,8 @@ export default function ProfilePage({ user, onSave, onBack }: ProfilePageProps) 
             </button>
           </form>
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </div>
   );
 }
