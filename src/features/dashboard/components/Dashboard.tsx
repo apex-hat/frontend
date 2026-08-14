@@ -11,9 +11,10 @@ import { formatLocalTime } from "../../../lib/timezone";
 interface DashboardProps {
   user: AuthUser;
   onLogout: () => void;
+  onOpenProposals: () => void;
 }
 
-export default function Dashboard({ user, onLogout }: DashboardProps) {
+export default function Dashboard({ user, onLogout, onOpenProposals }: DashboardProps) {
   const [members, setMembers] = useState<TimezoneEntry[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -88,9 +89,18 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         <WorldClockStrip members={members} />
 
         <section>
-          <div className="flex items-baseline justify-between mb-4">
+          <div className="flex items-center justify-between gap-4 mb-4">
             <h2 className="font-display text-lg text-ink">제안 응답 현황</h2>
-            <span className="text-xs text-ink-faint">{proposals.length}개 진행 중</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-ink-faint">{proposals.length}개 진행 중</span>
+              <button
+                type="button"
+                onClick={onOpenProposals}
+                className="text-xs text-ink border border-surface-3 rounded-full px-3 py-1.5 hover:bg-surface-2 transition"
+              >
+                제안 관리
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
