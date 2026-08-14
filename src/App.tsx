@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import LoginPage from "./features/auth/components/LoginPage";
 import SignupPage from "./features/auth/components/SignupPage";
 import Dashboard from "./features/dashboard/components/Dashboard";
+import ProfilePage from "./features/profile/components/ProfilePage";
 import ProposalPage from "./pages/Proposal/ProposalPage";
 import type { AuthUser } from "./types";
 
@@ -44,6 +45,12 @@ export default function App() {
     navigate("/login", { replace: true });
   };
 
+  const updateProfile = (updatedUser: AuthUser) => {
+    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    navigate("/dashboard");
+  };
+
   return (
     <Routes>
       <Route
@@ -83,7 +90,22 @@ export default function App() {
             <Dashboard
               user={user}
               onOpenProposals={() => navigate("/proposals")}
+              onOpenProfile={() => navigate("/profile")}
               onLogout={logout}
+            />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          user ? (
+            <ProfilePage
+              user={user}
+              onSave={updateProfile}
+              onBack={() => navigate("/dashboard")}
             />
           ) : (
             <Navigate to="/login" replace />

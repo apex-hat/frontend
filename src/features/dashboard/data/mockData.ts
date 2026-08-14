@@ -105,7 +105,21 @@ export const MOCK_OPINIONS: Opinion[] = [
 
   // p-2: 스탠드업 비동기 전환 — u-jiwoo, u-mina, u-alex, u-sofia, u-priya, u-jack 미응답
   { id: "o-6", proposal_id: "p-2", user_id: "u-lena", stance: "AGREE", comment: "시차 때문에 실시간 참석이 항상 힘들었어요.", created_at: hoursAgo(12) },
-  { id: "o-7", proposal_id: "p-2", user_id: "u-omar", stance: "AGREE", created_at: hoursAgo(11) },
+  {
+    id: "o-7",
+    proposal_id: "p-2",
+    user_id: "u-omar",
+    stance: "AGREE",
+    comment: "Async updates work much better for my timezone.",
+    original_language: "en",
+    translations: {
+      ko: "제 시간대에는 비동기 업데이트 방식이 훨씬 잘 맞습니다.",
+      ja: "私のタイムゾーンには非同期更新の方がずっと合っています。",
+      de: "Asynchrone Updates passen viel besser zu meiner Zeitzone.",
+      pt: "Atualizações assíncronas funcionam muito melhor no meu fuso horário.",
+    },
+    created_at: hoursAgo(11),
+  },
   { id: "o-8", proposal_id: "p-2", user_id: "u-haruto", stance: "CONDITIONAL", comment: "월요일만 화상으로 유지하면 좋겠어요.", created_at: hoursAgo(6) },
 
   // p-3: 코드 리뷰 SLA — 전원 응답 완료(합의)
