@@ -1,10 +1,14 @@
-import { useState, type FormEvent } from "react";
-import type { AuthUser, SupportedLanguage } from "../../../types";
+import { useEffect, useState, type FormEvent } from "react";
+import type { AuthUser, Notification, SupportedLanguage } from "../../../types";
 import { getUtcOffsetLabel } from "../../../lib/timezone";
+import { getNotifications, markNotificationRead } from "../../../lib/api";
 import BackButton from "../../../components/navigation/BackButton";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
 import { getUserHandle } from "../../workspace/workspaceStorage";
 import BrandMark from "../../../components/branding/BrandMark";
+import NotificationPanel from "../../dashboard/components/NotificationPanel";
+import ConnectionButton from "../../workspace/components/ConnectionButton";
+import FriendManagerModal from "../../workspace/components/FriendManagerModal";
 
 interface ProfilePageProps {
   user: AuthUser;
@@ -80,7 +84,34 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
   const [timezone, setTimezone] = useState(user.timezone);
   const [language, setLanguage] = useState<SupportedLanguage>(user.preferred_language);
   const [tagCopied, setTagCopied] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isConnectionManagerOpen, setIsConnectionManagerOpen] = useState(false);
   const userHandle = getUserHandle(user);
+
+  useEffect(() => {
+    let cancelled = false;
+    getNotifications().then((list) => {
+      if (!cancelled) setNotifications(list);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const markAllRead = () => {
+    const unreadIds = notifications.filter((notification) => !notification.is_read).map((notification) => notification.id);
+    setNotifications((current) => current.map((notification) => ({ ...notification, is_read: true })));
+    unreadIds.forEach((id) => markNotificationRead(id));
+  };
+
+  const markRead = (notification: Notification) => {
+    setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, is_read: true } : item));
+    markNotificationRead(notification.id);
+  };
+
+  const selectNotification = (notification: Notification) => {
+    markRead(notification);
+    if (notification.type === "FRIEND_REQUEST") setIsConnectionManagerOpen(true);
+    else onBack();
+  };
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -99,21 +130,27 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
   return (
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-30 border-b border-surface-3 bg-void/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <BackButton onClick={onBack} />
+        <div className="flex w-full items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-2.5">
             <BrandMark />
             <button type="button" onClick={onBack} className="font-display text-lg text-ink">
               Meridian
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <UserHandleButton user={user} onLogout={onLogout} />
+          <div className="flex items-center gap-3">
+            <NotificationPanel notifications={notifications} onMarkAllRead={markAllRead} onMarkRead={markRead} onSelect={selectNotification} />
+            <ConnectionButton onClick={() => setIsConnectionManagerOpen(true)} />
+            <div className="flex items-center border-l border-surface-3 pl-3">
+              <UserHandleButton user={user} onLogout={onLogout} />
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="px-6 py-10">
+      <main className="px-6 pb-10">
+        <div className="mx-auto flex max-w-5xl py-4">
+          <BackButton onClick={onBack} />
+        </div>
         <div className="mx-auto max-w-lg">
         <section className="rounded-2xl border border-surface-3 bg-surface p-6 sm:p-8">
           <div className="mb-7 flex items-center gap-3">
@@ -223,6 +260,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
         </section>
         </div>
       </main>
+      <FriendManagerModal open={isConnectionManagerOpen} onClose={() => setIsConnectionManagerOpen(false)} />
     </div>
   );
 }

@@ -22,6 +22,9 @@ export default function NotificationPanel({ notifications, onMarkAllRead, onMark
   const [contextMenu, setContextMenu] = useState<{ notification: Notification; x: number; y: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const sortedNotifications = [...notifications].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -38,7 +41,7 @@ export default function NotificationPanel({ notifications, onMarkAllRead, onMark
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-7 w-7 items-center justify-center rounded-full border border-surface-3 bg-surface transition hover:bg-surface-2"
+        className="relative flex h-7 w-7 items-center justify-center rounded-md text-ink-dim transition hover:bg-surface-2 hover:text-ink"
         aria-label="알림"
       >
         <BellIcon />
@@ -64,7 +67,7 @@ export default function NotificationPanel({ notifications, onMarkAllRead, onMark
             {notifications.length === 0 && (
               <p className="text-xs text-ink-faint px-4 py-6 text-center">알림이 없어요.</p>
             )}
-            {notifications.map((n) => (
+            {sortedNotifications.map((n) => (
               <button
                 key={n.id}
                 onContextMenu={(event) => {
