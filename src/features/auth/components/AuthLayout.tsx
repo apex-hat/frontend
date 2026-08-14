@@ -33,7 +33,7 @@ export default function AuthLayout({ children, eyebrow, title }: AuthLayoutProps
             </p>
           </div>
           <h1 className="font-display text-[clamp(1.9rem,3vw,2.85rem)] font-medium leading-[1.16] tracking-[-0.025em] text-ink">
-            <span className="block whitespace-nowrap">서로 다른 시간과 문화를 넘어</span>
+            <span className="block whitespace-nowrap">시간과 문화를 넘어</span>
             <span className="mt-2 block whitespace-nowrap text-day">함께 만드는 하나의 방향</span>
           </h1>
         </div>
