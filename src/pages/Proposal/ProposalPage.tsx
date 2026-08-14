@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import ProposalForm from "./ProposalForm";
 import ProposalList from "./ProposalList";
 import ProposalDetail from "./ProposalDetail";
@@ -7,6 +7,7 @@ import ConsensusDevPage from "../consensus/ConsensusDevPage";
 import { getMockProposalById } from "../../mocks/proposalList";
 import type { AuthUser } from "../../types";
 import type { Proposal } from "../../types/proposal";
+import BackButton from "../../components/navigation/BackButton";
 
 interface Props {
   user: AuthUser;
@@ -27,22 +28,7 @@ function ProposalListRoute() {
 }
 
 function ProposalFormRoute() {
-  const navigate = useNavigate();
-
-  return (
-    <div>
-      <div className="max-w-[640px] mx-auto px-5 pt-6">
-        <button
-          type="button"
-          onClick={() => navigate("/proposals")}
-          className="text-sm text-ink-dim hover:text-ink"
-        >
-          ← 제안 목록
-        </button>
-      </div>
-      <ProposalForm />
-    </div>
-  );
+  return <ProposalForm />;
 }
 
 function ProposalDetailRoute() {
@@ -54,14 +40,12 @@ function ProposalDetailRoute() {
   return (
     <ProposalDetail
       proposalId={proposalId}
-      onBack={() => navigate("/proposals")}
       onOpenOpinions={() => navigate(`/proposals/${proposalId}/opinions`)}
     />
   );
 }
 
 function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
-  const navigate = useNavigate();
   const { proposalId } = useParams();
   const [proposal, setProposal] = useState<Proposal | null | undefined>(null);
 
@@ -99,32 +83,42 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
         country: user.country,
         culturalRegion: user.culture_tag,
       }}
-      onBack={() => navigate(`/proposals/${proposal.id}`)}
     />
   );
 }
 
 export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, onLogout }: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleBack = () => {
+    if (location.pathname.endsWith("/opinions")) {
+      navigate(location.pathname.replace(/\/opinions$/, ""));
+      return;
+    }
+    if (location.pathname !== "/proposals") {
+      navigate("/proposals");
+      return;
+    }
+    onBackToDashboard();
+  };
+
   return (
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-30 border-b border-surface-3 bg-void/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <button
-            type="button"
-            onClick={onBackToDashboard}
-            className="font-display text-lg text-ink"
-          >
-            Meridian
-          </button>
-
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <BackButton onClick={handleBack} />
             <button
               type="button"
               onClick={onBackToDashboard}
-              className="rounded-full border border-surface-3 px-3 py-1.5 text-xs text-ink-dim transition-colors hover:text-ink"
+              className="font-display text-lg text-ink"
             >
-              대시보드
+              Meridian
             </button>
+          </div>
+
+          <div className="flex items-center gap-2">
             <span
               className="flex h-7 w-7 items-center justify-center rounded-full bg-day text-[10px] font-semibold text-void"
               aria-hidden="true"

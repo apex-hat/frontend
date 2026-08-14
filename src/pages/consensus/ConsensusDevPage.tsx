@@ -18,7 +18,6 @@ interface Props {
   proposalTitle: string
   proposalDescription: string
   currentUser: OpinionAuthor
-  onBack: () => void
 }
 
 const TEAM_MEMBER_COUNT = 6
@@ -36,7 +35,6 @@ function ConsensusDevPage({
   proposalTitle,
   proposalDescription,
   currentUser,
-  onBack,
 }: Props) {
   const [opinions, setOpinions] = useState<Opinion[]>(() =>
     loadOpinions(proposalId),
@@ -156,9 +154,6 @@ function ConsensusDevPage({
 
   return (
     <main className={styles.page} data-consensus-dev-page>
-      <button type="button" className={styles.backButton} onClick={onBack}>
-        ← 제안 상세
-      </button>
       <header className={styles.pageHeader}>
         <h1 className={styles.title}>{proposalTitle}</h1>
         <p className={styles.description}>{proposalDescription}</p>

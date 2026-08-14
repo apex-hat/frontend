@@ -17,7 +17,6 @@ const RISK_CLASS: Record<Proposal["riskLevel"], string> = {
 
 interface Props {
   proposalId: string;
-  onBack: () => void;
   onOpenOpinions: (proposal: Proposal) => void;
 }
 
@@ -26,7 +25,6 @@ interface Props {
 // useParams()로 얻은 id를 그대로 넘기기만 하면 됨.
 export default function ProposalDetail({
   proposalId,
-  onBack,
   onOpenOpinions,
 }: Props) {
   const [proposal, setProposal] = useState<Proposal | null | undefined>(null);
@@ -47,10 +45,6 @@ export default function ProposalDetail({
 
   return (
     <div className={styles.container}>
-      <button type="button" className={styles.backButton} onClick={onBack}>
-        ← 목록으로
-      </button>
-
       {proposal === null && (
         <p className={styles.loadingText}>불러오는 중...</p>
       )}

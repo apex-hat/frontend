@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import type { AuthUser, SupportedLanguage } from "../../../types";
 import { getUtcOffsetLabel } from "../../../lib/timezone";
+import BackButton from "../../../components/navigation/BackButton";
 
 interface ProfilePageProps {
   user: AuthUser;
@@ -94,9 +95,12 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-30 border-b border-surface-3 bg-void/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <button type="button" onClick={onBack} className="font-display text-lg text-ink">
-            Meridian
-          </button>
+          <div className="flex items-center gap-3">
+            <BackButton onClick={onBack} />
+            <button type="button" onClick={onBack} className="font-display text-lg text-ink">
+              Meridian
+            </button>
+          </div>
           <button
             type="button"
             onClick={onLogout}
@@ -109,14 +113,6 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
 
       <main className="px-6 py-10">
         <div className="mx-auto max-w-lg">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mb-6 text-sm text-ink-dim hover:text-ink transition-colors"
-        >
-          ← 대시보드
-        </button>
-
         <section className="rounded-2xl border border-surface-3 bg-surface p-6 sm:p-8">
           <div className="mb-7 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-day text-sm font-semibold text-void">
