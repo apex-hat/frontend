@@ -197,10 +197,10 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
 
   return (
     <>
-      <aside className="pt-2 lg:sticky lg:top-[65px] lg:max-h-[calc(100vh-65px)] lg:overflow-y-auto">
+      <aside className="lg:sticky lg:top-[65px] lg:max-h-[calc(100vh-65px)] lg:overflow-y-auto">
         {activeContact ? (
             <div className="flex h-[calc(100vh-8.5rem)] min-h-[420px] flex-col">
-              <div className="flex h-9 items-center gap-1.5 border-b border-surface-3">
+              <div className="flex h-8 items-center gap-1.5 border-b border-surface-3">
                 <button
                   type="button"
                   onClick={() => setActiveContact(null)}
@@ -270,7 +270,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
             </div>
           ) : (
             <div>
-              <div className="flex h-9 items-center justify-between gap-2">
+              <div className="flex h-8 items-center justify-between gap-2">
                 <h2 className="text-xs font-semibold text-ink">메시지</h2>
                 <div className="flex items-center">
                   <button

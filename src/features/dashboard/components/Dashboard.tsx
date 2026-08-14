@@ -329,10 +329,10 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                     setProposalMenu({ proposal, x: event.clientX, y: event.clientY });
                   }}
                 >
-                  <div className="flex items-center gap-2 px-5 py-4 transition hover:bg-surface-2/60">
+                  <div className="flex items-center px-5 py-4 transition hover:bg-surface-2/60">
                     <button onClick={() => setExpandedId(isOpen ? null : proposal.id)} className="flex min-w-0 flex-1 items-center justify-between gap-4 text-left">
                       <div className="min-w-0">
-                        <p className="line-clamp-2 text-sm leading-5 text-ink" style={{ wordBreak: "keep-all", overflowWrap: "break-word" }}>{proposal.title}</p>
+                        <p className="line-clamp-2 text-sm leading-5 text-ink" style={{ wordBreak: "keep-all", overflowWrap: "break-word", textWrap: "pretty" }}>{proposal.title}</p>
                         <p className="mt-1 text-[11px] text-ink-faint">{responded}/{total}명 응답 완료</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-3">
@@ -341,17 +341,6 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                           <path d="M6 9l6 6 6-6" />
                         </svg>
                       </div>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`${proposal.title} 메뉴`}
-                      onClick={(event) => {
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        setProposalMenu({ proposal, x: rect.right - 144, y: rect.bottom + 5 });
-                      }}
-                      className="flex h-7 w-6 shrink-0 items-center justify-center rounded-md text-sm tracking-widest text-ink-faint transition hover:bg-surface-3 hover:text-ink"
-                    >
-                      ···
                     </button>
                   </div>
 
