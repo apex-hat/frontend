@@ -18,12 +18,17 @@ const RISK_CLASS: Record<Proposal["riskLevel"], string> = {
 interface Props {
   proposalId: string;
   onBack: () => void;
+  onOpenOpinions: (proposal: Proposal) => void;
 }
 
 // 7단계: 제안 상세 화면
 // proposalId를 props로 받는 구조라, 나중에 react-router가 붙으면
 // useParams()로 얻은 id를 그대로 넘기기만 하면 됨.
-export default function ProposalDetail({ proposalId, onBack }: Props) {
+export default function ProposalDetail({
+  proposalId,
+  onBack,
+  onOpenOpinions,
+}: Props) {
   const [proposal, setProposal] = useState<Proposal | null | undefined>(null);
 
   useEffect(() => {
@@ -75,6 +80,14 @@ export default function ProposalDetail({ proposalId, onBack }: Props) {
             <p className={styles.sectionLabel}>내용</p>
             <div className={styles.contentBox}>{proposal.content}</div>
           </div>
+
+          <button
+            type="button"
+            className={styles.opinionButton}
+            onClick={() => onOpenOpinions(proposal)}
+          >
+            팀 의견 보기
+          </button>
         </>
       )}
     </div>

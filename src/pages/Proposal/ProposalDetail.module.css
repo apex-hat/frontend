@@ -75,6 +75,23 @@
   white-space: pre-wrap;
 }
 
+.opinionButton {
+  width: 100%;
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #2563eb;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.opinionButton:hover {
+  background: #1d4ed8;
+}
+
 .notFoundText,
 .loadingText {
   padding: 40px 0;

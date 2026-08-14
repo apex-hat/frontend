@@ -16,7 +16,12 @@ export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   if (screen === "proposals" && user) {
-    return <ProposalPage onBackToDashboard={() => setScreen("dashboard")} />;
+    return (
+      <ProposalPage
+        user={user}
+        onBackToDashboard={() => setScreen("dashboard")}
+      />
+    );
   }
 
   if (screen === "dashboard" && user) {
