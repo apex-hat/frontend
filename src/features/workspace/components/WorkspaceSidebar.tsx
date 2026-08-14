@@ -113,7 +113,7 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
   const confirmLeaveGroup = () => {
     if (!leaveTarget) return;
     setGroups(leaveGroup(leaveTarget.id));
-    setGroupActionStatus(`${leaveTarget.name}에서 나갔습니다.`);
+    setGroupActionStatus(null);
     setLeaveTarget(null);
   };
 
@@ -143,6 +143,15 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
     saveMessages(activeContact.id, next);
     setMessageText("");
   };
+
+  const groupChats: WorkspaceContact[] = groups.map((group) => ({
+    id: `group-${group.id}`,
+    name: group.name,
+    handle: `${group.memberCount}명`,
+    avatarColor: "#7C8FE0",
+    online: false,
+  }));
+  const chatList = [...groupChats, ...contacts];
 
   return (
     <>
@@ -196,51 +205,78 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
           {groupActionStatus && <p className="mt-2 text-[10px] leading-snug text-ink-faint">{groupActionStatus}</p>}
         </div>}
 
-        {mode === "messages" && <div>
-          <h2 className="text-sm font-semibold text-ink">메시지 관리</h2>
-          <p className="mb-2 mt-5 text-[10px] font-medium text-ink-faint">그룹</p>
-          <div className="mb-5 border-t border-surface-3">
-            {groups.slice(0, 4).map((group) => (
-              <button
-                key={group.id}
-                type="button"
-                onClick={() => openChat({
-                  id: `group-${group.id}`,
-                  name: group.name,
-                  handle: `${group.memberCount}명`,
-                  avatarColor: "#7C8FE0",
-                  online: false,
-                })}
-                className="flex w-full items-center gap-3 border-b border-surface-3 px-1 py-3 text-left transition hover:bg-surface-2/60"
-              >
-                <GroupAvatar />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-medium text-ink">{group.name}</span>
-                  <span className="mt-1 block truncate text-[10px] text-ink-faint">{group.memberCount}명 참여 중</span>
-                </span>
-              </button>
-            ))}
-          </div>
+        {mode === "messages" && (
+          activeContact ? (
+            <div className="flex h-[calc(100vh-8.5rem)] min-h-[420px] flex-col">
+              <div className="flex items-center gap-2 border-b border-surface-3 pb-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveContact(null)}
+                  aria-label="대화 목록으로 돌아가기"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-dim transition hover:bg-surface-2 hover:text-ink"
+                >
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m15 18-6-6 6-6" />
+                  </svg>
+                </button>
+                <div className="min-w-0">
+                  <h2 className="truncate text-xs font-semibold text-ink">{activeContact.name}</h2>
+                  {activeContact.id.startsWith("group-") && <p className="mt-0.5 text-[10px] text-ink-faint">{activeContact.handle}</p>}
+                </div>
+              </div>
 
-          <p className="mb-2 text-[10px] font-medium text-ink-faint">개인</p>
-          <div className="border-t border-surface-3">
-            {contacts.map((contact) => (
+              <div className="flex-1 space-y-2.5 overflow-y-auto py-4">
+                {messages.map((message) => (
+                  <div key={message.id} className={`flex ${message.sender === "me" ? "justify-end" : "justify-start"}`}>
+                    <p className={`max-w-[88%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed ${message.sender === "me" ? "rounded-br-md bg-night text-ink" : "rounded-bl-md bg-surface-2 text-ink-dim"}`}>
+                      {message.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <form onSubmit={sendMessage} className="flex items-center gap-2 border-t border-surface-3 pt-3">
+                <input
+                  value={messageText}
+                  onChange={(event) => setMessageText(event.target.value)}
+                  placeholder="메시지 입력"
+                  className="min-w-0 flex-1 rounded-full border border-surface-3 bg-surface-2 px-3 py-2 text-[11px] text-ink outline-none transition focus:border-ink-faint"
+                />
+                <button type="submit" aria-label="메시지 전송" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-void transition hover:opacity-85">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m5 12 14-7-4 14-3-6-7-1Z" />
+                  </svg>
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-sm font-semibold text-ink">메시지 관리</h2>
+              <div className="mt-4 border-t border-surface-3">
+                {chatList.map((contact) => (
               <button
                 key={contact.id}
                 type="button"
                 onClick={() => openChat(contact)}
                 className="flex w-full items-center gap-3 border-b border-surface-3 px-1 py-3 text-left transition hover:bg-surface-2/60"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
-                  {contact.name.slice(0, 1)}
-                </span>
+                {contact.id.startsWith("group-") ? (
+                  <GroupAvatar />
+                ) : (
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
+                    {contact.name.slice(0, 1)}
+                  </span>
+                )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-xs font-medium text-ink">{contact.name}</span>
+                  {contact.id.startsWith("group-") && <span className="mt-1 block truncate text-[10px] text-ink-faint">{contact.handle}</span>}
                 </span>
               </button>
-            ))}
-          </div>
-        </div>}
+                ))}
+              </div>
+            </div>
+          )
+        )}
       </aside>
 
       {contextMenu && (
@@ -332,30 +368,6 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
         </div>
       )}
 
-      {activeContact && (
-        <div className="fixed inset-0 z-50 flex items-stretch justify-start bg-black/35 p-3 backdrop-blur-sm sm:p-4" role="presentation">
-          <section role="dialog" aria-modal="true" aria-labelledby="chat-title" className="flex h-full w-full max-w-md flex-col overflow-hidden rounded-2xl border border-surface-3 bg-void shadow-panel">
-            <header className="flex items-center justify-between border-b border-surface-3 bg-surface px-4 py-3">
-              <div>
-                <h2 id="chat-title" className="text-sm text-ink">{activeContact.name}</h2>
-                <p className="font-mono text-[9px] text-ink-faint">{activeContact.handle}</p>
-              </div>
-              <button type="button" onClick={() => setActiveContact(null)} aria-label="채팅 닫기" className="flex h-8 w-8 items-center justify-center rounded-full text-xl text-ink-dim hover:bg-surface-2 hover:text-ink">×</button>
-            </header>
-            <div className="flex-1 space-y-3 overflow-y-auto p-4">
-              {messages.map((message) => (
-                <div key={message.id} className={`flex ${message.sender === "me" ? "justify-end" : "justify-start"}`}>
-                  <p className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${message.sender === "me" ? "bg-night text-ink" : "border border-surface-3 bg-surface text-ink-dim"}`}>{message.text}</p>
-                </div>
-              ))}
-            </div>
-            <form onSubmit={sendMessage} className="flex gap-2 border-t border-surface-3 bg-surface p-3">
-              <input value={messageText} onChange={(event) => setMessageText(event.target.value)} placeholder="메시지를 입력하세요" className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3 py-2.5 text-sm text-ink outline-none focus:border-night" />
-              <button type="submit" className="rounded-lg bg-ink px-4 text-xs font-semibold text-void">전송</button>
-            </form>
-          </section>
-        </div>
-      )}
     </>
   );
 }
