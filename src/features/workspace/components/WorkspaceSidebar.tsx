@@ -140,9 +140,11 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
             <button
               type="button"
               onClick={openGroupModal}
-              className="rounded-full border border-surface-3 px-2.5 py-1 text-[10px] text-ink-dim transition hover:bg-surface-2 hover:text-ink"
+              aria-label="그룹 만들기"
+              title="그룹 만들기"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-2 text-lg font-light leading-none text-ink-dim transition hover:bg-night hover:text-ink active:scale-95"
             >
-              + 만들기
+              +
             </button>
           </div>
           <div className="space-y-1">
@@ -167,7 +169,7 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
         {mode === "messages" && <div>
           <h2 className="mb-3 text-xs font-semibold text-ink">메시지 관리</h2>
           <p className="mb-1.5 px-2 text-[10px] text-ink-faint">그룹 채팅</p>
-          <div className="mb-4 space-y-1">
+          <div className="mb-4 divide-y divide-surface-3 border-y border-surface-3">
             {groups.slice(0, 4).map((group) => (
               <button
                 key={group.id}
@@ -179,27 +181,35 @@ export default function WorkspaceSidebar({ user, mode }: WorkspaceSidebarProps) 
                   avatarColor: "#7C8FE0",
                   online: false,
                 })}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition hover:bg-surface-2"
+                className="flex w-full items-center gap-3 px-2 py-3 text-left transition hover:bg-surface-2"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-night/15 text-[11px] font-semibold text-night">#</span>
-                <span className="min-w-0 truncate text-xs text-ink-dim">{group.name}</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-night/20 text-xs font-semibold text-night">
+                  {group.name.slice(0, 1)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs text-ink">{group.name}</span>
+                  <span className="mt-0.5 block truncate text-[10px] text-ink-faint">그룹 대화 · {group.memberCount}명</span>
+                </span>
               </button>
             ))}
           </div>
 
-          <p className="mb-1.5 border-t border-surface-3 px-2 pt-4 text-[10px] text-ink-faint">개인 메시지</p>
-          <div className="space-y-1">
+          <p className="mb-1.5 px-2 text-[10px] text-ink-faint">개인 메시지</p>
+          <div className="divide-y divide-surface-3 border-y border-surface-3">
             {contacts.map((contact) => (
               <button
                 key={contact.id}
                 type="button"
                 onClick={() => openChat(contact)}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition hover:bg-surface-2"
+                className="flex w-full items-center gap-3 px-2 py-3 text-left transition hover:bg-surface-2"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
                   {contact.name.slice(0, 1)}
                 </span>
-                <span className="min-w-0 truncate text-xs text-ink-dim">{contact.name}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs text-ink">{contact.name}</span>
+                  <span className="mt-0.5 block text-[10px] text-ink-faint">개인 대화</span>
+                </span>
               </button>
             ))}
           </div>
