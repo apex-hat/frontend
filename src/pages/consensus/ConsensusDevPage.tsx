@@ -18,9 +18,8 @@ interface Props {
   proposalTitle: string
   proposalDescription: string
   currentUser: OpinionAuthor
+  teamMemberCount: number
 }
-
-const TEAM_MEMBER_COUNT = 6
 
 type OpinionFilter = OpinionType | null
 
@@ -35,6 +34,7 @@ function ConsensusDevPage({
   proposalTitle,
   proposalDescription,
   currentUser,
+  teamMemberCount,
 }: Props) {
   const [opinions, setOpinions] = useState<Opinion[]>(() =>
     loadOpinions(proposalId),
@@ -46,6 +46,7 @@ function ConsensusDevPage({
   const [isSummaryLoading, setIsSummaryLoading] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
   const [consensus, setConsensus] = useState<ConsensusSummary | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Opinion | null>(null)
 
   const currentUserOpinion = opinions.find(
     (opinion) => opinion.author.id === currentUser.id,
@@ -109,15 +110,20 @@ function ConsensusDevPage({
       return
     }
 
-    if (!window.confirm('내 의견을 삭제할까요?')) {
-      return
-    }
+    setDeleteTarget(targetOpinion)
+  }
+
+  const confirmOpinionDelete = () => {
+    if (!deleteTarget) return
 
     try {
-      const nextOpinions = opinions.filter((opinion) => opinion.id !== opinionId)
+      const nextOpinions = opinions.filter(
+        (opinion) => opinion.id !== deleteTarget.id,
+      )
       saveOpinions(proposalId, nextOpinions)
       setOpinions(nextOpinions)
       setConsensus(null)
+      setDeleteTarget(null)
       setFormStatus('내 의견을 삭제했습니다.')
     } catch {
       setFormStatus('의견을 삭제하지 못했습니다. 다시 시도해주세요.')
@@ -180,7 +186,7 @@ function ConsensusDevPage({
       <section className={styles.section} aria-labelledby="opinion-list-title">
         <div className={styles.listHeader}>
           <h2 id="opinion-list-title" className={styles.sectionTitle}>
-            팀원 의견 <span>{participantCount}/{TEAM_MEMBER_COUNT}</span>
+            팀원 의견 <span>{participantCount}/{teamMemberCount}</span>
           </h2>
           <button
             type="button"
@@ -223,6 +229,33 @@ function ConsensusDevPage({
           emptyMessage={opinionFilter ? "선택한 유형의 의견이 아직 없습니다." : "아직 작성된 의견이 없습니다."}
         />
       </section>
+
+      {deleteTarget && (
+        <div className={styles.dialogBackdrop} role="presentation">
+          <section
+            className={styles.deleteDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-opinion-title"
+          >
+            <h2 id="delete-opinion-title">내 의견을 삭제할까요?</h2>
+            <p className={styles.deletePreview}>{deleteTarget.comment}</p>
+            <p className={styles.deleteNotice}>삭제한 의견은 복구할 수 없습니다.</p>
+            <div className={styles.dialogActions}>
+              <button type="button" onClick={() => setDeleteTarget(null)}>
+                취소
+              </button>
+              <button
+                type="button"
+                className={styles.deleteConfirmButton}
+                onClick={confirmOpinionDelete}
+              >
+                삭제
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       <ConsensusSummaryModal
         isOpen={isSummaryOpen}

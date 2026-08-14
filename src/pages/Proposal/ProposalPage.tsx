@@ -11,9 +11,10 @@ import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSideb
 import UserHandleButton from "../../features/workspace/components/UserHandleButton";
 import FriendManagerModal from "../../features/workspace/components/FriendManagerModal";
 import NotificationPanel from "../../features/dashboard/components/NotificationPanel";
-import { MOCK_PROPOSAL_CONTENT } from "../../features/dashboard/data/mockData";
+import { MOCK_PROPOSAL_CONTENT, MOCK_PROPOSAL_GROUP_NAMES } from "../../features/dashboard/data/mockData";
 import BrandMark from "../../components/branding/BrandMark";
 import ConnectionButton from "../../features/workspace/components/ConnectionButton";
+import { loadGroups } from "../../features/workspace/workspaceStorage";
 
 interface Props {
   user: AuthUser;
@@ -62,7 +63,7 @@ function ProposalInfoRoute() {
 
 function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
   const { proposalId } = useParams();
-  const [proposal, setProposal] = useState<{ id: string; title: string; content: string } | null | undefined>(null);
+  const [proposal, setProposal] = useState<{ id: string; title: string; content: string; teamMemberCount: number } | null | undefined>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,16 +73,23 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
     Promise.all([getMockProposalById(proposalId), getProposals()]).then(([legacyProposal, dashboardProposals]) => {
       if (cancelled) return;
       if (legacyProposal) {
-        setProposal(legacyProposal);
+        setProposal({
+          id: legacyProposal.id,
+          title: legacyProposal.title,
+          content: legacyProposal.content,
+          teamMemberCount: loadGroups().find((group) => group.name === legacyProposal.targetGroup)?.memberCount ?? 1,
+        });
         return;
       }
 
       const dashboardProposal = dashboardProposals.find((item) => item.id === proposalId);
       const submittedProposal = loadSubmittedProposals().find((item) => item.id === proposalId);
+      const targetGroupName = submittedProposal?.targetGroup ?? (dashboardProposal ? MOCK_PROPOSAL_GROUP_NAMES[dashboardProposal.id] : undefined);
       setProposal(dashboardProposal ? {
         id: dashboardProposal.id,
         title: dashboardProposal.title,
         content: submittedProposal?.content ?? MOCK_PROPOSAL_CONTENT[dashboardProposal.id] ?? "제안 내용을 확인하고 의견을 남겨주세요.",
+        teamMemberCount: loadGroups().find((group) => group.name === targetGroupName)?.memberCount ?? 1,
       } : undefined);
     });
 
@@ -103,6 +111,7 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
       proposalId={proposal.id}
       proposalTitle={proposal.title}
       proposalDescription={proposal.content}
+      teamMemberCount={proposal.teamMemberCount}
       currentUser={{
         id: user.id,
         name: user.name,

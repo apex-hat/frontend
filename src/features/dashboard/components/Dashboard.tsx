@@ -10,6 +10,7 @@ import WorkspaceSidebar from "../../workspace/components/WorkspaceSidebar";
 import FriendManagerModal from "../../workspace/components/FriendManagerModal";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
 import {
+  GROUPS_CHANGED_EVENT,
   LAST_OPENED_CHAT_CHANGED_EVENT,
   loadGroups,
   loadLastOpenedChat,
@@ -24,6 +25,7 @@ import {
 } from "../../../mocks/proposal";
 import BrandMark from "../../../components/branding/BrandMark";
 import ConnectionButton from "../../workspace/components/ConnectionButton";
+import { MOCK_PROPOSAL_GROUP_NAMES } from "../data/mockData";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -80,6 +82,9 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [completionTarget, setCompletionTarget] = useState<Proposal | null>(null);
   const [completionComment, setCompletionComment] = useState("");
   const [analysisTarget, setAnalysisTarget] = useState<Proposal | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
+  const [workspaceGroups, setWorkspaceGroups] = useState(loadGroups);
+  const [submittedProposals, setSubmittedProposals] = useState(loadSubmittedProposals);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,8 +128,13 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
 
   useEffect(() => {
     const syncLastOpenedChat = () => setLastOpenedChat(loadLastOpenedChat());
+    const syncGroups = () => setWorkspaceGroups(loadGroups());
     window.addEventListener(LAST_OPENED_CHAT_CHANGED_EVENT, syncLastOpenedChat);
-    return () => window.removeEventListener(LAST_OPENED_CHAT_CHANGED_EVENT, syncLastOpenedChat);
+    window.addEventListener(GROUPS_CHANGED_EVENT, syncGroups);
+    return () => {
+      window.removeEventListener(LAST_OPENED_CHAT_CHANGED_EVENT, syncLastOpenedChat);
+      window.removeEventListener(GROUPS_CHANGED_EVENT, syncGroups);
+    };
   }, []);
 
   useEffect(() => {
@@ -149,12 +159,13 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     return () => window.clearTimeout(timeout);
   }, [proposals]);
 
-  const deleteProposal = (proposal: Proposal) => {
-    if (!window.confirm(`'${proposal.title}' 제안을 삭제할까요?`)) return;
-    deleteSubmittedProposal(proposal.id);
-    setProposals((current) => current.filter((item) => item.id !== proposal.id));
-    setExpandedId((current) => current === proposal.id ? null : current);
-    setProposalMenu(null);
+  const deleteProposal = () => {
+    if (!deleteTarget) return;
+    deleteSubmittedProposal(deleteTarget.id);
+    setSubmittedProposals((current) => current.filter((item) => item.id !== deleteTarget.id));
+    setProposals((current) => current.filter((item) => item.id !== deleteTarget.id));
+    setExpandedId((current) => current === deleteTarget.id ? null : current);
+    setDeleteTarget(null);
   };
 
   const openCompletion = (proposal: Proposal) => {
@@ -170,6 +181,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     const finalComment = completionComment.trim();
     const completed = completeSubmittedProposal(completionTarget.id, finalComment, resultSummary);
     if (!completed) return;
+    setSubmittedProposals(loadSubmittedProposals());
 
     const storedProposal = loadSubmittedProposals().find((proposal) => proposal.id === completionTarget.id);
     const targetGroup = loadGroups().find((group) => group.name === storedProposal?.targetGroup);
@@ -196,7 +208,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
 
   const activeProposalCount = proposals.filter((proposal) => proposal.status === "OPEN").length;
   const storedAnalysisProposal = analysisTarget
-    ? loadSubmittedProposals().find((proposal) => proposal.id === analysisTarget.id)
+    ? submittedProposals.find((proposal) => proposal.id === analysisTarget.id)
     : undefined;
   const analysisOpinions = analysisTarget ? opinionsByProposal[analysisTarget.id] ?? [] : [];
   const analysisSummary = storedAnalysisProposal?.result_summary ?? buildResultSummary(analysisOpinions);
@@ -285,10 +297,14 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
             {proposals.map((proposal) => {
               const isOpen = expandedId === proposal.id;
               const opinions = opinionsByProposal[proposal.id] ?? [];
-              const responded = opinions.length;
-              const total = members.length;
+              const submittedProposal = submittedProposals.find((item) => item.id === proposal.id);
+              const targetGroupName = submittedProposal?.targetGroup ?? MOCK_PROPOSAL_GROUP_NAMES[proposal.id];
+              const total = workspaceGroups.find((group) => group.name === targetGroupName)?.memberCount ?? members.length;
+              const proposalMembers = members.slice(0, total);
+              const proposalMemberIds = new Set(proposalMembers.map((member) => member.user_id));
+              const responded = opinions.filter((opinion) => proposalMemberIds.has(opinion.user_id)).length;
               const isComplete = proposal.status === "CONSENSUS_DONE" || proposal.status === "CLOSED";
-              const orderedMembers = [...members].sort((a, b) => {
+              const orderedMembers = [...proposalMembers].sort((a, b) => {
                 const aOpinion = opinions.find((opinion) => opinion.user_id === a.user_id);
                 const bOpinion = opinions.find((opinion) => opinion.user_id === b.user_id);
 
@@ -313,31 +329,31 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                     setProposalMenu({ proposal, x: event.clientX, y: event.clientY });
                   }}
                 >
-                  <button
-                    onClick={() => setExpandedId(isOpen ? null : proposal.id)}
-                    className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-surface-2/60 transition"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm text-ink truncate">{proposal.title}</p>
-                      <p className="text-[11px] text-ink-faint mt-1">
-                        {responded}/{total}명 응답 완료
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <ProposalStatusBadge status={proposal.status} />
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        className={`text-ink-faint transition-transform ${isOpen ? "rotate-180" : ""}`}
-                      >
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </div>
-                  </button>
+                  <div className="flex items-center gap-2 px-5 py-4 transition hover:bg-surface-2/60">
+                    <button onClick={() => setExpandedId(isOpen ? null : proposal.id)} className="flex min-w-0 flex-1 items-center justify-between gap-4 text-left">
+                      <div className="min-w-0">
+                        <p className="line-clamp-2 text-sm leading-5 text-ink" style={{ wordBreak: "keep-all", overflowWrap: "break-word" }}>{proposal.title}</p>
+                        <p className="mt-1 text-[11px] text-ink-faint">{responded}/{total}명 응답 완료</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <ProposalStatusBadge status={proposal.status} />
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-ink-faint transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true">
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`${proposal.title} 메뉴`}
+                      onClick={(event) => {
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        setProposalMenu({ proposal, x: rect.right - 144, y: rect.bottom + 5 });
+                      }}
+                      className="flex h-7 w-6 shrink-0 items-center justify-center rounded-md text-sm tracking-widest text-ink-faint transition hover:bg-surface-3 hover:text-ink"
+                    >
+                      ···
+                    </button>
+                  </div>
 
                   {isOpen && (
                     <div className="border-t border-surface-3 px-5 pb-4 pt-1">
@@ -380,7 +396,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                 <button type="button" onClick={() => { setAnalysisTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">결과 분석</button>
               )}
               <button type="button" onClick={() => onEditProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">수정하기</button>
-              <button type="button" onClick={() => deleteProposal(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
+              <button type="button" onClick={() => { setDeleteTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
               {proposalMenu.proposal.status === "OPEN" && (
                 <button type="button" onClick={() => openCompletion(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-consensus">완료하기</button>
               )}
@@ -419,6 +435,19 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" onClick={() => setCompletionTarget(null)} className="px-3 py-2 text-xs text-ink-dim hover:text-ink">취소</button>
               <button type="button" onClick={completeProposal} disabled={!completionComment.trim()} className="rounded-lg bg-ink px-4 py-2 text-xs font-semibold text-void transition disabled:cursor-default disabled:opacity-35">완료 처리</button>
+            </div>
+          </section>
+        </div>
+      )}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
+          <section role="dialog" aria-modal="true" aria-labelledby="delete-proposal-title" className="w-full max-w-sm rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
+            <h2 id="delete-proposal-title" className="font-display text-lg text-ink">제안을 삭제할까요?</h2>
+            <p className="mt-2 text-sm leading-6 text-ink-dim">{deleteTarget.title}</p>
+            <p className="mt-2 text-xs text-ink-faint">등록된 의견과 응답 기록도 함께 삭제됩니다.</p>
+            <div className="mt-6 flex gap-2">
+              <button type="button" onClick={() => setDeleteTarget(null)} className="flex-1 rounded-lg border border-surface-3 py-2.5 text-sm text-ink-dim transition hover:text-ink">취소</button>
+              <button type="button" onClick={deleteProposal} className="flex-1 rounded-lg bg-alert py-2.5 text-sm font-semibold text-void transition hover:opacity-90">삭제</button>
             </div>
           </section>
         </div>
