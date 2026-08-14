@@ -85,7 +85,7 @@ export default function ProposalForm() {
       setError(
         !isDeadlineValid && formData.deadline !== ""
           ? "마감 기한은 오늘 이후 날짜로 설정해주세요."
-          : "제목, 내용, 대상 그룹, 마감 기한을 모두 입력해주세요.",
+          : "제목, 내용, 대상 채팅방, 마감 기한을 모두 입력해주세요.",
       );
       return;
     }
@@ -137,7 +137,7 @@ export default function ProposalForm() {
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="targetGroup">
-          대상 그룹
+          대상 채팅방
         </label>
         <select
           id="targetGroup"
@@ -146,11 +146,12 @@ export default function ProposalForm() {
           onChange={(e) => handleChange("targetGroup", e.target.value)}
           required
         >
-          <option value="" disabled>제안을 공유할 그룹을 선택하세요</option>
+          <option value="" disabled>{groups.length > 0 ? "제안을 공유할 채팅방을 선택하세요" : "먼저 채팅방을 만들어주세요"}</option>
           {groups.map((group) => (
             <option key={group.id} value={group.name}>{group.name}</option>
           ))}
         </select>
+        {groups.length === 0 && <p className={styles.emptyGroupHint}>왼쪽 메시지 영역의 + 버튼에서 채팅방을 만들 수 있습니다.</p>}
       </div>
 
       <div className={styles.field}>

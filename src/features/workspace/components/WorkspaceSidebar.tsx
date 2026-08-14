@@ -277,8 +277,8 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                   <button
                     type="button"
                     onClick={openGroupModal}
-                    aria-label="그룹 만들기"
-                    title="그룹 만들기"
+                    aria-label="채팅방 만들기"
+                    title="채팅방 만들기"
                     className="flex h-5 w-5 items-center justify-center text-ink-dim transition hover:text-ink"
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
@@ -338,7 +338,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
           onClick={(event) => event.stopPropagation()}
         >
           <button type="button" onClick={() => { setMemberGroup(contextMenu.group); setContextMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">멤버 보기</button>
-          <button type="button" onClick={() => void copyGroupLink(contextMenu.group)} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">그룹 링크 복사</button>
+          <button type="button" onClick={() => void copyGroupLink(contextMenu.group)} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">초대 링크 복사</button>
           <div className="my-1 border-t border-surface-3" />
           <button type="button" onClick={() => { setLeaveTarget(contextMenu.group); setContextMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-alert hover:bg-alert/10">채팅방 나가기</button>
         </div>
@@ -387,14 +387,14 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
           <section role="dialog" aria-modal="true" aria-labelledby="group-modal-title" className="w-full max-w-md rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
             <div className="mb-5 flex items-center justify-between">
-              <h2 id="group-modal-title" className="font-display text-xl text-ink">그룹 만들기</h2>
+              <h2 id="group-modal-title" className="font-display text-xl text-ink">채팅방 만들기</h2>
               <button type="button" onClick={() => setIsGroupModalOpen(false)} aria-label="닫기" className="flex h-6 w-6 items-center justify-center text-lg text-ink-dim hover:text-ink">×</button>
             </div>
 
             {!createdGroup ? (
               <form onSubmit={handleGroupCreate} className="space-y-4">
                 <div>
-                  <label htmlFor="group-name" className="mb-1.5 block text-xs text-ink-dim">그룹 이름</label>
+                  <label htmlFor="group-name" className="mb-1.5 block text-xs text-ink-dim">채팅방 이름</label>
                   <input
                     id="group-name"
                     value={groupName}
@@ -404,12 +404,12 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                     className="w-full rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 text-sm text-ink outline-none focus:border-night"
                   />
                 </div>
-                <button type="submit" className="w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-void">그룹 생성</button>
+                <button type="submit" className="w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-void">채팅방 생성</button>
               </form>
             ) : (
               <div>
-                <p className="text-sm text-ink"><strong>{createdGroup.name}</strong>이 생성되었습니다.</p>
-                <p className="mt-1 text-xs text-ink-faint">아래 링크를 공유해 그룹원을 초대하세요.</p>
+                <p className="text-sm text-ink"><strong>{createdGroup.name}</strong> 채팅방이 생성되었습니다.</p>
+                <p className="mt-1 text-xs text-ink-faint">아래 링크를 공유해 참여자를 초대하세요.</p>
                 <div className="mt-4 flex gap-2">
                   <input readOnly value={getInviteUrl(createdGroup)} className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3 py-2 font-mono text-[10px] text-ink-dim" />
                   <button type="button" onClick={copyInviteLink} className="shrink-0 rounded-lg border border-surface-3 px-3 text-xs text-ink-dim hover:text-ink">{copied ? "복사됨" : "복사"}</button>
