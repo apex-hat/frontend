@@ -58,6 +58,20 @@ function formatChatTime(value?: string, timeZone?: string) {
     : dateParts;
 }
 
+function groupMessagesByMinute(messages: ChatMessage[]) {
+  return messages.reduce<Array<{ key: string; messages: ChatMessage[] }>>((groups, message) => {
+    const minute = Math.floor(new Date(message.createdAt).getTime() / 60_000);
+    const key = `${message.sender}-${message.senderName ?? ""}-${minute}`;
+    const latestGroup = groups.at(-1);
+    if (latestGroup?.key === key) {
+      latestGroup.messages.push(message);
+    } else {
+      groups.push({ key, messages: [message] });
+    }
+    return groups;
+  }, []);
+}
+
 export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
   const [groups, setGroups] = useState(loadGroups);
   const [contacts, setContacts] = useState(loadContacts);
@@ -170,6 +184,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
       return { contact, latestMessage: conversationMessages.at(-1) };
     })
     .sort((a, b) => new Date(b.latestMessage?.createdAt ?? 0).getTime() - new Date(a.latestMessage?.createdAt ?? 0).getTime());
+  const groupedMessages = groupMessagesByMinute(messages);
 
   return (
     <>
@@ -195,25 +210,35 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
 
               <div className="flex-1 space-y-2.5 overflow-y-auto py-4">
                 <p className="mx-auto mb-3 w-fit rounded-xl bg-surface-2/80 px-3 py-1.5 text-center text-[9px] leading-relaxed text-ink-dim shadow-[0_5px_18px_rgba(0,0,0,0.22)]">메시지를 보내 대화를 시작하세요.</p>
-                {messages.map((message) => {
+                {groupedMessages.map((messageGroup) => {
+                  const message = messageGroup.messages[0];
+                  const lastMessage = messageGroup.messages.at(-1) ?? message;
                   const senderName = message.senderName ?? (activeContact.id.startsWith("group-") ? "팀원" : activeContact.name);
                   const senderColor = message.senderAvatarColor ?? activeContact.avatarColor;
                   return message.sender === "me" ? (
-                    <div key={message.id} className="flex justify-end">
+                    <div key={messageGroup.key} className="flex justify-end">
                       <div className="max-w-[82%]">
-                        <p className="rounded-lg rounded-br-sm bg-night px-2.5 py-1.5 text-[10px] leading-relaxed text-ink">{message.text}</p>
-                        <p className="mt-1 text-right text-[8px] text-ink-faint">{formatChatTime(message.createdAt, user.timezone)}</p>
+                        <div className="space-y-1">
+                          {messageGroup.messages.map((item) => (
+                            <p key={item.id} className="rounded-lg rounded-br-sm bg-night px-2.5 py-1.5 text-[10px] leading-relaxed text-ink">{item.text}</p>
+                          ))}
+                        </div>
+                        <p className="mt-1 text-right text-[8px] text-ink-faint">{formatChatTime(lastMessage.createdAt, user.timezone)}</p>
                       </div>
                     </div>
                   ) : (
-                    <div key={message.id} className="flex items-start gap-2">
+                    <div key={messageGroup.key} className="flex items-start gap-2">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-void" style={{ backgroundColor: senderColor }}>
                         {senderName.slice(0, 1)}
                       </span>
                       <div className="max-w-[78%]">
                         {activeContact.id.startsWith("group-") && <p className="mb-1 text-[8px] text-ink-faint">{senderName}</p>}
-                        <p className="rounded-lg rounded-bl-sm bg-surface-2 px-2.5 py-1.5 text-[10px] leading-relaxed text-ink-dim">{message.text}</p>
-                        <p className="mt-1 text-[8px] text-ink-faint">{formatChatTime(message.createdAt, user.timezone)}</p>
+                        <div className="space-y-1">
+                          {messageGroup.messages.map((item) => (
+                            <p key={item.id} className="rounded-lg rounded-bl-sm bg-surface-2 px-2.5 py-1.5 text-[10px] leading-relaxed text-ink-dim">{item.text}</p>
+                          ))}
+                        </div>
+                        <p className="mt-1 text-[8px] text-ink-faint">{formatChatTime(lastMessage.createdAt, user.timezone)}</p>
                       </div>
                     </div>
                   );
