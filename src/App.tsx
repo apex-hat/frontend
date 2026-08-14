@@ -1,61 +1,103 @@
 import { useState } from "react";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import LoginPage from "./features/auth/components/LoginPage";
 import SignupPage from "./features/auth/components/SignupPage";
 import Dashboard from "./features/dashboard/components/Dashboard";
 import ProposalPage from "./pages/Proposal/ProposalPage";
 import type { AuthUser } from "./types";
 
-type Screen = "login" | "signup" | "dashboard" | "proposals";
+const AUTH_STORAGE_KEY = "meridian.auth-user";
 
-/**
- * TODO(백엔드 연동): 실제 세션/토큰 관리와 React Router 경로로 교체.
- * 현재는 통합 기능을 확인할 수 있도록 화면 상태로 이동을 관리합니다.
- */
+function readStoredUser(): AuthUser | null {
+  try {
+    const stored = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
+    if (!stored) return null;
+
+    const user = JSON.parse(stored) as Partial<AuthUser>;
+    if (!user.id || !user.name || !user.email || !user.country || !user.timezone || !user.culture_tag) {
+      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+    return user as AuthUser;
+  } catch {
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
+}
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("login");
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const navigate = useNavigate();
+  const [user, setUser] = useState<AuthUser | null>(readStoredUser);
 
-  if (screen === "proposals" && user) {
-    return (
-      <ProposalPage
-        user={user}
-        onBackToDashboard={() => setScreen("dashboard")}
-      />
-    );
-  }
+  const completeAuth = (authenticatedUser: AuthUser) => {
+    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedUser));
+    setUser(authenticatedUser);
+    navigate("/dashboard", { replace: true });
+  };
 
-  if (screen === "dashboard" && user) {
-    return (
-      <Dashboard
-        user={user}
-        onOpenProposals={() => setScreen("proposals")}
-        onLogout={() => {
-          setUser(null);
-          setScreen("login");
-        }}
-      />
-    );
-  }
-
-  if (screen === "signup") {
-    return (
-      <SignupPage
-        onSignup={(signedUpUser) => {
-          setUser(signedUpUser);
-          setScreen("dashboard");
-        }}
-        onNavigateLogin={() => setScreen("login")}
-      />
-    );
-  }
+  const logout = () => {
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    setUser(null);
+    navigate("/login", { replace: true });
+  };
 
   return (
-    <LoginPage
-      onLogin={(loggedInUser) => {
-        setUser(loggedInUser);
-        setScreen("dashboard");
-      }}
-      onNavigateSignup={() => setScreen("signup")}
-    />
+    <Routes>
+      <Route
+        path="/"
+        element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
+      />
+      <Route
+        path="/login"
+        element={
+          user ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <LoginPage
+              onLogin={completeAuth}
+              onNavigateSignup={() => navigate("/signup")}
+            />
+          )
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          user ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <SignupPage
+              onSignup={completeAuth}
+              onNavigateLogin={() => navigate("/login")}
+            />
+          )
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          user ? (
+            <Dashboard
+              user={user}
+              onOpenProposals={() => navigate("/proposals")}
+              onLogout={logout}
+            />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/proposals/*"
+        element={
+          user ? (
+            <ProposalPage user={user} onBackToDashboard={() => navigate("/dashboard")} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
+    </Routes>
   );
 }
