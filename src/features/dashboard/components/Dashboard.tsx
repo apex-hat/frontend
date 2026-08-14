@@ -10,6 +10,7 @@ import WorkspaceSidebar from "../../workspace/components/WorkspaceSidebar";
 import FriendManagerModal from "../../workspace/components/FriendManagerModal";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
 import { LAST_OPENED_CHAT_CHANGED_EVENT, loadLastOpenedChat } from "../../workspace/workspaceStorage";
+import { completeSubmittedProposal, deleteSubmittedProposal, isMySubmittedProposal } from "../../../mocks/proposal";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -23,9 +24,11 @@ interface DashboardProps {
   onCreateProposal: () => void;
   onOpenProfile: () => void;
   onOpenProposal: (proposalId: string) => void;
+  onEditProposal: (proposalId: string) => void;
+  onViewProposal: (proposalId: string) => void;
 }
 
-export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProfile, onOpenProposal }: DashboardProps) {
+export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProfile, onOpenProposal, onEditProposal, onViewProposal }: DashboardProps) {
   const [members, setMembers] = useState<TimezoneEntry[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -33,6 +36,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [opinionsByProposal, setOpinionsByProposal] = useState<Record<string, Opinion[]>>({});
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
   const [lastOpenedChat, setLastOpenedChat] = useState(loadLastOpenedChat);
+  const [proposalMenu, setProposalMenu] = useState<{ proposal: Proposal; x: number; y: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +80,31 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     window.addEventListener(LAST_OPENED_CHAT_CHANGED_EVENT, syncLastOpenedChat);
     return () => window.removeEventListener(LAST_OPENED_CHAT_CHANGED_EVENT, syncLastOpenedChat);
   }, []);
+
+  useEffect(() => {
+    if (!proposalMenu) return;
+    const closeMenu = () => setProposalMenu(null);
+    window.addEventListener("mousedown", closeMenu);
+    return () => window.removeEventListener("mousedown", closeMenu);
+  }, [proposalMenu]);
+
+  const deleteProposal = (proposal: Proposal) => {
+    if (!window.confirm(`'${proposal.title}' 제안을 삭제할까요?`)) return;
+    deleteSubmittedProposal(proposal.id);
+    setProposals((current) => current.filter((item) => item.id !== proposal.id));
+    setExpandedId((current) => current === proposal.id ? null : current);
+    setProposalMenu(null);
+  };
+
+  const completeProposal = (proposal: Proposal) => {
+    if (!window.confirm(`'${proposal.title}' 제안을 합의 완료로 처리할까요?`)) return;
+    completeSubmittedProposal(proposal.id);
+    setProposals((current) => current.map((item) => item.id === proposal.id
+      ? { ...item, status: "CONSENSUS_DONE" }
+      : item));
+    setExpandedId((current) => current === proposal.id ? null : current);
+    setProposalMenu(null);
+  };
 
   const activeProposalCount = proposals.filter((proposal) => proposal.status === "OPEN").length;
   const clockMembers = !lastOpenedChat
@@ -179,7 +208,14 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               });
 
               return (
-                <div key={proposal.id} className="rounded-2xl bg-surface border border-surface-3 overflow-hidden">
+                <div
+                  key={proposal.id}
+                  className="overflow-hidden rounded-2xl border border-surface-3 bg-surface"
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    setProposalMenu({ proposal, x: event.clientX, y: event.clientY });
+                  }}
+                >
                   <button
                     onClick={() => setExpandedId(isOpen ? null : proposal.id)}
                     className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-surface-2/60 transition"
@@ -232,6 +268,28 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
           </section>
         </div>
       </main>
+      {proposalMenu && (
+        <div
+          className="fixed z-50 w-36 overflow-hidden rounded-lg border border-surface-3 bg-surface-2 py-1 shadow-panel"
+          style={{
+            left: Math.min(proposalMenu.x, window.innerWidth - 155),
+            top: Math.min(proposalMenu.y, window.innerHeight - 145),
+          }}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          {isMySubmittedProposal(proposalMenu.proposal.id, user.id) ? (
+            <>
+              <button type="button" onClick={() => onEditProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">수정하기</button>
+              <button type="button" onClick={() => deleteProposal(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
+              {proposalMenu.proposal.status === "OPEN" && (
+                <button type="button" onClick={() => completeProposal(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-consensus">완료하기</button>
+              )}
+            </>
+          ) : (
+            <button type="button" onClick={() => onViewProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">상세 정보 보기</button>
+          )}
+        </div>
+      )}
       <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} />
     </div>
   );

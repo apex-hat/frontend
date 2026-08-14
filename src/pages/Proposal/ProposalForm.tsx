@@ -3,7 +3,11 @@ import { DayPicker } from "@daypicker/react";
 import { ko } from "@daypicker/react/locale";
 import "@daypicker/react/style.css";
 import styles from "./ProposalForm.module.css";
-import { submitMockProposal } from "../../mocks/proposal";
+import {
+  submitMockProposal,
+  updateSubmittedProposal,
+  type SubmittedProposal,
+} from "../../mocks/proposal";
 import {
   GROUPS_CHANGED_EVENT,
   loadGroups,
@@ -51,14 +55,26 @@ const MINUTES = ["00", "10", "20", "30", "40", "50"];
 
 interface ProposalFormProps {
   onSubmitted: () => void;
+  userId: string;
+  proposal?: SubmittedProposal;
 }
 
-export default function ProposalForm({ onSubmitted }: ProposalFormProps) {
+export default function ProposalForm({ onSubmitted, userId, proposal }: ProposalFormProps) {
+  const editingDeadline = proposal?.deadline ? new Date(proposal.deadline) : null;
+  const editingHour = editingDeadline?.getHours() ?? 18;
   const [groups, setGroups] = useState(loadGroups);
-  const [formData, setFormData] = useState<ProposalFormData>(initialFormData);
-  const [deadlinePeriod, setDeadlinePeriod] = useState<"AM" | "PM">("PM");
-  const [deadlineHour, setDeadlineHour] = useState("6");
-  const [deadlineMinute, setDeadlineMinute] = useState("00");
+  const [formData, setFormData] = useState<ProposalFormData>(() => proposal ? {
+    title: proposal.title,
+    content: proposal.content ?? "",
+    targetGroup: proposal.targetGroup ?? "",
+    deadline: editingDeadline ? toDateString(editingDeadline) : "",
+  } : initialFormData);
+  const [deadlinePeriod, setDeadlinePeriod] = useState<"AM" | "PM">(editingHour >= 12 ? "PM" : "AM");
+  const [deadlineHour, setDeadlineHour] = useState(String(editingHour % 12 || 12));
+  const [deadlineMinute, setDeadlineMinute] = useState(() => {
+    const minute = editingDeadline?.getMinutes() ?? 0;
+    return String(Math.round(minute / 10) * 10 % 60).padStart(2, "0");
+  });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -118,13 +134,15 @@ export default function ProposalForm({ onSubmitted }: ProposalFormProps) {
 
     // TODO(나중에): submitMockProposal 대신 실제 백엔드 API 호출로 교체
     // 예: const res = await axios.post('/api/proposals', formData)
-    await submitMockProposal({
-      ...formData,
-      deadline: deadlineDate!.toISOString(),
-    });
+    const proposalData = { ...formData, deadline: deadlineDate!.toISOString() };
+    if (proposal) {
+      updateSubmittedProposal(proposal.id, proposalData);
+    } else {
+      await submitMockProposal(proposalData, userId);
+    }
 
     const targetGroup = groups.find((group) => group.name === formData.targetGroup);
-    if (targetGroup) {
+    if (!proposal && targetGroup) {
       const chatId = `group-${targetGroup.id}`;
       const deadlineLabel = new Intl.DateTimeFormat("ko-KR", {
         month: "long",
@@ -150,7 +168,7 @@ export default function ProposalForm({ onSubmitted }: ProposalFormProps) {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>제안 작성</h1>
+      <h1 className={styles.title}>{proposal ? "제안 수정" : "제안 작성"}</h1>
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="title">
@@ -281,7 +299,7 @@ export default function ProposalForm({ onSubmitted }: ProposalFormProps) {
       {isSubmitted ? (
         <div className={styles.successBox} role="status">
           <span className={styles.successIcon}>✓</span>
-          <span>제안이 등록되었습니다. 홈으로 이동할게요.</span>
+          <span>{proposal ? "제안이 수정되었습니다." : "제안이 등록되었습니다."} 홈으로 이동할게요.</span>
         </div>
       ) : (
         <div className={styles.actions}>
@@ -291,7 +309,7 @@ export default function ProposalForm({ onSubmitted }: ProposalFormProps) {
             onClick={handleSubmitClick}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "등록 중..." : "최종 제안 등록"}
+            {isSubmitting ? "저장 중..." : proposal ? "수정 내용 저장" : "최종 제안 등록"}
           </button>
         </div>
       )}

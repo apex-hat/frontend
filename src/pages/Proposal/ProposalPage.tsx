@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import ProposalForm from "./ProposalForm";
+import ProposalInfoPage from "./ProposalInfoPage";
 import ConsensusDevPage from "../consensus/ConsensusDevPage";
 import { getMockProposalById } from "../../mocks/proposalList";
-import { loadSubmittedProposals } from "../../mocks/proposal";
+import { isMySubmittedProposal, loadSubmittedProposals } from "../../mocks/proposal";
 import { getNotifications, getProposals, markNotificationRead } from "../../lib/api";
 import type { AuthUser, Notification } from "../../types";
 import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSidebar";
@@ -19,8 +20,43 @@ interface Props {
   onLogout: () => void;
 }
 
-function ProposalFormRoute({ onSubmitted }: { onSubmitted: () => void }) {
-  return <ProposalForm onSubmitted={onSubmitted} />;
+function ProposalFormRoute({ userId, onSubmitted }: { userId: string; onSubmitted: () => void }) {
+  return <ProposalForm userId={userId} onSubmitted={onSubmitted} />;
+}
+
+function ProposalEditRoute({ userId, onSubmitted }: { userId: string; onSubmitted: () => void }) {
+  const { proposalId } = useParams();
+  const proposal = loadSubmittedProposals().find((item) => item.id === proposalId);
+  if (!proposalId || !proposal || !isMySubmittedProposal(proposalId, userId)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <ProposalForm userId={userId} proposal={proposal} onSubmitted={onSubmitted} />;
+}
+
+function ProposalInfoRoute() {
+  const { proposalId } = useParams();
+  const [proposal, setProposal] = useState<{ title: string; content: string; deadline: string; targetGroup?: string } | null | undefined>(null);
+
+  useEffect(() => {
+    if (!proposalId) return;
+    let cancelled = false;
+    getProposals().then((proposals) => {
+      if (cancelled) return;
+      const item = proposals.find((candidate) => candidate.id === proposalId);
+      const submitted = loadSubmittedProposals().find((candidate) => candidate.id === proposalId);
+      setProposal(item ? {
+        title: item.title,
+        content: submitted?.content ?? MOCK_PROPOSAL_CONTENT[item.id] ?? "등록된 제안 내용이 없습니다.",
+        deadline: item.deadline,
+        targetGroup: submitted?.targetGroup,
+      } : undefined);
+    });
+    return () => { cancelled = true; };
+  }, [proposalId]);
+
+  if (proposal === null) return <p className="py-16 text-center text-sm text-ink-dim">불러오는 중...</p>;
+  if (!proposal) return <Navigate to="/dashboard" replace />;
+  return <ProposalInfoPage {...proposal} />;
 }
 
 function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
@@ -155,7 +191,9 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </button>
           <Routes>
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="new" element={<ProposalFormRoute onSubmitted={onBackToDashboard} />} />
+            <Route path="new" element={<ProposalFormRoute userId={user.id} onSubmitted={onBackToDashboard} />} />
+            <Route path=":proposalId/edit" element={<ProposalEditRoute userId={user.id} onSubmitted={onBackToDashboard} />} />
+            <Route path=":proposalId/detail" element={<ProposalInfoRoute />} />
             <Route path=":proposalId/opinions" element={<ProposalOpinionsRoute user={user} />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

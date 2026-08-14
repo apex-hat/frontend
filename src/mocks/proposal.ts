@@ -16,6 +16,7 @@ const SUBMITTED_PROPOSALS_KEY = "meridian.mock-submitted-proposals";
 export interface SubmittedProposal extends DashboardProposal {
   content?: string;
   targetGroup?: string;
+  author_id?: string;
 }
 
 export function loadSubmittedProposals(): SubmittedProposal[] {
@@ -28,6 +29,7 @@ export function loadSubmittedProposals(): SubmittedProposal[] {
 
 export function submitMockProposal(
   data: ProposalFormData,
+  authorId: string,
 ): Promise<SubmitProposalResponse> {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -38,6 +40,7 @@ export function submitMockProposal(
         title: data.title,
         content: data.content,
         targetGroup: data.targetGroup,
+        author_id: authorId,
         target_team_id: "t-1",
         status: "OPEN",
         deadline: data.deadline,
@@ -51,4 +54,40 @@ export function submitMockProposal(
       resolve({ id, submittedAt });
     }, 600);
   });
+}
+
+function saveSubmittedProposals(proposals: SubmittedProposal[]) {
+  window.localStorage.setItem(SUBMITTED_PROPOSALS_KEY, JSON.stringify(proposals));
+}
+
+export function updateSubmittedProposal(id: string, data: ProposalFormData) {
+  const proposals = loadSubmittedProposals();
+  const updated = proposals.map((proposal) => proposal.id === id ? {
+    ...proposal,
+    title: data.title,
+    content: data.content,
+    targetGroup: data.targetGroup,
+    deadline: data.deadline,
+  } : proposal);
+  saveSubmittedProposals(updated);
+  return updated.find((proposal) => proposal.id === id);
+}
+
+export function deleteSubmittedProposal(id: string) {
+  saveSubmittedProposals(loadSubmittedProposals().filter((proposal) => proposal.id !== id));
+  window.localStorage.removeItem(`meridian:${id}:opinions`);
+}
+
+export function completeSubmittedProposal(id: string) {
+  const proposals = loadSubmittedProposals().map((proposal) => proposal.id === id
+    ? { ...proposal, status: "CONSENSUS_DONE" as const }
+    : proposal);
+  saveSubmittedProposals(proposals);
+  return proposals.find((proposal) => proposal.id === id);
+}
+
+export function isMySubmittedProposal(id: string, userId: string) {
+  const proposal = loadSubmittedProposals().find((item) => item.id === id);
+  // 이전 버전에서 만든 로컬 제안은 author_id가 없으므로 현재 사용자의 글로 간주한다.
+  return Boolean(proposal && (!proposal.author_id || proposal.author_id === userId));
 }

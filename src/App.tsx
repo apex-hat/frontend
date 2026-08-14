@@ -92,6 +92,8 @@ export default function App() {
               user={user}
               onCreateProposal={() => navigate("/proposals/new")}
               onOpenProposal={(proposalId) => navigate(`/proposals/${proposalId}/opinions`)}
+              onEditProposal={(proposalId) => navigate(`/proposals/${proposalId}/edit`)}
+              onViewProposal={(proposalId) => navigate(`/proposals/${proposalId}/detail`)}
               onOpenProfile={() => navigate("/profile")}
               onLogout={logout}
             />
