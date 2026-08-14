@@ -6,7 +6,6 @@ import WorldClockStrip from "./WorldClockStrip";
 import NotificationPanel from "./NotificationPanel";
 import ProposalStatusBadge from "./ProposalStatusBadge";
 import TeamMemberRow from "./TeamMemberRow";
-import { formatLocalTime } from "../../../lib/timezone";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -87,12 +86,13 @@ export default function Dashboard({ user, onLogout, onOpenProposals }: Dashboard
               onSelect={selectNotification}
             />
             <div className="flex items-center gap-2 pl-3 border-l border-surface-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs text-ink leading-tight">{user.name}</p>
-                <p className="font-mono text-[10px] text-ink-faint leading-tight">
-                  {formatLocalTime(user.timezone)} · {user.timezone.replace("_", " ")}
-                </p>
+              <div
+                className="w-7 h-7 shrink-0 rounded-full bg-day flex items-center justify-center text-[10px] font-semibold text-void"
+                aria-hidden="true"
+              >
+                {user.name.slice(0, 1)}
               </div>
+              <p className="hidden sm:block text-xs text-ink leading-tight">{user.name}</p>
               <button
                 onClick={onLogout}
                 className="text-xs text-ink-dim hover:text-ink border border-surface-3 rounded-full px-3 py-1.5"

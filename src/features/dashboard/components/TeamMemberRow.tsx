@@ -24,6 +24,12 @@ const LANGUAGE_LOCALE: Record<SupportedLanguage, string> = {
   pt: "pt-BR",
 };
 
+const FALLBACK_TRANSLATIONS: Partial<Record<SupportedLanguage, Record<string, string>>> = {
+  ko: {
+    "Sounds good to me.": "좋은 방향이라고 생각합니다.",
+  },
+};
+
 function formatSubmittedAt(createdAt: string, timezone: string, language: SupportedLanguage) {
   const date = new Date(createdAt);
 
@@ -55,7 +61,11 @@ function formatSubmittedAt(createdAt: string, timezone: string, language: Suppor
 /** 응답 현황 대시보드에서 팀원의 응답 여부와 의견을 보여주는 한 줄 */
 export default function TeamMemberRow({ member, opinion, viewerTimezone, viewerLanguage }: TeamMemberRowProps) {
   const icon = opinion ? STATUS_ICON[opinion.stance] : NO_RESPONSE_ICON;
-  const displayedComment = opinion?.translations?.[viewerLanguage] ?? opinion?.comment;
+  const displayedComment = opinion?.comment
+    ? opinion.translations?.[viewerLanguage]
+      ?? FALLBACK_TRANSLATIONS[viewerLanguage]?.[opinion.comment]
+      ?? opinion.comment
+    : undefined;
 
   return (
     <div className="flex items-center gap-3 py-2.5">
