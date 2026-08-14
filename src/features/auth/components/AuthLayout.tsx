@@ -14,8 +14,8 @@ interface AuthLayoutProps {
  */
 export default function AuthLayout({ children, eyebrow, title }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
-      <div className="relative hidden lg:flex flex-col justify-center overflow-hidden bg-surface px-14 py-12">
+    <div className="min-h-screen grid lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,1fr)]">
+      <div className="relative hidden lg:flex flex-col justify-center overflow-hidden bg-surface px-10 py-10 xl:px-14 xl:py-12">
         <div
           className="pointer-events-none absolute inset-0 opacity-90"
           style={{
@@ -25,20 +25,20 @@ export default function AuthLayout({ children, eyebrow, title }: AuthLayoutProps
         />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.06),transparent_45%)]" />
 
-        <div className="relative z-10 max-w-xl -translate-y-4">
-          <div className="mb-8 flex items-center gap-4">
+        <div className="relative z-10 -translate-y-3 xl:-translate-y-4">
+          <div className="mb-7 flex items-center gap-4 xl:mb-8">
             <span className="h-px w-10 bg-day" aria-hidden="true" />
             <p className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink">
               Meridian
             </p>
           </div>
-          <h1 className="font-display text-5xl xl:text-[3.5rem] font-medium leading-[1.12] tracking-[-0.035em] text-ink">
-            <span className="block">지구 반대편 동료도,</span>
-            <span className="mt-2 block text-day">같은 회의실에 있는 것처럼</span>
+          <h1 className="font-display text-[clamp(1.9rem,3vw,2.85rem)] font-medium leading-[1.16] tracking-[-0.025em] text-ink">
+            <span className="block whitespace-nowrap">지구 반대편 동료도</span>
+            <span className="mt-2 block whitespace-nowrap text-day">같은 회의실에 있는 것처럼</span>
           </h1>
         </div>
 
-        <div className="absolute z-10 left-14 bottom-12">
+        <div className="absolute z-10 bottom-10 left-10 xl:bottom-12 xl:left-14">
           <RotatingWorldClock />
         </div>
       </div>
