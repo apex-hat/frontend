@@ -154,6 +154,16 @@ export async function getProposals(teamId: string = MOCK_TEAM.id): Promise<Propo
 
 // --- Notifications --------------------------------------------------------
 
+const MOCK_READ_NOTIFICATIONS_KEY = "meridian.mock-read-notifications";
+
+function getMockReadNotificationIds() {
+  try {
+    return new Set<string>(JSON.parse(window.sessionStorage.getItem(MOCK_READ_NOTIFICATIONS_KEY) ?? "[]") as string[]);
+  } catch {
+    return new Set<string>();
+  }
+}
+
 export async function getNotifications(userId: string = CURRENT_USER_ID): Promise<Notification[]> {
   if (USE_MOCK) {
     // 동일 알림 중복 방지(방어적): 같은 id는 한 번만
@@ -163,13 +173,19 @@ export async function getNotifications(userId: string = CURRENT_USER_ID): Promis
       seen.add(n.id);
       return true;
     });
-    return delay(deduped);
+    const readIds = getMockReadNotificationIds();
+    return delay(deduped.map((notification) => readIds.has(notification.id) ? { ...notification, is_read: true } : notification));
   }
   return fetch("/api/notifications").then((r) => parseJson<Notification[]>(r));
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
-  if (USE_MOCK) return delay(undefined);
+  if (USE_MOCK) {
+    const readIds = getMockReadNotificationIds();
+    readIds.add(notificationId);
+    window.sessionStorage.setItem(MOCK_READ_NOTIFICATIONS_KEY, JSON.stringify([...readIds]));
+    return delay(undefined);
+  }
   const res = await fetch(`/api/notifications/${notificationId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

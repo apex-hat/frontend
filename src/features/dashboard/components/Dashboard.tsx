@@ -147,7 +147,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               <button
                 type="button"
                 onClick={onCreateProposal}
-                className="text-xs text-ink border border-surface-3 rounded-full px-3 py-1.5 hover:bg-surface-2 transition"
+                className="rounded-full border border-ink bg-ink px-3.5 py-1.5 text-xs font-medium text-void transition hover:opacity-90"
               >
                 제안 작성
               </button>

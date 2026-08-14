@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { DayPicker } from "@daypicker/react";
+import { ko } from "@daypicker/react/locale";
+import "@daypicker/react/style.css";
 import styles from "./ProposalForm.module.css";
 import { submitMockProposal } from "../../mocks/proposal";
 import { GROUPS_CHANGED_EVENT, loadGroups } from "../../features/workspace/workspaceStorage";
@@ -25,12 +28,27 @@ function getTodayDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
+function parseDate(value: string) {
+  if (!value) return undefined;
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function toDateString(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function ProposalForm() {
   const [groups, setGroups] = useState(loadGroups);
   const [formData, setFormData] = useState<ProposalFormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
 
   // 마감 기한은 오늘 이전 날짜를 선택할 수 없도록 date input의 min으로 사용
   const todayStr = getTodayDateString();
@@ -39,6 +57,14 @@ export default function ProposalForm() {
     const syncGroups = () => setGroups(loadGroups());
     window.addEventListener(GROUPS_CHANGED_EVENT, syncGroups);
     return () => window.removeEventListener(GROUPS_CHANGED_EVENT, syncGroups);
+  }, []);
+
+  useEffect(() => {
+    const closeCalendar = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) setIsCalendarOpen(false);
+    };
+    document.addEventListener("mousedown", closeCalendar);
+    return () => document.removeEventListener("mousedown", closeCalendar);
   }, []);
 
   const handleChange = (field: keyof ProposalFormData, value: string) => {
@@ -96,15 +122,17 @@ export default function ProposalForm() {
         <label className={styles.label} htmlFor="content">
           내용
         </label>
-        <textarea
-          id="content"
-          className={styles.textarea}
-          value={formData.content}
-          onChange={(e) => handleChange("content", e.target.value)}
-          placeholder="제안 내용을 입력하세요"
-          maxLength={100}
-        />
-        <span className={styles.characterCount}>{formData.content.length}/100</span>
+        <div className={styles.textareaWrap}>
+          <textarea
+            id="content"
+            className={styles.textarea}
+            value={formData.content}
+            onChange={(e) => handleChange("content", e.target.value)}
+            placeholder="제안 내용을 입력하세요"
+            maxLength={100}
+          />
+          <span className={styles.characterCount}>{formData.content.length}/100</span>
+        </div>
       </div>
 
       <div className={styles.field}>
@@ -129,14 +157,32 @@ export default function ProposalForm() {
         <label className={styles.label} htmlFor="deadline">
           마감 기한
         </label>
-        <input
-          id="deadline"
-          className={`${styles.input} ${styles.dateInput}`}
-          type="date"
-          min={todayStr}
-          value={formData.deadline}
-          onChange={(e) => handleChange("deadline", e.target.value)}
-        />
+        <div className={styles.datePicker} ref={calendarRef}>
+          <button id="deadline" type="button" className={styles.dateTrigger} onClick={() => setIsCalendarOpen((open) => !open)} aria-expanded={isCalendarOpen}>
+            <span className={formData.deadline ? styles.dateValue : styles.datePlaceholder}>
+              {formData.deadline ? new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric" }).format(parseDate(formData.deadline)!) : "마감 날짜를 선택하세요"}
+            </span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+              <path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+            </svg>
+          </button>
+          {isCalendarOpen && (
+            <div className={styles.calendarPopover}>
+              <DayPicker
+                mode="single"
+                locale={ko}
+                selected={parseDate(formData.deadline)}
+                defaultMonth={parseDate(formData.deadline) ?? parseDate(todayStr)}
+                disabled={{ before: parseDate(todayStr)! }}
+                onSelect={(date) => {
+                  if (!date) return;
+                  handleChange("deadline", toDateString(date));
+                  setIsCalendarOpen(false);
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <p className={styles.errorText}>{error}</p>}

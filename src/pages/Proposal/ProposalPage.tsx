@@ -5,10 +5,13 @@ import ProposalList from "./ProposalList";
 import ProposalDetail from "./ProposalDetail";
 import ConsensusDevPage from "../consensus/ConsensusDevPage";
 import { getMockProposalById } from "../../mocks/proposalList";
-import type { AuthUser } from "../../types";
+import { getNotifications, markNotificationRead } from "../../lib/api";
+import type { AuthUser, Notification } from "../../types";
 import type { Proposal } from "../../types/proposal";
 import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSidebar";
 import UserHandleButton from "../../features/workspace/components/UserHandleButton";
+import FriendManagerModal from "../../features/workspace/components/FriendManagerModal";
+import NotificationPanel from "../../features/dashboard/components/NotificationPanel";
 
 interface Props {
   user: AuthUser;
@@ -91,6 +94,36 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
 export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, onLogout }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getNotifications().then((list) => {
+      if (!cancelled) setNotifications(list);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const markAllRead = () => {
+    const unreadIds = notifications.filter((notification) => !notification.is_read).map((notification) => notification.id);
+    setNotifications((current) => current.map((notification) => ({ ...notification, is_read: true })));
+    unreadIds.forEach((id) => markNotificationRead(id));
+  };
+
+  const markRead = (notification: Notification) => {
+    setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, is_read: true } : item));
+    markNotificationRead(notification.id);
+  };
+
+  const selectNotification = (notification: Notification) => {
+    markRead(notification);
+    if (notification.type === "FRIEND_REQUEST") {
+      setIsFriendManagerOpen(true);
+    } else if (notification.proposal_id) {
+      navigate(`/proposals/${notification.proposal_id}`);
+    }
+  };
 
   const handleBack = () => {
     if (location.pathname.endsWith("/opinions")) {
@@ -123,6 +156,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </div>
 
           <div className="flex items-center gap-2">
+            <NotificationPanel notifications={notifications} onMarkAllRead={markAllRead} onMarkRead={markRead} onSelect={selectNotification} />
             <UserHandleButton user={user} onOpenProfile={onOpenProfile} onLogout={onLogout} />
           </div>
         </div>
@@ -153,6 +187,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </Routes>
         </div>
       </div>
+      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} />
     </div>
   );
 }
