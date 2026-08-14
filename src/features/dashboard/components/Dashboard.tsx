@@ -9,6 +9,7 @@ import TeamMemberRow from "./TeamMemberRow";
 import WorkspaceSidebar from "../../workspace/components/WorkspaceSidebar";
 import FriendManagerModal from "../../workspace/components/FriendManagerModal";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
+import { LAST_OPENED_CHAT_CHANGED_EVENT, loadLastOpenedChat } from "../../workspace/workspaceStorage";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -30,6 +31,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [opinionsByProposal, setOpinionsByProposal] = useState<Record<string, Opinion[]>>({});
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
+  const [lastOpenedChat, setLastOpenedChat] = useState(loadLastOpenedChat);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +70,23 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     };
   }, [user]);
 
+  useEffect(() => {
+    const syncLastOpenedChat = () => setLastOpenedChat(loadLastOpenedChat());
+    window.addEventListener(LAST_OPENED_CHAT_CHANGED_EVENT, syncLastOpenedChat);
+    return () => window.removeEventListener(LAST_OPENED_CHAT_CHANGED_EVENT, syncLastOpenedChat);
+  }, []);
+
   const activeProposalCount = proposals.filter((proposal) => proposal.status === "OPEN").length;
+  const clockMembers = !lastOpenedChat
+    ? members
+    : lastOpenedChat.type === "DIRECT"
+      ? members.filter((member) => member.name === lastOpenedChat.name)
+      : members.slice(0, Math.max(1, Math.min(lastOpenedChat.memberCount ?? members.length, members.length)));
+  const clockTitle = !lastOpenedChat
+    ? "지금, 팀은 어디쯤 깨어있을까요"
+    : lastOpenedChat.type === "DIRECT"
+      ? `${lastOpenedChat.name}의 현재 시간`
+      : `${lastOpenedChat.name} 멤버들은 어디쯤 깨어있을까요`;
 
   const markAllRead = () => {
     const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
@@ -119,7 +137,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
         </div>
 
         <div className="min-w-0 space-y-8 px-4 py-8 sm:px-6 2xl:px-8">
-          <WorldClockStrip members={members} />
+          <WorldClockStrip members={clockMembers.length > 0 ? clockMembers : members} title={clockTitle} />
 
           <section>
           <div className="flex items-center justify-between gap-4 mb-4">

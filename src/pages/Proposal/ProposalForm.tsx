@@ -1,21 +1,11 @@
 import { useEffect, useState } from "react";
 import styles from "./ProposalForm.module.css";
-import resultStyles from "./CultureAnalysisResult.module.css";
-import CultureAnalysisResult from "./CultureAnalysisResult";
-import ProposalComparison from "./ProposalComparison";
-import { getMockCultureAnalysis } from "../../mocks/cultureAnalysis";
 import { submitMockProposal } from "../../mocks/proposal";
 import { GROUPS_CHANGED_EVENT, loadGroups } from "../../features/workspace/workspaceStorage";
-import {
-  type ProposalFormData,
-  type CultureAnalysisResult as CultureAnalysisResultType,
-} from "../../types/proposal";
+import { type ProposalFormData } from "../../types/proposal";
 
 // 1단계: 제안 작성 폼
-// 2단계: "AI 문화 맥락 점검" 버튼 → mock 데이터로 분석 결과 화면 표시
-// 3단계: 원문 / AI 수정 제안 비교 UI
-// 4단계: AI 수정안 적용 버튼 (적용 후에도 직접 수정 가능)
-// 5단계: 최종 제안 등록 (mock, 백엔드 API 완성되면 axios 호출로 교체)
+// 최종 제안 등록 (mock, 백엔드 API 완성되면 axios 호출로 교체)
 
 const initialFormData: ProposalFormData = {
   title: "",
@@ -39,12 +29,6 @@ export default function ProposalForm() {
   const [groups, setGroups] = useState(loadGroups);
   const [formData, setFormData] = useState<ProposalFormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] =
-    useState<CultureAnalysisResultType | null>(null);
-  // 분석을 요청했던 시점의 원문 스냅샷 (비교 UI에서 "원문" 쪽에 고정으로 보여주기 위함)
-  const [originalContent, setOriginalContent] = useState("");
-  const [isApplied, setIsApplied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
@@ -69,38 +53,6 @@ export default function ProposalForm() {
     formData.content.trim() !== "" &&
     formData.targetGroup.trim() !== "" &&
     isDeadlineValid;
-
-  const handleAnalyzeClick = async () => {
-    if (!isFormValid) {
-      setError(
-        !isDeadlineValid && formData.deadline !== ""
-          ? "마감 기한은 오늘 이후 날짜로 설정해주세요."
-          : "제목, 내용, 대상 그룹, 마감 기한을 모두 입력해주세요.",
-      );
-      return;
-    }
-    setError(null);
-    setIsAnalyzing(true);
-    setAnalysisResult(null);
-    setIsApplied(false);
-    setOriginalContent(formData.content);
-
-    // TODO(나중에): getMockCultureAnalysis 대신 실제 백엔드 API 호출로 교체
-    // 예: const result = await axios.post('/api/proposals/analyze', formData)
-    const result = await getMockCultureAnalysis(formData);
-
-    setAnalysisResult(result);
-    setIsAnalyzing(false);
-  };
-
-  const handleApplyRevision = () => {
-    if (!analysisResult) return;
-    setFormData((prev) => ({
-      ...prev,
-      content: analysisResult.suggestedRevision,
-    }));
-    setIsApplied(true);
-  };
 
   const handleSubmitClick = async () => {
     if (!isFormValid) {
@@ -150,7 +102,9 @@ export default function ProposalForm() {
           value={formData.content}
           onChange={(e) => handleChange("content", e.target.value)}
           placeholder="제안 내용을 입력하세요"
+          maxLength={100}
         />
+        <span className={styles.characterCount}>{formData.content.length}/100</span>
       </div>
 
       <div className={styles.field}>
@@ -169,9 +123,6 @@ export default function ProposalForm() {
             <option key={group.id} value={group.name}>{group.name}</option>
           ))}
         </select>
-        <p className={styles.helperText}>
-          그룹원의 국가·언어 설정을 기준으로 각자에게 맞는 문화적 해석이 제공됩니다.
-        </p>
       </div>
 
       <div className={styles.field}>
@@ -186,40 +137,9 @@ export default function ProposalForm() {
           value={formData.deadline}
           onChange={(e) => handleChange("deadline", e.target.value)}
         />
-        <p className={styles.helperText}>오늘 이후 날짜를 선택할 수 있습니다.</p>
       </div>
 
       {error && <p className={styles.errorText}>{error}</p>}
-
-      <div className={`${styles.actions} ${styles.analysisActions}`}>
-        <p className={styles.analysisHelp}>
-          그룹 구성원에게 문장이 어떻게 받아들여질지 확인하고, 오해 가능성이 있는 표현과 수정안을 제안합니다.
-        </p>
-        <button
-          type="button"
-          className={styles.primaryButton}
-          onClick={handleAnalyzeClick}
-          disabled={isAnalyzing}
-        >
-          {isAnalyzing ? "분석 중..." : "AI 문화 맥락 점검"}
-        </button>
-      </div>
-
-      {isAnalyzing && (
-        <p className={resultStyles.loadingText}>AI가 분석하고 있습니다...</p>
-      )}
-
-      {analysisResult && (
-        <>
-          <CultureAnalysisResult result={analysisResult} />
-          <ProposalComparison
-            originalContent={originalContent}
-            suggestedRevision={analysisResult.suggestedRevision}
-            applied={isApplied}
-            onApply={handleApplyRevision}
-          />
-        </>
-      )}
 
       {submittedId ? (
         <div className={styles.successBox}>

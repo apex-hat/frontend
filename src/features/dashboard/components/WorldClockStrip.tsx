@@ -4,6 +4,7 @@ import { formatLocalTime, getDayPhase, getLocalTimeParts, getUnavailabilityHint 
 
 interface WorldClockStripProps {
   members: TimezoneEntry[];
+  title?: string;
 }
 
 const PHASE_DOT: Record<string, string> = {
@@ -38,7 +39,7 @@ function getShortTimezoneLabel(timezone: string) {
  * 하루 24시간을 가로축으로 펼쳐, 팀원 각자의 "지금 현지 시각"을 같은 축 위에 점으로 찍는다.
  * 실시간 회의 없이도 "지금 누가 깨어있는지"를 한눈에 보여주는 것이 이 서비스의 핵심 화면.
  */
-export default function WorldClockStrip({ members }: WorldClockStripProps) {
+export default function WorldClockStrip({ members, title = "지금, 팀은 어디쯤 깨어있을까요" }: WorldClockStripProps) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function WorldClockStrip({ members }: WorldClockStripProps) {
     <div className="rounded-2xl bg-surface border border-surface-3 p-6">
       <div className="flex items-baseline justify-between mb-8">
         <div>
-          <h2 className="font-display text-lg text-ink">지금, 팀은 어디쯤 깨어있을까요</h2>
+          <h2 className="font-display text-lg text-ink">{title}</h2>
         </div>
         <span className="font-mono text-xs text-ink-faint">
           {now.toLocaleDateString("ko-KR").replace(/\.$/, "")}

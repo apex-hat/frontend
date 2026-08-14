@@ -24,12 +24,21 @@ export interface ChatMessage {
   senderAvatarColor?: string;
 }
 
+export interface LastOpenedChat {
+  id: string;
+  name: string;
+  type: "DIRECT" | "GROUP";
+  memberCount?: number;
+}
+
 const GROUPS_KEY = "meridian.workspace-groups";
 const CONTACTS_KEY = "meridian.workspace-contacts";
 const MESSAGES_KEY = "meridian.workspace-messages";
 const UNREAD_CHATS_KEY = "meridian.workspace-unread-chats";
+const LAST_OPENED_CHAT_KEY = "meridian.workspace-last-opened-chat";
 export const GROUPS_CHANGED_EVENT = "meridian:groups-changed";
 export const CONTACTS_CHANGED_EVENT = "meridian:contacts-changed";
+export const LAST_OPENED_CHAT_CHANGED_EVENT = "meridian:last-opened-chat-changed";
 
 const DEFAULT_GROUPS: WorkspaceGroup[] = [
   { id: "product-design", name: "제품 디자인 그룹", memberCount: 6, inviteCode: "PD6K2A" },
@@ -145,6 +154,15 @@ export function loadUnreadChatIds() {
 
 export function saveUnreadChatIds(ids: string[]) {
   window.localStorage.setItem(UNREAD_CHATS_KEY, JSON.stringify(ids));
+}
+
+export function loadLastOpenedChat() {
+  return readStorage<LastOpenedChat | null>(LAST_OPENED_CHAT_KEY, null);
+}
+
+export function saveLastOpenedChat(chat: LastOpenedChat) {
+  window.localStorage.setItem(LAST_OPENED_CHAT_KEY, JSON.stringify(chat));
+  window.dispatchEvent(new CustomEvent(LAST_OPENED_CHAT_CHANGED_EVENT));
 }
 
 export function getUserHandle(user: AuthUser) {

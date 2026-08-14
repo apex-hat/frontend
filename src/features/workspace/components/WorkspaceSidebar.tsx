@@ -10,6 +10,7 @@ import {
   loadGroups,
   loadMessages,
   loadUnreadChatIds,
+  saveLastOpenedChat,
   saveMessages,
   saveUnreadChatIds,
   type ChatMessage,
@@ -147,6 +148,15 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
     setActiveContact(contact);
     setMessages(saved);
     setMessageText("");
+    const group = contact.id.startsWith("group-")
+      ? groups.find((item) => `group-${item.id}` === contact.id)
+      : undefined;
+    saveLastOpenedChat({
+      id: contact.id,
+      name: contact.name,
+      type: group ? "GROUP" : "DIRECT",
+      memberCount: group?.memberCount,
+    });
     if (unreadChatIds.includes(contact.id)) {
       setUnreadChatIds((current) => {
         const next = current.filter((id) => id !== contact.id);
