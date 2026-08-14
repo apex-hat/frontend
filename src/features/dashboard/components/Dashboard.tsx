@@ -89,7 +89,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
   return (
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-20 backdrop-blur bg-void/80 border-b border-surface-3">
-        <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-4 py-4">
+        <div className="flex w-full items-center justify-between px-4 py-4 sm:px-6 lg:px-10">
           <div className="flex items-center gap-2.5">
             <span className="font-display text-lg text-ink">Meridian</span>
           </div>
@@ -127,12 +127,12 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-[1400px] px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,4fr)_minmax(0,1fr)]">
-        <div className="hidden min-h-[calc(100vh-65px)] border-r border-surface-3 py-8 pr-5 lg:block">
+      <main className="grid w-full lg:grid-cols-[18%_64%_18%]">
+        <div className="hidden min-h-[calc(100vh-65px)] border-r border-surface-3 px-4 py-8 lg:block 2xl:px-8">
           <WorkspaceSidebar user={user} mode="messages" />
         </div>
 
-        <div className="min-w-0 space-y-8 py-8 lg:px-6">
+        <div className="min-w-0 space-y-8 px-4 py-8 sm:px-6 2xl:px-8">
           <WorldClockStrip members={members} />
 
           <section>
@@ -231,7 +231,7 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
           </section>
         </div>
 
-        <div className="hidden min-h-[calc(100vh-65px)] border-l border-surface-3 py-8 pl-5 lg:block">
+        <div className="hidden min-h-[calc(100vh-65px)] border-l border-surface-3 px-4 py-8 lg:block 2xl:px-8">
           <WorkspaceSidebar user={user} mode="groups" />
         </div>
       </main>

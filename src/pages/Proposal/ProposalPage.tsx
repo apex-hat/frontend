@@ -108,7 +108,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
   return (
     <div className="min-h-screen bg-void">
       <header className="sticky top-0 z-30 border-b border-surface-3 bg-void/80 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-4 py-4">
+        <div className="flex w-full items-center justify-between px-4 py-4 sm:px-6 lg:px-10">
           <div className="flex items-center gap-3">
             <BackButton onClick={handleBack} />
             <button
@@ -146,11 +146,11 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-[1400px] px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,4fr)_minmax(0,1fr)]">
-        <div className="hidden min-h-[calc(100vh-65px)] border-r border-surface-3 py-8 pr-5 lg:block">
+      <div className="grid w-full lg:grid-cols-[18%_64%_18%]">
+        <div className="hidden min-h-[calc(100vh-65px)] border-r border-surface-3 px-4 py-8 lg:block 2xl:px-8">
           <WorkspaceSidebar user={user} mode="messages" />
         </div>
-        <div className="min-w-0 lg:px-6">
+        <div className="min-w-0 px-4 sm:px-6 2xl:px-8">
           <Routes>
             <Route index element={<ProposalListRoute />} />
             <Route path="new" element={<ProposalFormRoute />} />
@@ -159,7 +159,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
             <Route path="*" element={<Navigate to="/proposals" replace />} />
           </Routes>
         </div>
-        <div className="hidden min-h-[calc(100vh-65px)] border-l border-surface-3 py-8 pl-5 lg:block">
+        <div className="hidden min-h-[calc(100vh-65px)] border-l border-surface-3 px-4 py-8 lg:block 2xl:px-8">
           <WorkspaceSidebar user={user} mode="groups" />
         </div>
       </div>
