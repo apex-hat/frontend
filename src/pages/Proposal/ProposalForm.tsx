@@ -155,7 +155,7 @@ export default function ProposalForm({ onSubmitted, userId, proposal }: Proposal
         {
           id: crypto.randomUUID(),
           sender: "me",
-          text: `제안: ${formData.title.trim()} · ${deadlineLabel}까지 의견을 남겨주세요.`,
+          text: `[제안] ${formData.title.trim()} ${deadlineLabel}까지`,
           createdAt: new Date().toISOString(),
         },
       ]);

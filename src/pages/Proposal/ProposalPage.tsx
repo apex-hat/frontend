@@ -35,7 +35,7 @@ function ProposalEditRoute({ userId, onSubmitted }: { userId: string; onSubmitte
 
 function ProposalInfoRoute() {
   const { proposalId } = useParams();
-  const [proposal, setProposal] = useState<{ title: string; content: string; deadline: string; targetGroup?: string } | null | undefined>(null);
+  const [proposal, setProposal] = useState<{ title: string; content: string; deadline: string } | null | undefined>(null);
 
   useEffect(() => {
     if (!proposalId) return;
@@ -48,7 +48,6 @@ function ProposalInfoRoute() {
         title: item.title,
         content: submitted?.content ?? MOCK_PROPOSAL_CONTENT[item.id] ?? "등록된 제안 내용이 없습니다.",
         deadline: item.deadline,
-        targetGroup: submitted?.targetGroup,
       } : undefined);
     });
     return () => { cancelled = true; };
