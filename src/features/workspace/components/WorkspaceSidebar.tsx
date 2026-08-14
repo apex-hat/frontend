@@ -19,7 +19,6 @@ import {
 
 interface WorkspaceSidebarProps {
   user: AuthUser;
-  onBack?: () => void;
 }
 
 const MEMBER_PROFILES = [
@@ -59,7 +58,7 @@ function formatChatTime(value?: string, timeZone?: string) {
     : dateParts;
 }
 
-export default function WorkspaceSidebar({ user, onBack }: WorkspaceSidebarProps) {
+export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
   const [groups, setGroups] = useState(loadGroups);
   const [contacts, setContacts] = useState(loadContacts);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -239,7 +238,7 @@ export default function WorkspaceSidebar({ user, onBack }: WorkspaceSidebarProps
             <div>
               <div className="flex h-9 items-center justify-between gap-2">
                 <h2 className="text-xs font-semibold text-ink">메시지</h2>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center">
                   <button
                     type="button"
                     onClick={openGroupModal}
@@ -251,13 +250,6 @@ export default function WorkspaceSidebar({ user, onBack }: WorkspaceSidebarProps
                       <path d="M12 5v14M5 12h14" />
                     </svg>
                   </button>
-                  {onBack && (
-                    <button type="button" onClick={onBack} aria-label="이전 화면" title="이전 화면" className="flex h-5 w-5 items-center justify-center text-ink-dim transition hover:text-ink">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="m15 18-6-6 6-6" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
               </div>
               <div className="border-t border-surface-3">

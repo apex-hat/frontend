@@ -130,9 +130,20 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
 
       <div className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_82%]">
         <div className="hidden h-full border-r border-surface-3 px-4 lg:block">
-          <WorkspaceSidebar user={user} onBack={handleBack} />
+          <WorkspaceSidebar user={user} />
         </div>
-        <div className="min-w-0 px-4 sm:px-6 2xl:px-8">
+        <div className="relative min-w-0 px-4 sm:px-6 2xl:px-8">
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="이전 화면"
+            title="이전 화면"
+            className="absolute left-2 top-3 z-10 flex h-5 w-5 items-center justify-center text-ink-dim transition hover:text-ink"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
           <Routes>
             <Route index element={<ProposalListRoute />} />
             <Route path="new" element={<ProposalFormRoute />} />
