@@ -19,11 +19,11 @@ const STANCE_ORDER: Record<Opinion["stance"], number> = {
 interface DashboardProps {
   user: AuthUser;
   onLogout: () => void;
-  onOpenProposals: () => void;
+  onCreateProposal: () => void;
   onOpenProfile: () => void;
 }
 
-export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfile }: DashboardProps) {
+export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProfile }: DashboardProps) {
   const [members, setMembers] = useState<TimezoneEntry[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -128,10 +128,10 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
               <span className="text-xs text-ink-faint">{activeProposalCount}개 진행 중</span>
               <button
                 type="button"
-                onClick={onOpenProposals}
+                onClick={onCreateProposal}
                 className="text-xs text-ink border border-surface-3 rounded-full px-3 py-1.5 hover:bg-surface-2 transition"
               >
-                제안 관리
+                제안 작성
               </button>
             </div>
           </div>

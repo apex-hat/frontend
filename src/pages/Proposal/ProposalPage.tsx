@@ -7,7 +7,6 @@ import ConsensusDevPage from "../consensus/ConsensusDevPage";
 import { getMockProposalById } from "../../mocks/proposalList";
 import type { AuthUser } from "../../types";
 import type { Proposal } from "../../types/proposal";
-import BackButton from "../../components/navigation/BackButton";
 import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSidebar";
 import UserHandleButton from "../../features/workspace/components/UserHandleButton";
 
@@ -98,6 +97,10 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
       navigate(location.pathname.replace(/\/opinions$/, ""));
       return;
     }
+    if (location.pathname === "/proposals/new") {
+      onBackToDashboard();
+      return;
+    }
     if (location.pathname !== "/proposals") {
       navigate("/proposals");
       return;
@@ -110,7 +113,6 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
       <header className="sticky top-0 z-30 border-b border-surface-3 bg-void/80 backdrop-blur">
         <div className="flex w-full items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            <BackButton onClick={handleBack} />
             <button
               type="button"
               onClick={onBackToDashboard}
@@ -128,7 +130,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
 
       <div className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_82%]">
         <div className="hidden h-full border-r border-surface-3 px-4 lg:block">
-          <WorkspaceSidebar user={user} />
+          <WorkspaceSidebar user={user} onBack={handleBack} />
         </div>
         <div className="min-w-0 px-4 sm:px-6 2xl:px-8">
           <Routes>

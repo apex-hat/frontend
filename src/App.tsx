@@ -90,7 +90,7 @@ export default function App() {
           user ? (
             <Dashboard
               user={user}
-              onOpenProposals={() => navigate("/proposals")}
+              onCreateProposal={() => navigate("/proposals/new")}
               onOpenProfile={() => navigate("/profile")}
               onLogout={logout}
             />
