@@ -8,6 +8,12 @@ import ProposalStatusBadge from "./ProposalStatusBadge";
 import TeamMemberRow from "./TeamMemberRow";
 import { formatLocalTime } from "../../../lib/timezone";
 
+const STANCE_ORDER: Record<Opinion["stance"], number> = {
+  AGREE: 0,
+  CONDITIONAL: 1,
+  DISAGREE: 2,
+};
+
 interface DashboardProps {
   user: AuthUser;
   onLogout: () => void;
@@ -122,6 +128,22 @@ export default function Dashboard({ user, onLogout, onOpenProposals }: Dashboard
               const opinions = opinionsByProposal[proposal.id] ?? [];
               const responded = opinions.length;
               const total = members.length;
+              const isComplete = proposal.status === "CONSENSUS_DONE" || proposal.status === "CLOSED";
+              const orderedMembers = [...members].sort((a, b) => {
+                const aOpinion = opinions.find((opinion) => opinion.user_id === a.user_id);
+                const bOpinion = opinions.find((opinion) => opinion.user_id === b.user_id);
+
+                if (!aOpinion && !bOpinion) return 0;
+                if (!aOpinion) return 1;
+                if (!bOpinion) return -1;
+
+                if (isComplete) {
+                  const stanceDifference = STANCE_ORDER[aOpinion.stance] - STANCE_ORDER[bOpinion.stance];
+                  if (stanceDifference !== 0) return stanceDifference;
+                }
+
+                return new Date(aOpinion.created_at).getTime() - new Date(bOpinion.created_at).getTime();
+              });
 
               return (
                 <div key={proposal.id} className="rounded-2xl bg-surface border border-surface-3 overflow-hidden">
@@ -153,9 +175,16 @@ export default function Dashboard({ user, onLogout, onOpenProposals }: Dashboard
 
                   {isOpen && (
                     <div className="px-5 pb-4 pt-1 border-t border-surface-3 divide-y divide-surface-3/60">
-                      {members.map((member) => {
+                      {orderedMembers.map((member) => {
                         const opinion = opinions.find((o) => o.user_id === member.user_id);
-                        return <TeamMemberRow key={member.user_id} member={member} opinion={opinion} />;
+                        return (
+                          <TeamMemberRow
+                            key={member.user_id}
+                            member={member}
+                            opinion={opinion}
+                            viewerTimezone={user.timezone}
+                          />
+                        );
                       })}
                     </div>
                   )}

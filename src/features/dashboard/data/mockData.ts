@@ -95,15 +95,15 @@ export const MOCK_OPINIONS: Opinion[] = [
   { id: "o-8", proposal_id: "p-2", user_id: "u-haruto", stance: "CONDITIONAL", comment: "월요일만 화상으로 유지하면 좋겠어요.", created_at: hoursAgo(6) },
 
   // p-3: 코드 리뷰 SLA — 전원 응답 완료(합의)
-  { id: "o-9", proposal_id: "p-3", user_id: "u-jiwoo", stance: "AGREE", created_at: hoursAgo(50) },
-  { id: "o-10", proposal_id: "p-3", user_id: "u-mina", stance: "AGREE", created_at: hoursAgo(49) },
-  { id: "o-11", proposal_id: "p-3", user_id: "u-alex", stance: "AGREE", created_at: hoursAgo(52) },
-  { id: "o-12", proposal_id: "p-3", user_id: "u-sofia", stance: "AGREE", created_at: hoursAgo(44) },
-  { id: "o-13", proposal_id: "p-3", user_id: "u-lena", stance: "AGREE", created_at: hoursAgo(40) },
-  { id: "o-14", proposal_id: "p-3", user_id: "u-omar", stance: "AGREE", created_at: hoursAgo(38) },
-  { id: "o-15", proposal_id: "p-3", user_id: "u-haruto", stance: "AGREE", created_at: hoursAgo(30) },
-  { id: "o-16", proposal_id: "p-3", user_id: "u-priya", stance: "AGREE", created_at: hoursAgo(20) },
-  { id: "o-17", proposal_id: "p-3", user_id: "u-jack", stance: "AGREE", created_at: hoursAgo(15) },
+  { id: "o-9", proposal_id: "p-3", user_id: "u-jiwoo", stance: "AGREE", comment: "리뷰 품질을 유지하려면 48시간이 현실적인 기준이라고 생각합니다.", created_at: hoursAgo(50) },
+  { id: "o-10", proposal_id: "p-3", user_id: "u-mina", stance: "AGREE", comment: "긴급 리뷰만 별도로 표시한다면 48시간 기준에 동의해요.", created_at: hoursAgo(49) },
+  { id: "o-11", proposal_id: "p-3", user_id: "u-alex", stance: "AGREE", comment: "시차를 고려하면 48시간이 모든 지역의 팀원에게 더 공평합니다.", created_at: hoursAgo(52) },
+  { id: "o-12", proposal_id: "p-3", user_id: "u-sofia", stance: "AGREE", comment: "일정 예측이 쉬워질 것 같아 찬성합니다.", created_at: hoursAgo(44) },
+  { id: "o-13", proposal_id: "p-3", user_id: "u-lena", stance: "AGREE", comment: "현재 업무량을 보면 24시간보다 48시간이 안정적이에요.", created_at: hoursAgo(40) },
+  { id: "o-14", proposal_id: "p-3", user_id: "u-omar", stance: "AGREE", comment: "명확한 우선순위 규칙과 함께 적용하면 좋겠습니다.", created_at: hoursAgo(38) },
+  { id: "o-15", proposal_id: "p-3", user_id: "u-haruto", stance: "AGREE", comment: "리뷰 요청이 밤에 도착하는 경우가 많아 변경에 동의합니다.", created_at: hoursAgo(30) },
+  { id: "o-16", proposal_id: "p-3", user_id: "u-priya", stance: "AGREE", comment: "48시간이면 충분히 검토하면서 다른 업무도 조율할 수 있어요.", created_at: hoursAgo(20) },
+  { id: "o-17", proposal_id: "p-3", user_id: "u-jack", stance: "AGREE", comment: "팀 전체 기준을 통일하는 방향에 찬성합니다.", created_at: hoursAgo(15) },
 ];
 
 // 주의: 이미 응답(Opinions에 레코드 있음)한 사용자에게는 OPINION_REQUEST 알림을 만들지 않음.

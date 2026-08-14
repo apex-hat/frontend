@@ -1,11 +1,11 @@
 import type { Opinion, Stance } from "../../../types";
 import type { TimezoneEntry } from "../../../lib/api";
-import { formatLocalTime } from "../../../lib/timezone";
 
 interface TeamMemberRowProps {
   member: TimezoneEntry;
   /** 해당 제안에 대한 이 팀원의 Opinion. 레코드가 없으면 미응답. */
   opinion: Opinion | undefined;
+  viewerTimezone: string;
 }
 
 const STATUS_ICON: Record<Stance, { symbol: string; className: string }> = {
@@ -15,8 +15,19 @@ const STATUS_ICON: Record<Stance, { symbol: string; className: string }> = {
 };
 const NO_RESPONSE_ICON = { symbol: "…", className: "text-ink-faint bg-surface-3" };
 
+function formatSubmittedAt(createdAt: string, timezone: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: timezone,
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(createdAt));
+}
+
 /** 응답 현황 대시보드에서 팀원의 응답 여부와 의견을 보여주는 한 줄 */
-export default function TeamMemberRow({ member, opinion }: TeamMemberRowProps) {
+export default function TeamMemberRow({ member, opinion, viewerTimezone }: TeamMemberRowProps) {
   const icon = opinion ? STATUS_ICON[opinion.stance] : NO_RESPONSE_ICON;
 
   return (
@@ -32,7 +43,7 @@ export default function TeamMemberRow({ member, opinion }: TeamMemberRowProps) {
         <div className="flex items-center gap-2">
           <span className="text-sm text-ink truncate">{member.name}</span>
           <span className="font-mono text-[10px] text-ink-faint shrink-0">
-            현지 {formatLocalTime(member.timezone)}
+            {opinion ? `내 시간 ${formatSubmittedAt(opinion.created_at, viewerTimezone)}` : "미응답"}
           </span>
         </div>
         {opinion?.comment && (
