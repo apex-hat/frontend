@@ -55,6 +55,7 @@ export interface Proposal {
   status: ProposalStatus;
   deadline: string;
   created_at: string;
+  completed_at?: string;
 }
 
 export interface Opinion {

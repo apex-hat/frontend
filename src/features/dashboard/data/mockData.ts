@@ -78,6 +78,7 @@ export const MOCK_PROPOSALS: Proposal[] = [
     status: "CONSENSUS_DONE",
     deadline: hoursAgo(2),
     created_at: hoursAgo(52),
+    completed_at: hoursAgo(2),
   },
 ];
 

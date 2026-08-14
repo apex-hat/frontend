@@ -17,6 +17,8 @@ export interface SubmittedProposal extends DashboardProposal {
   content?: string;
   targetGroup?: string;
   author_id?: string;
+  final_comment?: string;
+  result_summary?: string;
 }
 
 export function loadSubmittedProposals(): SubmittedProposal[] {
@@ -78,9 +80,16 @@ export function deleteSubmittedProposal(id: string) {
   window.localStorage.removeItem(`meridian:${id}:opinions`);
 }
 
-export function completeSubmittedProposal(id: string) {
+export function completeSubmittedProposal(id: string, finalComment: string, resultSummary: string) {
+  const completedAt = new Date().toISOString();
   const proposals = loadSubmittedProposals().map((proposal) => proposal.id === id
-    ? { ...proposal, status: "CONSENSUS_DONE" as const }
+    ? {
+        ...proposal,
+        status: "CONSENSUS_DONE" as const,
+        completed_at: completedAt,
+        final_comment: finalComment,
+        result_summary: resultSummary,
+      }
     : proposal);
   saveSubmittedProposals(proposals);
   return proposals.find((proposal) => proposal.id === id);

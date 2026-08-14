@@ -9,8 +9,19 @@ import TeamMemberRow from "./TeamMemberRow";
 import WorkspaceSidebar from "../../workspace/components/WorkspaceSidebar";
 import FriendManagerModal from "../../workspace/components/FriendManagerModal";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
-import { LAST_OPENED_CHAT_CHANGED_EVENT, loadLastOpenedChat } from "../../workspace/workspaceStorage";
-import { completeSubmittedProposal, deleteSubmittedProposal, isMySubmittedProposal } from "../../../mocks/proposal";
+import {
+  LAST_OPENED_CHAT_CHANGED_EVENT,
+  loadGroups,
+  loadLastOpenedChat,
+  loadMessages,
+  saveMessages,
+} from "../../workspace/workspaceStorage";
+import {
+  completeSubmittedProposal,
+  deleteSubmittedProposal,
+  isMySubmittedProposal,
+  loadSubmittedProposals,
+} from "../../../mocks/proposal";
 import BrandMark from "../../../components/branding/BrandMark";
 import ConnectionButton from "../../workspace/components/ConnectionButton";
 
@@ -19,6 +30,33 @@ const STANCE_ORDER: Record<Opinion["stance"], number> = {
   CONDITIONAL: 1,
   DISAGREE: 2,
 };
+
+const COMPLETED_VISIBLE_MS = 48 * 60 * 60 * 1000;
+
+function isComplete(proposal: Proposal) {
+  return proposal.status === "CONSENSUS_DONE" || proposal.status === "CLOSED";
+}
+
+function sortProposals(list: Proposal[]) {
+  return [...list].sort((a, b) => {
+    const completionDifference = Number(isComplete(a)) - Number(isComplete(b));
+    if (completionDifference !== 0) return completionDifference;
+    const aTime = new Date(isComplete(a) ? a.completed_at ?? a.deadline : a.created_at).getTime();
+    const bTime = new Date(isComplete(b) ? b.completed_at ?? b.deadline : b.created_at).getTime();
+    return bTime - aTime;
+  });
+}
+
+function buildResultSummary(opinions: Opinion[]) {
+  const agree = opinions.filter((opinion) => opinion.stance === "AGREE").length;
+  const conditional = opinions.filter((opinion) => opinion.stance === "CONDITIONAL").length;
+  const disagree = opinions.filter((opinion) => opinion.stance === "DISAGREE").length;
+  if (opinions.length === 0) return "집계된 의견 없이 대표의 최종 결정으로 협의를 마무리했습니다.";
+  const direction = agree >= conditional + disagree
+    ? "제안의 방향에 대체로 공감했습니다."
+    : "의견이 나뉘어 조건과 우려를 함께 검토했습니다.";
+  return `총 ${opinions.length}명의 의견을 집계했습니다. 찬성 ${agree}명, 조건부 ${conditional}명, 반대 ${disagree}명으로 ${direction}`;
+}
 
 interface DashboardProps {
   user: AuthUser;
@@ -39,6 +77,9 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
   const [lastOpenedChat, setLastOpenedChat] = useState(loadLastOpenedChat);
   const [proposalMenu, setProposalMenu] = useState<{ proposal: Proposal; x: number; y: number } | null>(null);
+  const [completionTarget, setCompletionTarget] = useState<Proposal | null>(null);
+  const [completionComment, setCompletionComment] = useState("");
+  const [analysisTarget, setAnalysisTarget] = useState<Proposal | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,8 +109,11 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
         return acc;
       }, {});
 
+      const now = Date.now();
+      const visible = list.filter((proposal) => !isComplete(proposal)
+        || now - new Date(proposal.completed_at ?? proposal.deadline).getTime() < COMPLETED_VISIBLE_MS);
       setOpinionsByProposal(opinionMap);
-      setProposals(list);
+      setProposals(sortProposals(visible));
     });
 
     return () => {
@@ -90,6 +134,21 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     return () => window.removeEventListener("mousedown", closeMenu);
   }, [proposalMenu]);
 
+  useEffect(() => {
+    const expiries = proposals
+      .filter(isComplete)
+      .map((proposal) => new Date(proposal.completed_at ?? proposal.deadline).getTime() + COMPLETED_VISIBLE_MS)
+      .filter((expiry) => expiry > Date.now());
+    if (expiries.length === 0) return;
+
+    const timeout = window.setTimeout(() => {
+      const now = Date.now();
+      setProposals((current) => current.filter((proposal) => !isComplete(proposal)
+        || now < new Date(proposal.completed_at ?? proposal.deadline).getTime() + COMPLETED_VISIBLE_MS));
+    }, Math.min(...expiries) - Date.now() + 50);
+    return () => window.clearTimeout(timeout);
+  }, [proposals]);
+
   const deleteProposal = (proposal: Proposal) => {
     if (!window.confirm(`'${proposal.title}' 제안을 삭제할까요?`)) return;
     deleteSubmittedProposal(proposal.id);
@@ -98,17 +157,51 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     setProposalMenu(null);
   };
 
-  const completeProposal = (proposal: Proposal) => {
-    if (!window.confirm(`'${proposal.title}' 제안을 합의 완료로 처리할까요?`)) return;
-    completeSubmittedProposal(proposal.id);
-    setProposals((current) => current.map((item) => item.id === proposal.id
-      ? { ...item, status: "CONSENSUS_DONE" }
-      : item));
-    setExpandedId((current) => current === proposal.id ? null : current);
+  const openCompletion = (proposal: Proposal) => {
+    setCompletionTarget(proposal);
+    setCompletionComment("");
     setProposalMenu(null);
   };
 
+  const completeProposal = () => {
+    if (!completionTarget || !completionComment.trim()) return;
+    const opinions = opinionsByProposal[completionTarget.id] ?? [];
+    const resultSummary = buildResultSummary(opinions);
+    const finalComment = completionComment.trim();
+    const completed = completeSubmittedProposal(completionTarget.id, finalComment, resultSummary);
+    if (!completed) return;
+
+    const storedProposal = loadSubmittedProposals().find((proposal) => proposal.id === completionTarget.id);
+    const targetGroup = loadGroups().find((group) => group.name === storedProposal?.targetGroup);
+    if (targetGroup) {
+      const chatId = `group-${targetGroup.id}`;
+      saveMessages(chatId, [
+        ...loadMessages(chatId),
+        {
+          id: crypto.randomUUID(),
+          sender: "me",
+          text: `[합의 결과] ${completionTarget.title} · ${resultSummary} 최종 결정: ${finalComment}`,
+          createdAt: completed.completed_at ?? new Date().toISOString(),
+        },
+      ]);
+    }
+
+    setProposals((current) => sortProposals(current.map((item) => item.id === completionTarget.id
+      ? { ...item, status: "CONSENSUS_DONE", completed_at: completed.completed_at }
+      : item)));
+    setExpandedId(null);
+    setCompletionTarget(null);
+    setCompletionComment("");
+  };
+
   const activeProposalCount = proposals.filter((proposal) => proposal.status === "OPEN").length;
+  const storedAnalysisProposal = analysisTarget
+    ? loadSubmittedProposals().find((proposal) => proposal.id === analysisTarget.id)
+    : undefined;
+  const analysisOpinions = analysisTarget ? opinionsByProposal[analysisTarget.id] ?? [] : [];
+  const analysisSummary = storedAnalysisProposal?.result_summary ?? buildResultSummary(analysisOpinions);
+  const finalDecision = storedAnalysisProposal?.final_comment
+    ?? "조건부 및 반대 의견의 우려를 반영해 실행 범위를 조정하고, 팀에 최종 내용을 공유합니다.";
   const clockMembers = !lastOpenedChat
     ? members
     : lastOpenedChat.type === "DIRECT"
@@ -248,6 +341,13 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
 
                   {isOpen && (
                     <div className="border-t border-surface-3 px-5 pb-4 pt-1">
+                      {isComplete && (
+                        <div className="flex justify-end pt-3">
+                          <button type="button" onClick={() => setAnalysisTarget(proposal)} className="rounded-lg border border-surface-3 px-3 py-1.5 text-[11px] font-medium text-ink-dim transition hover:border-ink-faint hover:text-ink">
+                            결과 분석
+                          </button>
+                        </div>
+                      )}
                       <div className="divide-y divide-surface-3/60">
                       {orderedMembers.map((member) => {
                         const opinion = opinions.find((o) => o.user_id === member.user_id);
@@ -286,12 +386,62 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               <button type="button" onClick={() => onEditProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">수정하기</button>
               <button type="button" onClick={() => deleteProposal(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
               {proposalMenu.proposal.status === "OPEN" && (
-                <button type="button" onClick={() => completeProposal(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-consensus">완료하기</button>
+                <button type="button" onClick={() => openCompletion(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-consensus">완료하기</button>
               )}
             </>
           ) : (
             <button type="button" onClick={() => onViewProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">상세 정보 보기</button>
           )}
+        </div>
+      )}
+      {completionTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
+          <section role="dialog" aria-modal="true" aria-labelledby="completion-title" className="w-full max-w-md rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-medium text-consensus">합의 완료</p>
+                <h2 id="completion-title" className="mt-1 font-display text-lg leading-snug text-ink">{completionTarget.title}</h2>
+              </div>
+              <button type="button" onClick={() => setCompletionTarget(null)} aria-label="닫기" className="text-lg text-ink-dim hover:text-ink">×</button>
+            </div>
+            <label htmlFor="completion-comment" className="mb-2 mt-5 block text-xs font-medium text-ink-dim">최종 결정</label>
+            <textarea
+              id="completion-comment"
+              value={completionComment}
+              onChange={(event) => setCompletionComment(event.target.value)}
+              maxLength={300}
+              rows={4}
+              placeholder="논의 결과 최종적으로 어떻게 진행할지 남겨주세요."
+              className="w-full resize-none rounded-xl border border-surface-3 bg-surface-2 px-3.5 py-3 text-sm leading-6 text-ink outline-none transition focus:border-night"
+            />
+            <p className="mt-2 text-[10px] text-ink-faint">완료 후 결과 분석과 최종 결정이 그룹 채팅에 공유됩니다.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setCompletionTarget(null)} className="px-3 py-2 text-xs text-ink-dim hover:text-ink">취소</button>
+              <button type="button" onClick={completeProposal} disabled={!completionComment.trim()} className="rounded-lg bg-ink px-4 py-2 text-xs font-semibold text-void transition disabled:cursor-default disabled:opacity-35">완료 처리</button>
+            </div>
+          </section>
+        </div>
+      )}
+      {analysisTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
+          <section role="dialog" aria-modal="true" aria-labelledby="analysis-title" className="w-full max-w-lg rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-medium text-consensus">결과 분석</p>
+                <h2 id="analysis-title" className="mt-1 font-display text-xl leading-snug text-ink">{analysisTarget.title}</h2>
+              </div>
+              <button type="button" onClick={() => setAnalysisTarget(null)} aria-label="닫기" className="text-lg text-ink-dim hover:text-ink">×</button>
+            </div>
+            <div className="mt-6 rounded-xl bg-surface-2 px-4 py-4">
+              <p className="text-xs font-semibold text-ink">의견 분석</p>
+              <p className="mt-2 text-sm leading-6 text-ink-dim">{analysisSummary}</p>
+            </div>
+            <div className="mt-4 border-l-2 border-consensus/60 pl-4">
+              <p className="text-xs font-semibold text-ink">최종 결정</p>
+              <p className="mt-2 text-sm leading-6 text-ink-dim">{finalDecision}</p>
+            </div>
+            <button type="button" onClick={() => setAnalysisTarget(null)} className="mt-6 w-full rounded-lg border border-surface-3 py-2.5 text-xs font-medium text-ink-dim transition hover:text-ink">확인</button>
+          </section>
         </div>
       )}
       <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} />
