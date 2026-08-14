@@ -49,6 +49,12 @@ const DEFAULT_GROUPS: WorkspaceGroup[] = [
   { id: "research-lab", name: "사용자 리서치 그룹", memberCount: 4, inviteCode: "UX4N7C" },
 ];
 
+const DISCOVERABLE_GROUPS: WorkspaceGroup[] = [
+  { id: "hackathon-planning", name: "해커톤 기획 그룹", memberCount: 5, inviteCode: "HACK26" },
+  { id: "remote-crew", name: "리모트 프로젝트 그룹", memberCount: 7, inviteCode: "REMOTE7" },
+  { id: "design-review", name: "디자인 리뷰 그룹", memberCount: 4, inviteCode: "DESIGN" },
+];
+
 const DEFAULT_CONTACTS: WorkspaceContact[] = [
   { id: "u-mina", name: "이민아", handle: "#MER-MINA", avatarColor: "#63C7A6", online: true },
   { id: "u-alex", name: "Alex Turner", handle: "#MER-ALEX", avatarColor: "#7C8FE0", online: false },
@@ -123,6 +129,21 @@ export function joinGroup(inviteCode: string) {
   );
   window.dispatchEvent(new CustomEvent(GROUPS_CHANGED_EVENT));
   return updated;
+}
+
+export function joinGroupByCode(inviteCode: string) {
+  const normalizedCode = inviteCode.trim().toUpperCase();
+  const groups = loadGroups();
+  const existing = groups.find((group) => group.inviteCode === normalizedCode);
+  if (existing) return { status: "already" as const, group: existing };
+
+  const found = [...DEFAULT_GROUPS, ...DISCOVERABLE_GROUPS].find((group) => group.inviteCode === normalizedCode);
+  if (!found) return { status: "invalid" as const, group: null };
+
+  const joined = { ...found, memberCount: found.memberCount + 1 };
+  window.localStorage.setItem(GROUPS_KEY, JSON.stringify([...groups, joined]));
+  window.dispatchEvent(new CustomEvent(GROUPS_CHANGED_EVENT));
+  return { status: "joined" as const, group: joined };
 }
 
 export function loadContacts() {

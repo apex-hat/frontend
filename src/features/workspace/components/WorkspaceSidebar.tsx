@@ -4,7 +4,6 @@ import {
   CONTACTS_CHANGED_EVENT,
   GROUPS_CHANGED_EVENT,
   createGroup,
-  getInviteUrl,
   leaveGroup,
   loadContacts,
   loadGroups,
@@ -120,19 +119,19 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
     setCreatedGroup(group);
   };
 
-  const copyInviteLink = async () => {
+  const copyInviteCode = async () => {
     if (!createdGroup) return;
     try {
-      await navigator.clipboard.writeText(getInviteUrl(createdGroup));
+      await navigator.clipboard.writeText(createdGroup.inviteCode);
       setCopied(true);
     } catch {
       setCopied(false);
     }
   };
 
-  const copyGroupLink = async (group: WorkspaceGroup) => {
+  const copyGroupCode = async (group: WorkspaceGroup) => {
     try {
-      await navigator.clipboard.writeText(getInviteUrl(group));
+      await navigator.clipboard.writeText(group.inviteCode);
     } catch { /* 브라우저 권한이 없으면 별도 상태 문구 없이 유지 */ }
     setContextMenu(null);
   };
@@ -338,7 +337,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
           onClick={(event) => event.stopPropagation()}
         >
           <button type="button" onClick={() => { setMemberGroup(contextMenu.group); setContextMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">멤버 보기</button>
-          <button type="button" onClick={() => void copyGroupLink(contextMenu.group)} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">초대 링크 복사</button>
+          <button type="button" onClick={() => void copyGroupCode(contextMenu.group)} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">참여 코드 복사</button>
           <div className="my-1 border-t border-surface-3" />
           <button type="button" onClick={() => { setLeaveTarget(contextMenu.group); setContextMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-alert hover:bg-alert/10">채팅방 나가기</button>
         </div>
@@ -385,11 +384,15 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
 
       {isGroupModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
-          <section role="dialog" aria-modal="true" aria-labelledby="group-modal-title" className="w-full max-w-md rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 id="group-modal-title" className="font-display text-xl text-ink">채팅방 만들기</h2>
-              <button type="button" onClick={() => setIsGroupModalOpen(false)} aria-label="닫기" className="flex h-6 w-6 items-center justify-center text-lg text-ink-dim hover:text-ink">×</button>
-            </div>
+          <section role="dialog" aria-modal="true" aria-label={createdGroup ? "채팅방 생성 완료" : undefined} aria-labelledby={createdGroup ? undefined : "group-modal-title"} className="relative w-full max-w-md rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
+            {!createdGroup ? (
+              <div className="mb-5 flex items-center justify-between">
+                <h2 id="group-modal-title" className="font-display text-xl text-ink">채팅방 만들기</h2>
+                <button type="button" onClick={() => setIsGroupModalOpen(false)} aria-label="닫기" className="flex h-6 w-6 items-center justify-center text-lg text-ink-dim hover:text-ink">×</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setIsGroupModalOpen(false)} aria-label="닫기" className="absolute right-5 top-5 text-lg text-ink-dim hover:text-ink">×</button>
+            )}
 
             {!createdGroup ? (
               <form onSubmit={handleGroupCreate} className="space-y-4">
@@ -407,12 +410,12 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                 <button type="submit" className="w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-void">채팅방 생성</button>
               </form>
             ) : (
-              <div>
+              <div className="pr-8">
                 <p className="text-sm text-ink"><strong>{createdGroup.name}</strong> 채팅방이 생성되었습니다.</p>
-                <p className="mt-1 text-xs text-ink-faint">아래 링크를 공유해 참여자를 초대하세요.</p>
+                <p className="mt-1 text-xs text-ink-faint">아래 코드를 공유해 참여자를 초대하세요.</p>
                 <div className="mt-4 flex gap-2">
-                  <input readOnly value={getInviteUrl(createdGroup)} className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3 py-2 font-mono text-[10px] text-ink-dim" />
-                  <button type="button" onClick={copyInviteLink} className="shrink-0 rounded-lg border border-surface-3 px-3 text-xs text-ink-dim hover:text-ink">{copied ? "복사됨" : "복사"}</button>
+                  <input readOnly value={createdGroup.inviteCode} className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3 py-2 font-mono text-xs tracking-wider text-ink-dim" />
+                  <button type="button" onClick={copyInviteCode} className="shrink-0 rounded-lg border border-surface-3 px-3 text-xs text-ink-dim hover:text-ink">{copied ? "복사됨" : "복사"}</button>
                 </div>
               </div>
             )}

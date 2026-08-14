@@ -14,21 +14,24 @@ export default function ProposalInfoPage({ title, content, deadline }: ProposalI
   }).format(new Date(deadline));
 
   return (
-    <main className="mx-auto w-full max-w-[640px] space-y-5 px-6 py-10 text-ink">
-      <section>
-        <h1 className="mb-2 text-xs font-semibold text-ink-dim">제목</h1>
-        <p className="rounded-xl border border-surface-3 bg-surface px-4 py-3 text-sm leading-6 text-ink">{title}</p>
-      </section>
+    <main className="mx-auto w-full max-w-[680px] px-6 py-12 text-ink">
+      <article className="overflow-hidden rounded-2xl border border-surface-3 bg-surface shadow-panel">
+        <header className="px-7 pb-6 pt-7 sm:px-9 sm:pt-9">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-night">제목</p>
+          <h1 className="font-display text-[26px] font-semibold leading-[1.32] tracking-[-0.03em] text-ink sm:text-[30px]">{title}</h1>
+          <div className="mt-5 flex w-fit items-center gap-2 rounded-full border border-surface-3 bg-void/35 px-3 py-1.5 text-[11px] text-ink-dim">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+              <path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+            </svg>
+            <span>기한 {deadlineLabel}</span>
+          </div>
+        </header>
 
-      <section>
-        <h2 className="mb-2 text-xs font-semibold text-ink-dim">내용</h2>
-        <p className="min-h-24 rounded-xl border border-surface-3 bg-surface px-4 py-3 text-sm leading-7 text-ink-dim">{content}</p>
-      </section>
-
-      <section>
-        <h2 className="mb-2 text-xs font-semibold text-ink-dim">기한</h2>
-        <p className="rounded-xl border border-surface-3 bg-surface px-4 py-3 text-sm text-ink">{deadlineLabel}</p>
-      </section>
+        <section className="border-t border-surface-3 px-7 py-7 sm:px-9 sm:py-8">
+          <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">내용</h2>
+          <p className="whitespace-pre-wrap text-[14px] leading-7 text-ink-dim">{content}</p>
+        </section>
+      </article>
     </main>
   );
 }

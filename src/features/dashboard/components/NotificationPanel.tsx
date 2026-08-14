@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Notification, NotificationType } from "../../../types";
+import type { Notification } from "../../../types";
 
 interface NotificationPanelProps {
   notifications: Notification[];
@@ -7,14 +7,6 @@ interface NotificationPanelProps {
   onMarkRead: (notification: Notification) => void;
   onSelect: (notification: Notification) => void;
 }
-
-const TYPE_ICON: Record<NotificationType, string> = {
-  NEW_PROPOSAL: "📝",
-  OPINION_REQUEST: "🗳️",
-  DEADLINE_SOON: "⏳",
-  CONSENSUS_DONE: "✅",
-  FRIEND_REQUEST: "👤",
-};
 
 function timeAgo(iso: string) {
   const diffMs = Math.max(0, Date.now() - new Date(iso).getTime());
@@ -58,11 +50,14 @@ export default function NotificationPanel({ notifications, onMarkAllRead, onMark
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 rounded-xl bg-surface-2 border border-surface-3 shadow-panel z-30 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-surface-3">
-            <span className="text-sm font-medium text-ink">알림</span>
-            <button onClick={onMarkAllRead} className="text-xs text-ink-dim underline-offset-4 hover:text-ink hover:underline">
-              모두 읽음 처리
+        <div className="absolute right-0 z-30 mt-2 w-80 overflow-hidden rounded-xl border border-surface-3 bg-surface shadow-panel">
+          <div className="flex items-center justify-between border-b border-surface-3 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-ink">알림</span>
+              {unreadCount > 0 && <span className="text-[10px] text-ink-faint">{unreadCount}개 새 알림</span>}
+            </div>
+            <button onClick={onMarkAllRead} className="text-[11px] text-ink-faint underline-offset-4 hover:text-ink hover:underline">
+              모두 읽음
             </button>
           </div>
           <div className="max-h-80 overflow-y-auto">
@@ -80,14 +75,13 @@ export default function NotificationPanel({ notifications, onMarkAllRead, onMark
                   onSelect(n);
                   setOpen(false);
                 }}
-                className="w-full text-left flex items-start gap-2.5 px-4 py-3 hover:bg-surface-3/60 transition border-b border-surface-3/60 last:border-0"
+                className="flex w-full items-start gap-3 border-b border-surface-3/60 px-4 py-3 text-left transition last:border-0 hover:bg-surface-2"
               >
-                <span className="text-sm mt-0.5">{TYPE_ICON[n.type]}</span>
+                <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${n.is_read ? "bg-surface-3" : "bg-night"}`} />
                 <div className="flex-1 min-w-0">
                   <p className={`text-xs leading-snug ${n.is_read ? "text-ink-dim" : "text-ink"}`}>{n.message}</p>
                   <p className="text-[10px] text-ink-faint mt-1">{timeAgo(n.created_at)}</p>
                 </div>
-                {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-night mt-1.5 shrink-0" />}
               </button>
             ))}
           </div>

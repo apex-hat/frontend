@@ -11,6 +11,8 @@ import FriendManagerModal from "../../workspace/components/FriendManagerModal";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
 import { LAST_OPENED_CHAT_CHANGED_EVENT, loadLastOpenedChat } from "../../workspace/workspaceStorage";
 import { completeSubmittedProposal, deleteSubmittedProposal, isMySubmittedProposal } from "../../../mocks/proposal";
+import BrandMark from "../../../components/branding/BrandMark";
+import ConnectionButton from "../../workspace/components/ConnectionButton";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -144,6 +146,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
       <header className="sticky top-0 z-20 backdrop-blur bg-void/80 border-b border-surface-3">
         <div className="flex w-full items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2.5">
+            <BrandMark />
             <span className="font-display text-lg text-ink">Meridian</span>
           </div>
 
@@ -154,6 +157,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               onMarkRead={markRead}
               onSelect={selectNotification}
             />
+            <ConnectionButton onClick={() => setIsFriendManagerOpen(true)} />
             <div className="flex items-center gap-2 pl-3 border-l border-surface-3">
               <UserHandleButton user={user} onOpenProfile={onOpenProfile} onLogout={onLogout} />
             </div>

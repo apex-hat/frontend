@@ -4,6 +4,7 @@ import { getUtcOffsetLabel } from "../../../lib/timezone";
 import BackButton from "../../../components/navigation/BackButton";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
 import { getUserHandle } from "../../workspace/workspaceStorage";
+import BrandMark from "../../../components/branding/BrandMark";
 
 interface ProfilePageProps {
   user: AuthUser;
@@ -101,6 +102,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <BackButton onClick={onBack} />
+            <BrandMark />
             <button type="button" onClick={onBack} className="font-display text-lg text-ink">
               Meridian
             </button>

@@ -12,6 +12,8 @@ import UserHandleButton from "../../features/workspace/components/UserHandleButt
 import FriendManagerModal from "../../features/workspace/components/FriendManagerModal";
 import NotificationPanel from "../../features/dashboard/components/NotificationPanel";
 import { MOCK_PROPOSAL_CONTENT } from "../../features/dashboard/data/mockData";
+import BrandMark from "../../components/branding/BrandMark";
+import ConnectionButton from "../../features/workspace/components/ConnectionButton";
 
 interface Props {
   user: AuthUser;
@@ -154,6 +156,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
       <header className="sticky top-0 z-30 border-b border-surface-3 bg-void/80 backdrop-blur">
         <div className="flex w-full items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
+            <BrandMark />
             <button
               type="button"
               onClick={onBackToDashboard}
@@ -165,6 +168,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
 
           <div className="flex items-center gap-3">
             <NotificationPanel notifications={notifications} onMarkAllRead={markAllRead} onMarkRead={markRead} onSelect={selectNotification} />
+            <ConnectionButton onClick={() => setIsFriendManagerOpen(true)} />
             <div className="flex items-center gap-2 border-l border-surface-3 pl-3">
               <UserHandleButton user={user} onOpenProfile={onOpenProfile} onLogout={onLogout} />
             </div>
