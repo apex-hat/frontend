@@ -173,7 +173,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
 
   return (
     <>
-      <aside className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+      <aside className="lg:sticky lg:top-[65px] lg:max-h-[calc(100vh-65px)] lg:overflow-y-auto">
         {activeContact ? (
             <div className="flex h-[calc(100vh-8.5rem)] min-h-[420px] flex-col">
               <div className="flex h-9 items-center gap-1.5 border-b border-surface-3">
@@ -194,14 +194,14 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
               </div>
 
               <div className="flex-1 space-y-2.5 overflow-y-auto py-4">
-                <p className="mx-auto mb-3 w-fit rounded-md border border-night/20 bg-night/5 px-3 py-1.5 text-center text-[9px] leading-relaxed text-night/80">메시지를 보내 대화를 시작하세요.</p>
+                <p className="mx-auto mb-3 w-fit rounded-xl bg-surface-2/80 px-3 py-1.5 text-center text-[9px] leading-relaxed text-ink-dim shadow-[0_5px_18px_rgba(0,0,0,0.22)]">메시지를 보내 대화를 시작하세요.</p>
                 {messages.map((message) => {
                   const senderName = message.senderName ?? (activeContact.id.startsWith("group-") ? "팀원" : activeContact.name);
                   const senderColor = message.senderAvatarColor ?? activeContact.avatarColor;
                   return message.sender === "me" ? (
                     <div key={message.id} className="flex justify-end">
                       <div className="max-w-[82%]">
-                        <p className="rounded-2xl rounded-br-md bg-night px-3 py-2 text-[11px] leading-relaxed text-ink">{message.text}</p>
+                        <p className="rounded-lg rounded-br-sm bg-night px-3 py-2 text-[11px] leading-relaxed text-ink">{message.text}</p>
                         <p className="mt-1 text-right text-[8px] text-ink-faint">{formatChatTime(message.createdAt, user.timezone)}</p>
                       </div>
                     </div>
@@ -212,7 +212,7 @@ export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
                       </span>
                       <div className="max-w-[78%]">
                         {activeContact.id.startsWith("group-") && <p className="mb-1 text-[8px] text-ink-faint">{senderName}</p>}
-                        <p className="rounded-2xl rounded-bl-md bg-surface-2 px-3 py-2 text-[11px] leading-relaxed text-ink-dim">{message.text}</p>
+                        <p className="rounded-lg rounded-bl-sm bg-surface-2 px-3 py-2 text-[11px] leading-relaxed text-ink-dim">{message.text}</p>
                         <p className="mt-1 text-[8px] text-ink-faint">{formatChatTime(message.createdAt, user.timezone)}</p>
                       </div>
                     </div>

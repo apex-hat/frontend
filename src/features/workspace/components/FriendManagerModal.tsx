@@ -29,8 +29,8 @@ export default function FriendManagerModal({ open, onClose }: FriendManagerModal
 
   const sendFriendRequest = (event: FormEvent) => {
     event.preventDefault();
-    const handle = friendHandle.trim().toUpperCase();
-    if (!/^#MER-[A-Z0-9]{4,}$/.test(handle)) {
+    const handle = friendHandle.trim().toUpperCase().match(/#MER-[A-Z0-9]{4,}/)?.[0];
+    if (!handle) {
       setStatus("#MER-XXXX 형식으로 입력해주세요.");
       return;
     }

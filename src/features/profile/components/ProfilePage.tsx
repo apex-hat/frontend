@@ -132,14 +132,34 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="profile-name" className="mb-1.5 block text-xs text-ink-dim">이름</label>
-              <input
-                id="profile-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className="w-full rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-night"
-              />
+            <div className="grid gap-3 sm:grid-cols-[1fr_1.2fr]">
+              <div>
+                <label htmlFor="profile-name" className="mb-1.5 block text-xs text-ink-dim">이름</label>
+                <input
+                  id="profile-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="w-full rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-night"
+                />
+              </div>
+              <div>
+                <label htmlFor="profile-handle" className="mb-1.5 block text-xs text-ink-dim">고유 ID</label>
+                <div className="flex gap-1.5">
+                  <input id="profile-handle" value={userHandle} readOnly className="min-w-0 flex-1 cursor-default rounded-lg border border-surface-3 bg-void/40 px-3 py-2.5 font-mono text-xs text-ink-faint" />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(`${name.trim() || user.name} ${userHandle}`);
+                      setTagCopied(true);
+                      window.setTimeout(() => setTagCopied(false), 1200);
+                    }}
+                    title="친구 추가에 사용할 고유 ID 복사"
+                    className="rounded-lg border border-surface-3 px-2.5 text-xs text-ink-dim hover:text-ink"
+                  >
+                    {tagCopied ? "완료" : "복사"}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -150,24 +170,6 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
                 readOnly
                 className="w-full cursor-default rounded-lg border border-surface-3 bg-void/40 px-3.5 py-2.5 text-sm text-ink-faint"
               />
-            </div>
-
-            <div>
-              <label htmlFor="profile-handle" className="mb-1.5 block text-xs text-ink-dim">고유 ID</label>
-              <div className="flex gap-2">
-                <input id="profile-handle" value={userHandle} readOnly className="min-w-0 flex-1 cursor-default rounded-lg border border-surface-3 bg-void/40 px-3.5 py-2.5 font-mono text-sm text-ink-faint" />
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(userHandle);
-                    setTagCopied(true);
-                    window.setTimeout(() => setTagCopied(false), 1200);
-                  }}
-                  className="rounded-lg border border-surface-3 px-3 text-xs text-ink-dim hover:text-ink"
-                >
-                  {tagCopied ? "복사됨" : "복사"}
-                </button>
-              </div>
             </div>
 
             <div>

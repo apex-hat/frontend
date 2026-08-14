@@ -17,7 +17,7 @@ export default function UserHandleButton({ user }: { user: AuthUser }) {
 
   const copyHandle = async () => {
     try {
-      await navigator.clipboard.writeText(handle);
+      await navigator.clipboard.writeText(`${user.name} ${handle}`);
     } finally {
       setMenu(null);
     }
@@ -40,8 +40,8 @@ export default function UserHandleButton({ user }: { user: AuthUser }) {
 
       {menu && (
         <div
-          className="fixed z-50 w-44 overflow-hidden rounded-lg border border-surface-3 bg-surface-2 py-1 shadow-panel"
-          style={{ left: Math.min(menu.x, window.innerWidth - 190), top: Math.min(menu.y, window.innerHeight - 70) }}
+          className="fixed z-50 w-28 overflow-hidden rounded-lg border border-surface-3 bg-surface-2 py-1 shadow-panel"
+          style={{ left: Math.min(menu.x, window.innerWidth - 125), top: Math.min(menu.y, window.innerHeight - 70) }}
         >
           <button type="button" onClick={() => void copyHandle()} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">
             내 태그 복사
