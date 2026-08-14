@@ -341,13 +341,6 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
 
                   {isOpen && (
                     <div className="border-t border-surface-3 px-5 pb-4 pt-1">
-                      {isComplete && (
-                        <div className="flex justify-end pt-3">
-                          <button type="button" onClick={() => setAnalysisTarget(proposal)} className="rounded-lg border border-surface-3 px-3 py-1.5 text-[11px] font-medium text-ink-dim transition hover:border-ink-faint hover:text-ink">
-                            결과 분석
-                          </button>
-                        </div>
-                      )}
                       <div className="divide-y divide-surface-3/60">
                       {orderedMembers.map((member) => {
                         const opinion = opinions.find((o) => o.user_id === member.user_id);
@@ -383,6 +376,9 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
         >
           {isMySubmittedProposal(proposalMenu.proposal.id, user.id) ? (
             <>
+              {isComplete(proposalMenu.proposal) && (
+                <button type="button" onClick={() => { setAnalysisTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">결과 분석</button>
+              )}
               <button type="button" onClick={() => onEditProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">수정하기</button>
               <button type="button" onClick={() => deleteProposal(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
               {proposalMenu.proposal.status === "OPEN" && (
@@ -390,7 +386,12 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               )}
             </>
           ) : (
-            <button type="button" onClick={() => onViewProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">상세 정보 보기</button>
+            <>
+              {isComplete(proposalMenu.proposal) && (
+                <button type="button" onClick={() => { setAnalysisTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">결과 분석</button>
+              )}
+              <button type="button" onClick={() => onViewProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">상세 정보 보기</button>
+            </>
           )}
         </div>
       )}
@@ -432,7 +433,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               </div>
               <button type="button" onClick={() => setAnalysisTarget(null)} aria-label="닫기" className="text-lg text-ink-dim hover:text-ink">×</button>
             </div>
-            <div className="mt-6 rounded-xl bg-surface-2 px-4 py-4">
+            <div className="mt-6 border-l-2 border-night/60 pl-4">
               <p className="text-xs font-semibold text-ink">의견 분석</p>
               <p className="mt-2 text-sm leading-6 text-ink-dim">{analysisSummary}</p>
             </div>
