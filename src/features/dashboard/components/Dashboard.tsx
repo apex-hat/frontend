@@ -93,22 +93,23 @@ export default function Dashboard({ user, onLogout, onOpenProposals, onOpenProfi
               onSelect={selectNotification}
             />
             <div className="flex items-center gap-2 pl-3 border-l border-surface-3">
+              <span
+                className="w-7 h-7 shrink-0 rounded-full bg-day flex items-center justify-center text-[10px] font-semibold text-void"
+                aria-hidden="true"
+              >
+                {user.name.slice(0, 1)}
+              </span>
               <button
                 type="button"
                 onClick={onOpenProfile}
-                className="flex items-center gap-2 text-xs text-ink-dim hover:text-ink transition-colors"
+                className="text-xs text-ink-dim hover:text-ink border border-surface-3 rounded-full px-3 py-1.5 transition-colors"
               >
-                <span
-                  className="w-7 h-7 shrink-0 rounded-full bg-day flex items-center justify-center text-[10px] font-semibold text-void"
-                  aria-hidden="true"
-                >
-                  {user.name.slice(0, 1)}
-                </span>
-                <span className="hidden sm:inline">내정보</span>
+                내정보
               </button>
               <button
+                type="button"
                 onClick={onLogout}
-                className="text-xs text-ink-dim hover:text-ink border border-surface-3 rounded-full px-3 py-1.5"
+                className="text-xs text-ink-dim hover:text-ink border border-surface-3 rounded-full px-3 py-1.5 transition-colors"
               >
                 로그아웃
               </button>
