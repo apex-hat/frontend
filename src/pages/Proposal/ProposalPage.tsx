@@ -31,8 +31,8 @@ function ProposalListRoute() {
   );
 }
 
-function ProposalFormRoute() {
-  return <ProposalForm />;
+function ProposalFormRoute({ onSubmitted }: { onSubmitted: () => void }) {
+  return <ProposalForm onSubmitted={onSubmitted} />;
 }
 
 function ProposalDetailRoute() {
@@ -180,7 +180,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </button>
           <Routes>
             <Route index element={<ProposalListRoute />} />
-            <Route path="new" element={<ProposalFormRoute />} />
+            <Route path="new" element={<ProposalFormRoute onSubmitted={onBackToDashboard} />} />
             <Route path=":proposalId" element={<ProposalDetailRoute />} />
             <Route path=":proposalId/opinions" element={<ProposalOpinionsRoute user={user} />} />
             <Route path="*" element={<Navigate to="/proposals" replace />} />

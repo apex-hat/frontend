@@ -5,7 +5,7 @@ export interface ProposalFormData {
   title: string; // 제목
   content: string; // 내용
   targetGroup: string; // 제안을 공유할 대상 그룹
-  deadline: string; // 마감 기한 (yyyy-mm-dd)
+  deadline: string; // 마감 기한 (ISO 8601)
 }
 
 // AI 문화 맥락 분석 결과 (2단계에서 사용할 타입, 미리 정의만 해둠)

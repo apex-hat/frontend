@@ -1,3 +1,4 @@
+import type { Proposal as DashboardProposal } from "../types";
 import type { ProposalFormData } from "../types/proposal";
 
 // 5단계: 최종 제안 등록 (mock)
@@ -10,16 +11,37 @@ export interface SubmitProposalResponse {
   submittedAt: string;
 }
 
+const SUBMITTED_PROPOSALS_KEY = "meridian.mock-submitted-proposals";
+
+export function loadSubmittedProposals(): DashboardProposal[] {
+  try {
+    return JSON.parse(window.localStorage.getItem(SUBMITTED_PROPOSALS_KEY) ?? "[]") as DashboardProposal[];
+  } catch {
+    return [];
+  }
+}
+
 export function submitMockProposal(
   data: ProposalFormData,
 ): Promise<SubmitProposalResponse> {
   return new Promise((resolve) => {
     setTimeout(() => {
-      console.log("등록할 제안 데이터:", data);
-      resolve({
-        id: `mock-${Date.now()}`,
-        submittedAt: new Date().toISOString(),
-      });
+      const id = `mock-${Date.now()}`;
+      const submittedAt = new Date().toISOString();
+      const proposal: DashboardProposal = {
+        id,
+        title: data.title,
+        target_team_id: "t-1",
+        status: "OPEN",
+        deadline: data.deadline,
+        created_at: submittedAt,
+      };
+
+      window.localStorage.setItem(
+        SUBMITTED_PROPOSALS_KEY,
+        JSON.stringify([proposal, ...loadSubmittedProposals()]),
+      );
+      resolve({ id, submittedAt });
     }, 600);
   });
 }

@@ -28,8 +28,7 @@
 }
 
 .input,
-.textarea,
-.select {
+.textarea {
   width: 100%;
   box-sizing: border-box;
   padding: 9px 12px;
@@ -45,11 +44,8 @@
 .input::placeholder,
 .textarea::placeholder { color: #6b7280; }
 
-.select:invalid { color: #6b7280; }
-
 .input:focus,
-.textarea:focus,
-.select:focus {
+.textarea:focus {
   border-color: #7c8fe0;
   outline: none;
   box-shadow: 0 0 0 3px rgb(124 143 224 / 16%);
@@ -72,6 +68,82 @@
   margin: 0;
   color: #6b7280;
   font-size: 10px;
+}
+
+.groupPicker { position: relative; }
+
+.groupTrigger {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid #2e3650;
+  border-radius: 12px;
+  color: #9ca3af;
+  background: #171a22;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.groupTrigger:hover,
+.groupTrigger[aria-expanded="true"] {
+  border-color: #7c8fe0;
+  background: #191d27;
+}
+
+.groupTrigger[aria-expanded="true"] { box-shadow: 0 0 0 3px rgb(124 143 224 / 12%); }
+.groupValue,
+.groupPlaceholder { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.groupValue { color: #f3f4f6; }
+.groupPlaceholder { color: #6b7280; }
+
+.groupMenu {
+  position: absolute;
+  z-index: 42;
+  top: calc(100% + 7px);
+  left: 0;
+  width: 100%;
+  max-height: 210px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 5px;
+  border: 1px solid #2e3650;
+  border-radius: 13px;
+  background: #171a22;
+  box-shadow: 0 18px 42px rgb(0 0 0 / 38%);
+}
+
+.groupOption {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  color: #d7dae2;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.groupOption:hover,
+.groupOption[aria-selected="true"] { background: #202431; color: #fff; }
+.groupOption small { flex-shrink: 0; color: #6b7280; font-size: 10px; }
+
+.deadlineRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 126px;
+  gap: 8px;
 }
 
 .datePicker { position: relative; }
@@ -101,6 +173,37 @@
 
 .dateValue { color: #f3f4f6; }
 .datePlaceholder { color: #6b7280; }
+
+.timeField {
+  display: flex;
+  min-height: 42px;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid #2e3650;
+  border-radius: 9px;
+  color: #6b7280;
+  background: #171a22;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.timeField:focus-within {
+  border-color: #7c8fe0;
+  box-shadow: 0 0 0 3px rgb(124 143 224 / 12%);
+}
+
+.timeField input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: #f3f4f6;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color-scheme: dark;
+}
 
 .calendarPopover {
   position: absolute;
@@ -169,16 +272,34 @@
 .errorText { margin: 0; color: #e8607a; font-size: 12px; }
 
 .successBox {
-  margin-top: 20px;
-  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 28px;
+  padding: 11px 14px;
   border: 1px solid rgb(99 199 166 / 30%);
   border-radius: 12px;
   color: #63c7a6;
   background: rgb(99 199 166 / 10%);
-  font-size: 14px;
+  font-size: 13px;
+}
+
+.successIcon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #0e1015;
+  background: #63c7a6;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 @media (max-width: 600px) {
   .container { padding: 20px 16px 56px; }
+  .deadlineRow { grid-template-columns: 1fr; }
   .primaryButton { width: 100%; }
 }

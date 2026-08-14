@@ -9,6 +9,7 @@ import {
   MOCK_TEAM_MEMBERS,
   MOCK_USERS,
 } from "../features/dashboard/data/mockData";
+import { loadSubmittedProposals } from "../mocks/proposal";
 
 // mock/실서버 전환은 이 플래그 하나로. 컴포넌트는 아래 함수들만 호출하고
 // fetch/mock 분기는 절대 컴포넌트 안에 넣지 않는다.
@@ -139,7 +140,7 @@ export interface ProposalStatusResult {
 /** GET /api/dashboard/status — 제안별 Opinions 배열 기반 응답 현황 */
 export async function getProposalStatus(proposalId: string): Promise<ProposalStatusResult | null> {
   if (USE_MOCK) {
-    const proposal = MOCK_PROPOSALS.find((p) => p.id === proposalId);
+    const proposal = [...loadSubmittedProposals(), ...MOCK_PROPOSALS].find((p) => p.id === proposalId);
     if (!proposal) return delay(null);
     const opinions = MOCK_OPINIONS.filter((o) => o.proposal_id === proposalId);
     return delay({ proposal, opinions });
@@ -148,7 +149,10 @@ export async function getProposalStatus(proposalId: string): Promise<ProposalSta
 }
 
 export async function getProposals(teamId: string = MOCK_TEAM.id): Promise<Proposal[]> {
-  if (USE_MOCK) return delay(MOCK_PROPOSALS.filter((p) => p.target_team_id === teamId));
+  if (USE_MOCK) {
+    const proposals = [...loadSubmittedProposals(), ...MOCK_PROPOSALS];
+    return delay(proposals.filter((p) => p.target_team_id === teamId));
+  }
   return fetch(`/api/proposals?teamId=${teamId}`).then((r) => parseJson<Proposal[]>(r));
 }
 

@@ -41,14 +41,21 @@ function toDateString(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-export default function ProposalForm() {
+interface ProposalFormProps {
+  onSubmitted: () => void;
+}
+
+export default function ProposalForm({ onSubmitted }: ProposalFormProps) {
   const [groups, setGroups] = useState(loadGroups);
   const [formData, setFormData] = useState<ProposalFormData>(initialFormData);
+  const [deadlineTime, setDeadlineTime] = useState("18:00");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const groupMenuRef = useRef<HTMLDivElement>(null);
 
   // 마감 기한은 오늘 이전 날짜를 선택할 수 없도록 date input의 min으로 사용
   const todayStr = getTodayDateString();
@@ -60,19 +67,23 @@ export default function ProposalForm() {
   }, []);
 
   useEffect(() => {
-    const closeCalendar = (event: MouseEvent) => {
+    const closePopovers = (event: MouseEvent) => {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) setIsCalendarOpen(false);
+      if (groupMenuRef.current && !groupMenuRef.current.contains(event.target as Node)) setIsGroupMenuOpen(false);
     };
-    document.addEventListener("mousedown", closeCalendar);
-    return () => document.removeEventListener("mousedown", closeCalendar);
+    document.addEventListener("mousedown", closePopovers);
+    return () => document.removeEventListener("mousedown", closePopovers);
   }, []);
 
   const handleChange = (field: keyof ProposalFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const deadlineDate = formData.deadline
+    ? new Date(`${formData.deadline}T${deadlineTime}:00`)
+    : null;
   const isDeadlineValid =
-    formData.deadline !== "" && formData.deadline >= todayStr;
+    deadlineDate !== null && formData.deadline >= todayStr && deadlineTime !== "";
 
   const isFormValid =
     formData.title.trim() !== "" &&
@@ -81,11 +92,12 @@ export default function ProposalForm() {
     isDeadlineValid;
 
   const handleSubmitClick = async () => {
-    if (!isFormValid) {
+    const isDeadlineInFuture = deadlineDate !== null && deadlineDate.getTime() > Date.now();
+    if (!isFormValid || !isDeadlineInFuture) {
       setError(
-        !isDeadlineValid && formData.deadline !== ""
-          ? "마감 기한은 오늘 이후 날짜로 설정해주세요."
-          : "제목, 내용, 대상 채팅방, 마감 기한을 모두 입력해주세요.",
+        (!isDeadlineValid || !isDeadlineInFuture) && formData.deadline !== ""
+          ? "마감 기한은 현재 시각 이후로 설정해주세요."
+          : "제목, 내용, 대상 그룹, 마감 기한을 모두 입력해주세요.",
       );
       return;
     }
@@ -94,10 +106,14 @@ export default function ProposalForm() {
 
     // TODO(나중에): submitMockProposal 대신 실제 백엔드 API 호출로 교체
     // 예: const res = await axios.post('/api/proposals', formData)
-    const res = await submitMockProposal(formData);
+    await submitMockProposal({
+      ...formData,
+      deadline: deadlineDate!.toISOString(),
+    });
 
-    setSubmittedId(res.id);
+    setIsSubmitted(true);
     setIsSubmitting(false);
+    window.setTimeout(onSubmitted, 850);
   };
 
   return (
@@ -137,60 +153,98 @@ export default function ProposalForm() {
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="targetGroup">
-          대상 채팅방
+          대상 그룹
         </label>
-        <select
-          id="targetGroup"
-          className={styles.select}
-          value={formData.targetGroup}
-          onChange={(e) => handleChange("targetGroup", e.target.value)}
-          required
-        >
-          <option value="" disabled>{groups.length > 0 ? "제안을 공유할 채팅방을 선택하세요" : "먼저 채팅방을 만들어주세요"}</option>
-          {groups.map((group) => (
-            <option key={group.id} value={group.name}>{group.name}</option>
-          ))}
-        </select>
-        {groups.length === 0 && <p className={styles.emptyGroupHint}>왼쪽 메시지 영역의 + 버튼에서 채팅방을 만들 수 있습니다.</p>}
+        <div className={styles.groupPicker} ref={groupMenuRef}>
+          <button
+            id="targetGroup"
+            type="button"
+            className={styles.groupTrigger}
+            onClick={() => groups.length > 0 && setIsGroupMenuOpen((open) => !open)}
+            aria-expanded={isGroupMenuOpen}
+          >
+            <span className={formData.targetGroup ? styles.groupValue : styles.groupPlaceholder}>
+              {formData.targetGroup || (groups.length > 0 ? "제안할 그룹을 선택하세요" : "먼저 그룹을 만들어주세요")}
+            </span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m7 10 5 5 5-5" />
+            </svg>
+          </button>
+          {isGroupMenuOpen && (
+            <div className={styles.groupMenu} role="listbox">
+              {groups.map((group) => (
+                <button
+                  key={group.id}
+                  type="button"
+                  role="option"
+                  aria-selected={formData.targetGroup === group.name}
+                  className={styles.groupOption}
+                  onClick={() => {
+                    handleChange("targetGroup", group.name);
+                    setIsGroupMenuOpen(false);
+                  }}
+                >
+                  <span>{group.name}</span>
+                  <small>{group.memberCount}명</small>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {groups.length === 0 && <p className={styles.emptyGroupHint}>왼쪽 메시지 영역의 + 버튼에서 그룹을 만들 수 있습니다.</p>}
       </div>
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="deadline">
           마감 기한
         </label>
-        <div className={styles.datePicker} ref={calendarRef}>
-          <button id="deadline" type="button" className={styles.dateTrigger} onClick={() => setIsCalendarOpen((open) => !open)} aria-expanded={isCalendarOpen}>
-            <span className={formData.deadline ? styles.dateValue : styles.datePlaceholder}>
-              {formData.deadline ? new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric" }).format(parseDate(formData.deadline)!) : "마감 날짜를 선택하세요"}
-            </span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
-              <path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+        <div className={styles.deadlineRow}>
+          <div className={styles.datePicker} ref={calendarRef}>
+            <button id="deadline" type="button" className={styles.dateTrigger} onClick={() => setIsCalendarOpen((open) => !open)} aria-expanded={isCalendarOpen}>
+              <span className={formData.deadline ? styles.dateValue : styles.datePlaceholder}>
+                {formData.deadline ? new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric" }).format(parseDate(formData.deadline)!) : "날짜 선택"}
+              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                <path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+              </svg>
+            </button>
+            {isCalendarOpen && (
+              <div className={styles.calendarPopover}>
+                <DayPicker
+                  mode="single"
+                  locale={ko}
+                  selected={parseDate(formData.deadline)}
+                  defaultMonth={parseDate(formData.deadline) ?? parseDate(todayStr)}
+                  disabled={{ before: parseDate(todayStr)! }}
+                  onSelect={(date) => {
+                    if (!date) return;
+                    handleChange("deadline", toDateString(date));
+                    setIsCalendarOpen(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <label className={styles.timeField}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
             </svg>
-          </button>
-          {isCalendarOpen && (
-            <div className={styles.calendarPopover}>
-              <DayPicker
-                mode="single"
-                locale={ko}
-                selected={parseDate(formData.deadline)}
-                defaultMonth={parseDate(formData.deadline) ?? parseDate(todayStr)}
-                disabled={{ before: parseDate(todayStr)! }}
-                onSelect={(date) => {
-                  if (!date) return;
-                  handleChange("deadline", toDateString(date));
-                  setIsCalendarOpen(false);
-                }}
-              />
-            </div>
-          )}
+            <input
+              type="time"
+              value={deadlineTime}
+              onChange={(event) => setDeadlineTime(event.target.value)}
+              aria-label="마감 시간"
+            />
+          </label>
         </div>
       </div>
 
       {error && <p className={styles.errorText}>{error}</p>}
 
-      {submittedId ? (
-        <div className={styles.successBox}>
-          제안이 등록되었습니다. (등록 ID: {submittedId})
+      {isSubmitted ? (
+        <div className={styles.successBox} role="status">
+          <span className={styles.successIcon}>✓</span>
+          <span>제안이 등록되었습니다. 홈으로 이동할게요.</span>
         </div>
       ) : (
         <div className={styles.actions}>
