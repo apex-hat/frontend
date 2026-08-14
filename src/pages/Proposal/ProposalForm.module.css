@@ -142,7 +142,7 @@
 
 .deadlineRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 126px;
+  grid-template-columns: minmax(0, 1fr) 210px;
   gap: 8px;
 }
 
@@ -193,16 +193,25 @@
   box-shadow: 0 0 0 3px rgb(124 143 224 / 12%);
 }
 
-.timeField input {
+.timeField select {
   min-width: 0;
-  width: 100%;
   border: 0;
   outline: 0;
   color: #f3f4f6;
   background: transparent;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   color-scheme: dark;
+  cursor: pointer;
+}
+
+.timeField select:first-of-type { width: 48px; }
+.timeField select:not(:first-of-type) { width: 30px; }
+
+.timeField span {
+  margin: 0 -3px;
+  color: #6b7280;
+  font-size: 12px;
 }
 
 .calendarPopover {

@@ -4,7 +4,12 @@ import { ko } from "@daypicker/react/locale";
 import "@daypicker/react/style.css";
 import styles from "./ProposalForm.module.css";
 import { submitMockProposal } from "../../mocks/proposal";
-import { GROUPS_CHANGED_EVENT, loadGroups } from "../../features/workspace/workspaceStorage";
+import {
+  GROUPS_CHANGED_EVENT,
+  loadGroups,
+  loadMessages,
+  saveMessages,
+} from "../../features/workspace/workspaceStorage";
 import { type ProposalFormData } from "../../types/proposal";
 
 // 1단계: 제안 작성 폼
@@ -41,6 +46,9 @@ function toDateString(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+const HOURS = Array.from({ length: 12 }, (_, index) => String(index + 1));
+const MINUTES = ["00", "10", "20", "30", "40", "50"];
+
 interface ProposalFormProps {
   onSubmitted: () => void;
 }
@@ -48,7 +56,9 @@ interface ProposalFormProps {
 export default function ProposalForm({ onSubmitted }: ProposalFormProps) {
   const [groups, setGroups] = useState(loadGroups);
   const [formData, setFormData] = useState<ProposalFormData>(initialFormData);
-  const [deadlineTime, setDeadlineTime] = useState("18:00");
+  const [deadlinePeriod, setDeadlinePeriod] = useState<"AM" | "PM">("PM");
+  const [deadlineHour, setDeadlineHour] = useState("6");
+  const [deadlineMinute, setDeadlineMinute] = useState("00");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -79,6 +89,8 @@ export default function ProposalForm({ onSubmitted }: ProposalFormProps) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const hour24 = (Number(deadlineHour) % 12) + (deadlinePeriod === "PM" ? 12 : 0);
+  const deadlineTime = `${String(hour24).padStart(2, "0")}:${deadlineMinute}`;
   const deadlineDate = formData.deadline
     ? new Date(`${formData.deadline}T${deadlineTime}:00`)
     : null;
@@ -110,6 +122,26 @@ export default function ProposalForm({ onSubmitted }: ProposalFormProps) {
       ...formData,
       deadline: deadlineDate!.toISOString(),
     });
+
+    const targetGroup = groups.find((group) => group.name === formData.targetGroup);
+    if (targetGroup) {
+      const chatId = `group-${targetGroup.id}`;
+      const deadlineLabel = new Intl.DateTimeFormat("ko-KR", {
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(deadlineDate!);
+      saveMessages(chatId, [
+        ...loadMessages(chatId),
+        {
+          id: crypto.randomUUID(),
+          sender: "me",
+          text: `제안: ${formData.title.trim()} · ${deadlineLabel}까지 의견을 남겨주세요.`,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+    }
 
     setIsSubmitted(true);
     setIsSubmitting(false);
@@ -225,17 +257,22 @@ export default function ProposalForm({ onSubmitted }: ProposalFormProps) {
               </div>
             )}
           </div>
-          <label className={styles.timeField}>
+          <div className={styles.timeField} aria-label="마감 시간">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
               <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
             </svg>
-            <input
-              type="time"
-              value={deadlineTime}
-              onChange={(event) => setDeadlineTime(event.target.value)}
-              aria-label="마감 시간"
-            />
-          </label>
+            <select value={deadlinePeriod} onChange={(event) => setDeadlinePeriod(event.target.value as "AM" | "PM")} aria-label="오전 또는 오후">
+              <option value="AM">오전</option>
+              <option value="PM">오후</option>
+            </select>
+            <select value={deadlineHour} onChange={(event) => setDeadlineHour(event.target.value)} aria-label="시">
+              {HOURS.map((hour) => <option key={hour} value={hour}>{hour}</option>)}
+            </select>
+            <span>:</span>
+            <select value={deadlineMinute} onChange={(event) => setDeadlineMinute(event.target.value)} aria-label="분">
+              {MINUTES.map((minute) => <option key={minute} value={minute}>{minute}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 
