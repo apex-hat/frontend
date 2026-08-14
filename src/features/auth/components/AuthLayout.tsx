@@ -5,6 +5,7 @@ interface AuthLayoutProps {
   children: ReactNode;
   eyebrow: string;
   title: ReactNode;
+  isLeaving?: boolean;
 }
 
 /**
@@ -12,9 +13,18 @@ interface AuthLayoutProps {
  * 왼쪽은 "시차를 넘나드는 팀"이라는 제품 컨셉을 시각적으로 보여주는 히어로 패널,
  * 오른쪽은 실제 폼 영역입니다.
  */
-export default function AuthLayout({ children, eyebrow, title }: AuthLayoutProps) {
+export default function AuthLayout({
+  children,
+  eyebrow,
+  title,
+  isLeaving = false,
+}: AuthLayoutProps) {
   return (
-    <div className="min-h-screen grid lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,1fr)]">
+    <div
+      className={`min-h-screen grid transition-all duration-300 ease-out lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,1fr)] ${
+        isLeaving ? "scale-[0.997] opacity-60" : "scale-100 opacity-100"
+      }`}
+    >
       <div className="relative hidden lg:flex flex-col justify-center overflow-hidden bg-surface px-10 py-10 xl:px-14 xl:py-12">
         <div
           className="pointer-events-none absolute inset-0 opacity-90"

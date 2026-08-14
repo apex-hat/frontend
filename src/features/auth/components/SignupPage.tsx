@@ -91,6 +91,7 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
     <AuthLayout
       eyebrow="회원가입"
       title="팀에 합류하기"
+      isLeaving={isNavigating}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
