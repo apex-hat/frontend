@@ -1,9 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ConsensusSummaryModal from '../../components/consensus/ConsensusSummaryModal'
 import OpinionForm from '../../components/opinion/OpinionForm'
 import OpinionList from '../../components/opinion/OpinionList'
 import { requestMockConsensus } from '../../mocks/consensus'
-import { loadOpinions, saveOpinions } from '../../services/opinionStorage'
+import {
+  createOpinion,
+  deleteOpinion,
+  getOpinions,
+  getTeamMembers,
+  updateOpinion,
+  type TeamMemberProfile,
+} from '../../lib/api'
 import type { ConsensusSummary } from '../../types/consensus'
 import type {
   Opinion,
@@ -17,8 +24,36 @@ interface Props {
   proposalId: string
   proposalTitle: string
   proposalDescription: string
+  targetTeamId: string
   currentUser: OpinionAuthor
   teamMemberCount: number
+}
+
+/** Backend OpinionResponse엔 작성자 프로필이 없어(userId만 옴), 이미 연동해둔 팀원 목록으로 이름/국가/문화권을 보강한다. */
+function toDisplayOpinions(
+  apiOpinions: Array<{ id: string; user_id: string; stance: OpinionType; comment?: string; created_at: string; updated_at?: string }>,
+  members: TeamMemberProfile[],
+  currentUser: OpinionAuthor,
+): Opinion[] {
+  const memberById = new Map(members.map((member) => [member.user_id, member]))
+  return apiOpinions.map((opinion) => {
+    const member = memberById.get(opinion.user_id)
+    const author: OpinionAuthor =
+      opinion.user_id === currentUser.id
+        ? currentUser
+        : member
+          ? { id: member.user_id, name: member.name, company: 'Meridian', country: member.country, culturalRegion: member.culture_tag }
+          : { id: opinion.user_id, name: '팀원', company: 'Meridian' }
+
+    return {
+      id: opinion.id,
+      author,
+      type: opinion.stance,
+      comment: opinion.comment ?? '',
+      createdAt: opinion.created_at,
+      updatedAt: opinion.updated_at && opinion.updated_at !== opinion.created_at ? opinion.updated_at : undefined,
+    }
+  })
 }
 
 type OpinionFilter = OpinionType | null
@@ -33,12 +68,14 @@ function ConsensusDevPage({
   proposalId,
   proposalTitle,
   proposalDescription,
+  targetTeamId,
   currentUser,
   teamMemberCount,
 }: Props) {
-  const [opinions, setOpinions] = useState<Opinion[]>(() =>
-    loadOpinions(proposalId),
-  )
+  const [opinions, setOpinions] = useState<Opinion[]>([])
+  const [members, setMembers] = useState<TeamMemberProfile[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [opinionFilter, setOpinionFilter] = useState<OpinionFilter>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formStatus, setFormStatus] = useState<string | null>(null)
@@ -47,6 +84,30 @@ function ConsensusDevPage({
   const [summaryError, setSummaryError] = useState<string | null>(null)
   const [consensus, setConsensus] = useState<ConsensusSummary | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Opinion | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    Promise.all([getOpinions(proposalId), getTeamMembers(targetTeamId)])
+      .then(([apiOpinions, teamMembers]) => {
+        if (cancelled) return
+        setMembers(teamMembers)
+        setOpinions(toDisplayOpinions(apiOpinions, teamMembers, currentUser))
+        setLoadError(null)
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError('의견을 불러오지 못했습니다.')
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+    // currentUser는 매 렌더마다 새 객체로 내려오는 prop이라 currentUser.id(안정적인 값)만 의존성으로 둔다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proposalId, targetTeamId, currentUser.id])
 
   const currentUserOpinion = opinions.find(
     (opinion) => opinion.author.id === currentUser.id,
@@ -74,24 +135,15 @@ function ConsensusDevPage({
     setFormStatus(null)
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 350))
-      const now = new Date().toISOString()
-      const nextOpinion: Opinion = currentUserOpinion
-        ? { ...currentUserOpinion, ...draft, updatedAt: now }
-        : {
-            id: crypto.randomUUID(),
-            author: currentUser,
-            ...draft,
-            createdAt: now,
-          }
-      const nextOpinions = currentUserOpinion
-        ? opinions.map((opinion) =>
-            opinion.id === currentUserOpinion.id ? nextOpinion : opinion,
-          )
-        : [nextOpinion, ...opinions]
-
-      saveOpinions(proposalId, nextOpinions)
-      setOpinions(nextOpinions)
+      if (currentUserOpinion) {
+        await updateOpinion(currentUserOpinion.id, draft.type, draft.comment)
+      } else {
+        await createOpinion(proposalId, draft.type, draft.comment)
+      }
+      // Backend가 첫 의견 등록 시 Proposal을 OPEN -> IN_PROGRESS로 전이시키므로,
+      // 의견 목록만 다시 받아오면 그 상태 변화는 다음 Dashboard 진입 시 자연히 반영된다.
+      const freshOpinions = await getOpinions(proposalId)
+      setOpinions(toDisplayOpinions(freshOpinions, members, currentUser))
       setConsensus(null)
       setFormStatus(
         currentUserOpinion ? '내 의견을 수정했습니다.' : '의견을 등록했습니다.',
@@ -113,15 +165,14 @@ function ConsensusDevPage({
     setDeleteTarget(targetOpinion)
   }
 
-  const confirmOpinionDelete = () => {
+  const confirmOpinionDelete = async () => {
     if (!deleteTarget) return
 
     try {
-      const nextOpinions = opinions.filter(
-        (opinion) => opinion.id !== deleteTarget.id,
+      await deleteOpinion(deleteTarget.id)
+      setOpinions((current) =>
+        current.filter((opinion) => opinion.id !== deleteTarget.id),
       )
-      saveOpinions(proposalId, nextOpinions)
-      setOpinions(nextOpinions)
       setConsensus(null)
       setDeleteTarget(null)
       setFormStatus('내 의견을 삭제했습니다.')
@@ -165,6 +216,11 @@ function ConsensusDevPage({
         <p className={styles.description}>{proposalDescription}</p>
       </header>
 
+      {isLoading && <p className={styles.status} role="status">의견을 불러오는 중...</p>}
+      {!isLoading && loadError && <p className={styles.status} role="alert">{loadError}</p>}
+
+      {!isLoading && !loadError && (
+      <>
       <section className={styles.section} aria-label="의견 작성 폼">
         <OpinionForm
           key={
@@ -229,6 +285,8 @@ function ConsensusDevPage({
           emptyMessage={opinionFilter ? "선택한 유형의 의견이 아직 없습니다." : "아직 작성된 의견이 없습니다."}
         />
       </section>
+      </>
+      )}
 
       {deleteTarget && (
         <div className={styles.dialogBackdrop} role="presentation">

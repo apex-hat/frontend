@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import type { AuthUser, Notification, Opinion, Proposal } from "../../../types";
-import { getNotifications, getProposalStatus, getProposals, getTimezones, markNotificationRead } from "../../../lib/api";
+import {
+  deleteProposal as deleteProposalApi,
+  getNotifications,
+  getProposalStatus,
+  getProposals,
+  getTimezones,
+  markNotificationRead,
+} from "../../../lib/api";
 import type { TimezoneEntry } from "../../../lib/api";
 import WorldClockStrip from "./WorldClockStrip";
 import NotificationPanel from "./NotificationPanel";
@@ -19,8 +26,6 @@ import {
 } from "../../workspace/workspaceStorage";
 import {
   completeSubmittedProposal,
-  deleteSubmittedProposal,
-  isMySubmittedProposal,
   loadSubmittedProposals,
 } from "../../../mocks/proposal";
 import BrandMark from "../../../components/branding/BrandMark";
@@ -159,13 +164,20 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     return () => window.clearTimeout(timeout);
   }, [proposals]);
 
-  const deleteProposal = () => {
+  const deleteProposal = async () => {
     if (!deleteTarget) return;
-    deleteSubmittedProposal(deleteTarget.id);
-    setSubmittedProposals((current) => current.filter((item) => item.id !== deleteTarget.id));
-    setProposals((current) => current.filter((item) => item.id !== deleteTarget.id));
-    setExpandedId((current) => current === deleteTarget.id ? null : current);
+    const target = deleteTarget;
     setDeleteTarget(null);
+    try {
+      // Backend는 DRAFT 상태에서만 삭제를 허용한다(그 외 409) — 메뉴도 DRAFT일 때만 노출되지만, 그 사이 상태가 바뀌었을 수 있다.
+      await deleteProposalApi(target.id);
+    } catch {
+      window.alert("삭제에 실패했습니다. 이미 게시된 제안일 수 있어요.");
+      return;
+    }
+    setSubmittedProposals((current) => current.filter((item) => item.id !== target.id));
+    setProposals((current) => current.filter((item) => item.id !== target.id));
+    setExpandedId((current) => current === target.id ? null : current);
   };
 
   const openCompletion = (proposal: Proposal) => {
@@ -379,13 +391,17 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
           }}
           onMouseDown={(event) => event.stopPropagation()}
         >
-          {isMySubmittedProposal(proposalMenu.proposal.id, user.id) ? (
+          {proposalMenu.proposal.author_id === user.id ? (
             <>
               {isComplete(proposalMenu.proposal) && (
                 <button type="button" onClick={() => { setAnalysisTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">결과 분석</button>
               )}
-              <button type="button" onClick={() => onEditProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">수정하기</button>
-              <button type="button" onClick={() => { setDeleteTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
+              {proposalMenu.proposal.status === "DRAFT" && (
+                <>
+                  <button type="button" onClick={() => onEditProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">수정하기</button>
+                  <button type="button" onClick={() => { setDeleteTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
+                </>
+              )}
               {proposalMenu.proposal.status === "OPEN" && (
                 <button type="button" onClick={() => openCompletion(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-consensus">완료하기</button>
               )}

@@ -3,11 +3,7 @@ import { DayPicker } from "@daypicker/react";
 import { ko } from "@daypicker/react/locale";
 import "@daypicker/react/style.css";
 import styles from "./ProposalForm.module.css";
-import {
-  submitMockProposal,
-  updateSubmittedProposal,
-  type SubmittedProposal,
-} from "../../mocks/proposal";
+import { createProposal, getOrCreateDefaultTeamId, publishProposal, updateProposal } from "../../lib/api";
 import {
   GROUPS_CHANGED_EVENT,
   loadGroups,
@@ -15,9 +11,10 @@ import {
   saveMessages,
 } from "../../features/workspace/workspaceStorage";
 import { type ProposalFormData } from "../../types/proposal";
+import type { Proposal } from "../../types";
 
 // 1단계: 제안 작성 폼
-// 최종 제안 등록 (mock, 백엔드 API 완성되면 axios 호출로 교체)
+// 제출 시 POST /api/proposals(DRAFT 생성) → POST .../publish(OPEN 전환) 순으로 호출한다.
 
 const initialFormData: ProposalFormData = {
   title: "",
@@ -55,18 +52,18 @@ const MINUTES = ["00", "10", "20", "30", "40", "50"];
 
 interface ProposalFormProps {
   onSubmitted: () => void;
-  userId: string;
-  proposal?: SubmittedProposal;
+  proposal?: Proposal;
 }
 
-export default function ProposalForm({ onSubmitted, userId, proposal }: ProposalFormProps) {
+export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProps) {
   const editingDeadline = proposal?.deadline ? new Date(proposal.deadline) : null;
   const editingHour = editingDeadline?.getHours() ?? 18;
   const [groups, setGroups] = useState(loadGroups);
   const [formData, setFormData] = useState<ProposalFormData>(() => proposal ? {
     title: proposal.title,
     content: proposal.content ?? "",
-    targetGroup: proposal.targetGroup ?? "",
+    // 실제 Proposal에는 targetGroup(워크스페이스 채팅 그룹 태그)이 없어 수정 시 미리 채울 수 없다.
+    targetGroup: "",
     deadline: editingDeadline ? toDateString(editingDeadline) : "",
   } : initialFormData);
   const [deadlinePeriod, setDeadlinePeriod] = useState<"AM" | "PM">(editingHour >= 12 ? "PM" : "AM");
@@ -78,6 +75,9 @@ export default function ProposalForm({ onSubmitted, userId, proposal }: Proposal
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  // create가 성공했지만 publish가 실패했을 때, 재제출 시 새로 만들지 않고 이 id로 publish만 재시도한다.
+  const [pendingProposalId, setPendingProposalId] = useState<string | null>(null);
+  const [publishFailed, setPublishFailed] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
@@ -130,37 +130,60 @@ export default function ProposalForm({ onSubmitted, userId, proposal }: Proposal
       return;
     }
     setError(null);
+    setPublishFailed(false);
     setIsSubmitting(true);
 
-    // TODO(나중에): submitMockProposal 대신 실제 백엔드 API 호출로 교체
-    // 예: const res = await axios.post('/api/proposals', formData)
     const proposalData = { ...formData, deadline: deadlineDate!.toISOString() };
-    if (proposal) {
-      updateSubmittedProposal(proposal.id, proposalData);
-    } else {
-      await submitMockProposal(proposalData, userId);
+    let targetProposalId = proposal?.id ?? pendingProposalId;
+
+    // 1단계: DRAFT 저장(생성 또는 수정) — pendingProposalId가 있으면(직전 publish 실패)
+    // 다시 생성하지 않고 그 DRAFT를 그대로 재사용한다.
+    try {
+      if (proposal) {
+        await updateProposal(proposal.id, proposalData.title, proposalData.content, proposalData.deadline);
+      } else if (!targetProposalId) {
+        const teamId = await getOrCreateDefaultTeamId();
+        const created = await createProposal(teamId, proposalData.title, proposalData.content, proposalData.deadline);
+        targetProposalId = created.id;
+        setPendingProposalId(created.id);
+
+        const targetGroup = groups.find((group) => group.name === formData.targetGroup);
+        if (targetGroup) {
+          const chatId = `group-${targetGroup.id}`;
+          const deadlineLabel = new Intl.DateTimeFormat("ko-KR", {
+            month: "long",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          }).format(deadlineDate!);
+          saveMessages(chatId, [
+            ...loadMessages(chatId),
+            {
+              id: crypto.randomUUID(),
+              sender: "me",
+              text: `[제안] ${formData.title.trim()} ${deadlineLabel}까지`,
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+        }
+      }
+    } catch {
+      setIsSubmitting(false);
+      setError("제안 저장에 실패했습니다. 다시 시도해주세요.");
+      return;
     }
 
-    const targetGroup = groups.find((group) => group.name === formData.targetGroup);
-    if (!proposal && targetGroup) {
-      const chatId = `group-${targetGroup.id}`;
-      const deadlineLabel = new Intl.DateTimeFormat("ko-KR", {
-        month: "long",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      }).format(deadlineDate!);
-      saveMessages(chatId, [
-        ...loadMessages(chatId),
-        {
-          id: crypto.randomUUID(),
-          sender: "me",
-          text: `[제안] ${formData.title.trim()} ${deadlineLabel}까지`,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+    // 2단계: publish — 이게 성공해야만 팀원에게 노출되는 OPEN 상태가 된다.
+    try {
+      await publishProposal(targetProposalId!);
+    } catch {
+      setIsSubmitting(false);
+      setPublishFailed(true);
+      setError("제안은 저장됐지만 게시에 실패했습니다. 다시 시도하면 게시만 다시 진행합니다.");
+      return;
     }
 
+    setPendingProposalId(null);
     setIsSubmitted(true);
     setIsSubmitting(false);
     window.setTimeout(onSubmitted, 850);
@@ -309,7 +332,7 @@ export default function ProposalForm({ onSubmitted, userId, proposal }: Proposal
             onClick={handleSubmitClick}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "저장 중..." : proposal ? "수정 내용 저장" : "최종 제안 등록"}
+            {isSubmitting ? "저장 중..." : publishFailed ? "게시 다시 시도" : proposal ? "수정 내용 저장" : "최종 제안 등록"}
           </button>
         </div>
       )}

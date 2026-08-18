@@ -94,7 +94,8 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
 
     setIsSubmitting(true);
     try {
-      const user = await signup(name, email, password, country, timezone, language);
+      // country/timezone/language는 Backend가 아직 저장할 방법이 없어 signup()에는 전달하지 않는다.
+      const user = await signup(name, email, password);
       onSignup(user);
     } catch {
       setError("회원가입에 실패했어요. 잠시 후 다시 시도해주세요.");

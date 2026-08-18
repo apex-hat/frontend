@@ -3,15 +3,14 @@ import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-do
 import ProposalForm from "./ProposalForm";
 import ProposalInfoPage from "./ProposalInfoPage";
 import ConsensusDevPage from "../consensus/ConsensusDevPage";
-import { getMockProposalById } from "../../mocks/proposalList";
-import { isMySubmittedProposal, loadSubmittedProposals } from "../../mocks/proposal";
-import { getNotifications, getProposals, markNotificationRead } from "../../lib/api";
-import type { AuthUser, Notification } from "../../types";
+import { loadSubmittedProposals } from "../../mocks/proposal";
+import { getNotifications, getProposal, markNotificationRead } from "../../lib/api";
+import type { AuthUser, Notification, Proposal } from "../../types";
 import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSidebar";
 import UserHandleButton from "../../features/workspace/components/UserHandleButton";
 import FriendManagerModal from "../../features/workspace/components/FriendManagerModal";
 import NotificationPanel from "../../features/dashboard/components/NotificationPanel";
-import { MOCK_PROPOSAL_CONTENT, MOCK_PROPOSAL_GROUP_NAMES } from "../../features/dashboard/data/mockData";
+import { MOCK_PROPOSAL_GROUP_NAMES } from "../../features/dashboard/data/mockData";
 import BrandMark from "../../components/branding/BrandMark";
 import ConnectionButton from "../../features/workspace/components/ConnectionButton";
 import { loadGroups } from "../../features/workspace/workspaceStorage";
@@ -23,17 +22,33 @@ interface Props {
   onLogout: () => void;
 }
 
-function ProposalFormRoute({ userId, onSubmitted }: { userId: string; onSubmitted: () => void }) {
-  return <ProposalForm userId={userId} onSubmitted={onSubmitted} />;
+function ProposalFormRoute({ onSubmitted }: { onSubmitted: () => void }) {
+  return <ProposalForm onSubmitted={onSubmitted} />;
 }
 
+/** 실제 Proposal은 PUT이 DRAFT 상태에서만 허용되므로(그 외 409), 작성자 본인의 DRAFT가 아니면 접근을 막는다. */
 function ProposalEditRoute({ userId, onSubmitted }: { userId: string; onSubmitted: () => void }) {
   const { proposalId } = useParams();
-  const proposal = loadSubmittedProposals().find((item) => item.id === proposalId);
-  if (!proposalId || !proposal || !isMySubmittedProposal(proposalId, userId)) {
+  const [proposal, setProposal] = useState<Proposal | null | undefined>(null);
+
+  useEffect(() => {
+    if (!proposalId) return;
+    let cancelled = false;
+    getProposal(proposalId)
+      .then((item) => {
+        if (!cancelled) setProposal(item);
+      })
+      .catch(() => {
+        if (!cancelled) setProposal(undefined);
+      });
+    return () => { cancelled = true; };
+  }, [proposalId]);
+
+  if (proposal === null) return <p className="py-16 text-center text-sm text-ink-dim">불러오는 중...</p>;
+  if (!proposalId || !proposal || proposal.author_id !== userId || proposal.status !== "DRAFT") {
     return <Navigate to="/dashboard" replace />;
   }
-  return <ProposalForm userId={userId} proposal={proposal} onSubmitted={onSubmitted} />;
+  return <ProposalForm proposal={proposal} onSubmitted={onSubmitted} />;
 }
 
 function ProposalInfoRoute() {
@@ -43,16 +58,18 @@ function ProposalInfoRoute() {
   useEffect(() => {
     if (!proposalId) return;
     let cancelled = false;
-    getProposals().then((proposals) => {
-      if (cancelled) return;
-      const item = proposals.find((candidate) => candidate.id === proposalId);
-      const submitted = loadSubmittedProposals().find((candidate) => candidate.id === proposalId);
-      setProposal(item ? {
-        title: item.title,
-        content: submitted?.content ?? MOCK_PROPOSAL_CONTENT[item.id] ?? "등록된 제안 내용이 없습니다.",
-        deadline: item.deadline,
-      } : undefined);
-    });
+    getProposal(proposalId)
+      .then((item) => {
+        if (cancelled) return;
+        setProposal({
+          title: item.title,
+          content: item.content ?? "등록된 제안 내용이 없습니다.",
+          deadline: item.deadline,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setProposal(undefined);
+      });
     return () => { cancelled = true; };
   }, [proposalId]);
 
@@ -63,35 +80,29 @@ function ProposalInfoRoute() {
 
 function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
   const { proposalId } = useParams();
-  const [proposal, setProposal] = useState<{ id: string; title: string; content: string; teamMemberCount: number } | null | undefined>(null);
+  const [proposal, setProposal] = useState<{ id: string; title: string; content: string; targetTeamId: string; teamMemberCount: number } | null | undefined>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     if (!proposalId) return;
 
-    Promise.all([getMockProposalById(proposalId), getProposals()]).then(([legacyProposal, dashboardProposals]) => {
-      if (cancelled) return;
-      if (legacyProposal) {
+    getProposal(proposalId)
+      .then((item) => {
+        if (cancelled) return;
+        const submittedProposal = loadSubmittedProposals().find((candidate) => candidate.id === proposalId);
+        const targetGroupName = submittedProposal?.targetGroup ?? MOCK_PROPOSAL_GROUP_NAMES[item.id];
         setProposal({
-          id: legacyProposal.id,
-          title: legacyProposal.title,
-          content: legacyProposal.content,
-          teamMemberCount: loadGroups().find((group) => group.name === legacyProposal.targetGroup)?.memberCount ?? 1,
+          id: item.id,
+          title: item.title,
+          content: item.content ?? "제안 내용을 확인하고 의견을 남겨주세요.",
+          targetTeamId: item.target_team_id,
+          teamMemberCount: loadGroups().find((group) => group.name === targetGroupName)?.memberCount ?? 1,
         });
-        return;
-      }
-
-      const dashboardProposal = dashboardProposals.find((item) => item.id === proposalId);
-      const submittedProposal = loadSubmittedProposals().find((item) => item.id === proposalId);
-      const targetGroupName = submittedProposal?.targetGroup ?? (dashboardProposal ? MOCK_PROPOSAL_GROUP_NAMES[dashboardProposal.id] : undefined);
-      setProposal(dashboardProposal ? {
-        id: dashboardProposal.id,
-        title: dashboardProposal.title,
-        content: submittedProposal?.content ?? MOCK_PROPOSAL_CONTENT[dashboardProposal.id] ?? "제안 내용을 확인하고 의견을 남겨주세요.",
-        teamMemberCount: loadGroups().find((group) => group.name === targetGroupName)?.memberCount ?? 1,
-      } : undefined);
-    });
+      })
+      .catch(() => {
+        if (!cancelled) setProposal(undefined);
+      });
 
     return () => {
       cancelled = true;
@@ -111,6 +122,7 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
       proposalId={proposal.id}
       proposalTitle={proposal.title}
       proposalDescription={proposal.content}
+      targetTeamId={proposal.targetTeamId}
       teamMemberCount={proposal.teamMemberCount}
       currentUser={{
         id: user.id,
@@ -203,7 +215,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </button>
           <Routes>
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="new" element={<ProposalFormRoute userId={user.id} onSubmitted={onBackToDashboard} />} />
+            <Route path="new" element={<ProposalFormRoute onSubmitted={onBackToDashboard} />} />
             <Route path=":proposalId/edit" element={<ProposalEditRoute userId={user.id} onSubmitted={onBackToDashboard} />} />
             <Route path=":proposalId/detail" element={<ProposalInfoRoute />} />
             <Route path=":proposalId/opinions" element={<ProposalOpinionsRoute user={user} />} />

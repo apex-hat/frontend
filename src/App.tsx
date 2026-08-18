@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { signOut } from "firebase/auth";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import LoginPage from "./features/auth/components/LoginPage";
 import SignupPage from "./features/auth/components/SignupPage";
 import Dashboard from "./features/dashboard/components/Dashboard";
 import ProfilePage from "./features/profile/components/ProfilePage";
 import ProposalPage from "./pages/Proposal/ProposalPage";
+import { auth } from "./lib/firebase";
 import type { AuthUser } from "./types";
 
 const AUTH_STORAGE_KEY = "meridian.auth-user";
@@ -40,6 +42,7 @@ export default function App() {
   };
 
   const logout = () => {
+    void signOut(auth);
     window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
     setUser(null);
     navigate("/login", { replace: true });

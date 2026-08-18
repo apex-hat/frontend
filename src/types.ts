@@ -56,6 +56,9 @@ export interface Proposal {
   deadline: string;
   created_at: string;
   completed_at?: string;
+  /** Backend 실연동 이후에만 채워짐(Mock 데이터에는 없을 수 있어 optional) */
+  content?: string;
+  author_id?: string;
 }
 
 export interface Opinion {
@@ -67,6 +70,8 @@ export interface Opinion {
   original_language?: SupportedLanguage;
   translations?: Partial<Record<SupportedLanguage, string>>;
   created_at: string;
+  /** Backend 실연동 이후에만 채워짐(Mock 데이터에는 없을 수 있어 optional) */
+  updated_at?: string;
 }
 
 export interface Notification {
