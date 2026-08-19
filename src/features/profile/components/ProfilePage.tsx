@@ -267,7 +267,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
         </section>
         </div>
       </main>
-      <FriendManagerModal open={isConnectionManagerOpen} onClose={() => setIsConnectionManagerOpen(false)} teamId={selectedTeamId} />
+      <FriendManagerModal open={isConnectionManagerOpen} onClose={() => setIsConnectionManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} />
     </div>
   );
 }

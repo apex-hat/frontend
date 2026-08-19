@@ -357,6 +357,75 @@ export async function respondToFriendRequest(requestId: string, accept: boolean)
   return toFriendRequestSummary(data);
 }
 
+export interface FriendSummary {
+  userId: string;
+  name: string;
+  email: string;
+  friendCode: string;
+}
+
+interface FriendResponseDto {
+  userId: number;
+  name: string;
+  email: string;
+  friendCode: string;
+  since: string;
+}
+
+/** GET /api/friends — 수락된 친구 목록 */
+export async function getFriends(): Promise<FriendSummary[]> {
+  const { data } = await httpClient.get<FriendResponseDto[]>("/api/friends");
+  return data.map((dto) => ({
+    userId: String(dto.userId),
+    name: dto.name,
+    email: dto.email,
+    friendCode: dto.friendCode,
+  }));
+}
+
+// --- Messages ---------------------------------------------------------
+
+export interface MessageSummary {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+interface MessageResponseDto {
+  id: number;
+  senderId: number;
+  receiverId: number;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+function toMessageSummary(dto: MessageResponseDto): MessageSummary {
+  return {
+    id: String(dto.id),
+    senderId: String(dto.senderId),
+    receiverId: String(dto.receiverId),
+    content: dto.content,
+    isRead: dto.isRead,
+    createdAt: dto.createdAt,
+  };
+}
+
+/** POST /api/messages — 친구 사이에만 전송 가능(그 외 403 NOT_FRIENDS) */
+export async function sendMessage(receiverId: string, content: string): Promise<MessageSummary> {
+  const { data } = await httpClient.post<MessageResponseDto>("/api/messages", { receiverId: Number(receiverId), content });
+  return toMessageSummary(data);
+}
+
+/** GET /api/messages/{friendUserId} — 특정 친구와의 전체 대화 내역(시간순) */
+export async function getConversation(friendUserId: string): Promise<MessageSummary[]> {
+  const { data } = await httpClient.get<MessageResponseDto[]>(`/api/messages/${friendUserId}`);
+  return data.map(toMessageSummary);
+}
+
 // --- Dashboard ------------------------------------------------------------
 
 export interface TimezoneEntry {

@@ -230,7 +230,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </Routes>
         </div>
       </div>
-      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} teamId={selectedTeamId} />
+      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} />
     </div>
   );
 }
