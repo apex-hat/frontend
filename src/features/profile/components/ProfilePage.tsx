@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { AuthUser, Notification, SupportedLanguage } from "../../../types";
 import { getUtcOffsetLabel } from "../../../lib/timezone";
 import { getNotifications, markNotificationRead } from "../../../lib/api";
+import { copyToClipboard } from "../../../lib/clipboard";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
 import { getUserHandle } from "../../workspace/workspaceStorage";
 import BrandMark from "../../../components/branding/BrandMark";
@@ -184,9 +185,11 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
                   <button
                     type="button"
                     onClick={async () => {
-                      await navigator.clipboard.writeText(`${name.trim() || user.name} ${userHandle}`);
-                      setTagCopied(true);
-                      window.setTimeout(() => setTagCopied(false), 1200);
+                      const copied = await copyToClipboard(userHandle);
+                      if (copied) {
+                        setTagCopied(true);
+                        window.setTimeout(() => setTagCopied(false), 1200);
+                      }
                     }}
                     title="친구 추가에 사용할 고유 ID 복사"
                     className="rounded-lg border border-surface-3 px-2.5 text-xs text-ink-dim hover:text-ink"
