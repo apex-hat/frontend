@@ -1,4 +1,5 @@
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
+import { isAxiosError } from "axios";
 import type { AuthUser, Notification, Opinion, Proposal, ProposalStatus, Stance, Team, TeamRole } from "../types";
 import {
   AVATAR_COLORS,
@@ -90,6 +91,29 @@ export interface IntentAnalysisResult {
 export async function postIntentAnalysis(content: string): Promise<IntentAnalysisResult> {
   const { data } = await httpClient.post<IntentAnalysisResult>("/api/ai/intent-analysis", { content });
   return data;
+}
+
+export interface UserSummary {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface UserSummaryDto {
+  id: number;
+  name: string;
+  email: string;
+}
+
+/** GET /api/users/search?email= — 팀원 초대 시 이메일로 상대의 userId를 찾는다. 없으면 null. */
+export async function searchUserByEmail(email: string): Promise<UserSummary | null> {
+  try {
+    const { data } = await httpClient.get<UserSummaryDto>("/api/users/search", { params: { email } });
+    return { id: String(data.id), name: data.name, email: data.email };
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.status === 404) return null;
+    throw error;
+  }
 }
 
 // --- Teams --------------------------------------------------------------
