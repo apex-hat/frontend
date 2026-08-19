@@ -21,7 +21,18 @@ const initialFormData: ProposalFormData = {
   content: "",
   targetGroup: "",
   deadline: "",
+  targetCultures: [],
 };
+
+// AI 문화 맥락 분석 대상 문화권 후보. 실제 팀원 국가와 무관하게 자유롭게 선택 가능(README §7).
+const CULTURE_OPTIONS = [
+  { code: "KR", label: "한국" },
+  { code: "US", label: "미국" },
+  { code: "IN", label: "인도" },
+  { code: "BR", label: "브라질" },
+  { code: "JP", label: "일본" },
+  { code: "DE", label: "독일" },
+];
 
 // 오늘 날짜를 date input의 min 속성에 쓸 수 있는 "yyyy-mm-dd" 형식으로 반환.
 // new Date().toISOString()은 UTC 기준이라 한국 시간대에서는 날짜가 하루 밀릴 수 있어서
@@ -65,6 +76,7 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
     // 실제 Proposal에는 targetGroup(워크스페이스 채팅 그룹 태그)이 없어 수정 시 미리 채울 수 없다.
     targetGroup: "",
     deadline: editingDeadline ? toDateString(editingDeadline) : "",
+    targetCultures: proposal.target_cultures ?? [],
   } : initialFormData);
   const [deadlinePeriod, setDeadlinePeriod] = useState<"AM" | "PM">(editingHour >= 12 ? "PM" : "AM");
   const [deadlineHour, setDeadlineHour] = useState(String(editingHour % 12 || 12));
@@ -105,6 +117,15 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const toggleCulture = (code: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      targetCultures: prev.targetCultures.includes(code)
+        ? prev.targetCultures.filter((item) => item !== code)
+        : [...prev.targetCultures, code],
+    }));
+  };
+
   const hour24 = (Number(deadlineHour) % 12) + (deadlinePeriod === "PM" ? 12 : 0);
   const deadlineTime = `${String(hour24).padStart(2, "0")}:${deadlineMinute}`;
   const deadlineDate = formData.deadline
@@ -140,10 +161,10 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
     // 다시 생성하지 않고 그 DRAFT를 그대로 재사용한다.
     try {
       if (proposal) {
-        await updateProposal(proposal.id, proposalData.title, proposalData.content, proposalData.deadline);
+        await updateProposal(proposal.id, proposalData.title, proposalData.content, proposalData.deadline, proposalData.targetCultures);
       } else if (!targetProposalId) {
         const teamId = await getOrCreateDefaultTeamId();
-        const created = await createProposal(teamId, proposalData.title, proposalData.content, proposalData.deadline);
+        const created = await createProposal(teamId, proposalData.title, proposalData.content, proposalData.deadline, proposalData.targetCultures);
         targetProposalId = created.id;
         setPendingProposalId(created.id);
 
@@ -265,6 +286,27 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
           )}
         </div>
         {groups.length === 0 && <p className={styles.emptyGroupHint}>왼쪽 메시지 영역의 + 버튼에서 그룹을 만들 수 있습니다.</p>}
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label}>대상 문화권</label>
+        <div className={styles.cultureOptions} role="group" aria-label="AI 문화 맥락 분석 대상 문화권">
+          {CULTURE_OPTIONS.map((option) => {
+            const selected = formData.targetCultures.includes(option.code);
+            return (
+              <button
+                key={option.code}
+                type="button"
+                aria-pressed={selected}
+                className={`${styles.cultureChip} ${selected ? styles.cultureChipSelected : ""}`}
+                onClick={() => toggleCulture(option.code)}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className={styles.emptyGroupHint}>선택한 문화권 기준으로 AI가 표현의 오해 가능성을 분석합니다. 선택하지 않아도 등록할 수 있습니다.</p>
       </div>
 
       <div className={styles.field}>

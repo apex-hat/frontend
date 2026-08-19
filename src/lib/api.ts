@@ -315,6 +315,7 @@ interface ProposalResponseDto {
   authorId: number;
   targetTeamId: number;
   status: ProposalStatus;
+  targetCultures: string[];
   deadline: string;
   completedAt: string | null;
   createdAt: string;
@@ -328,6 +329,7 @@ function toProposal(dto: ProposalResponseDto): Proposal {
     author_id: String(dto.authorId),
     target_team_id: String(dto.targetTeamId),
     status: dto.status,
+    target_cultures: dto.targetCultures,
     deadline: dto.deadline,
     created_at: dto.createdAt,
     completed_at: dto.completedAt ?? undefined,
@@ -347,22 +349,40 @@ export async function getProposal(proposalId: string): Promise<Proposal> {
 }
 
 /** POST /api/proposals — Backend는 항상 DRAFT로 생성한다(팀원에게 노출하려면 publishProposal 별도 호출 필요) */
-export async function createProposal(teamId: string, title: string, content: string, deadline: string): Promise<Proposal> {
+export async function createProposal(
+  teamId: string,
+  title: string,
+  content: string,
+  deadline: string,
+  targetCultures: string[] = [],
+): Promise<Proposal> {
   const { data } = await httpClient.post<ProposalResponseDto>("/api/proposals", {
     teamId: Number(teamId),
     title,
     content,
     deadline,
+    targetCultures,
   });
   return toProposal(data);
 }
 
-/** PUT /api/proposals/{proposalId} — DRAFT 상태에서만 허용(그 외 409) */
-export async function updateProposal(proposalId: string, title: string, content: string, deadline: string): Promise<Proposal> {
+/**
+ * PUT /api/proposals/{proposalId} — DRAFT 상태에서만 허용(그 외 409).
+ * targetCultures는 매번 전체 목록을 보내야 한다 — Backend가 PUT을 완전 교체로 처리해서
+ * 필드를 생략하면(undefined) 기존에 등록된 문화권이 전부 삭제된다.
+ */
+export async function updateProposal(
+  proposalId: string,
+  title: string,
+  content: string,
+  deadline: string,
+  targetCultures: string[] = [],
+): Promise<Proposal> {
   const { data } = await httpClient.put<ProposalResponseDto>(`/api/proposals/${proposalId}`, {
     title,
     content,
     deadline,
+    targetCultures,
   });
   return toProposal(data);
 }
