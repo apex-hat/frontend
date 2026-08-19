@@ -3,6 +3,7 @@ import type { AuthUser, Notification, Opinion, Proposal } from "../../../types";
 import {
   deleteProposal as deleteProposalApi,
   getNotifications,
+  getOrCreateDefaultTeamId,
   getProposalStatus,
   getProposals,
   getTimezones,
@@ -94,15 +95,18 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   useEffect(() => {
     let cancelled = false;
 
-    getTimezones().then((list) => {
-      if (!cancelled) {
-        setMembers(list.map((member) => (
-          member.user_id === user.id
-            ? { ...member, name: user.name, country: user.country, timezone: user.timezone }
-            : member
-        )));
-      }
-    });
+    getOrCreateDefaultTeamId()
+      .then((teamId) => getTimezones(teamId))
+      .then((list) => {
+        if (!cancelled) {
+          setMembers(list.map((member) => (
+            member.user_id === user.id
+              ? { ...member, name: user.name, country: user.country, timezone: user.timezone }
+              : member
+          )));
+        }
+      })
+      .catch(() => { /* 팀이 아직 없으면 조용히 빈 상태로 둔다 */ });
 
     getNotifications().then((list) => {
       if (!cancelled) setNotifications(list);
