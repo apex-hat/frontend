@@ -1,6 +1,7 @@
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
 import { isAxiosError } from "axios";
 import type { AuthUser, Notification, Opinion, Proposal, ProposalStatus, Stance, Team, TeamRole } from "../types";
+import type { ConsensusSummary, ConsensusStatus } from "../types/consensus";
 import {
   AVATAR_COLORS,
   CURRENT_USER_ID,
@@ -91,6 +92,48 @@ export interface IntentAnalysisResult {
 export async function postIntentAnalysis(content: string): Promise<IntentAnalysisResult> {
   const { data } = await httpClient.post<IntentAnalysisResult>("/api/ai/intent-analysis", { content });
   return data;
+}
+
+interface ConsensusSummaryDto {
+  id: number;
+  proposalId: number;
+  consensusStatus: ConsensusStatus;
+  summary: string;
+  keyIssues: string[];
+  culturalAnalysis: string[];
+  hiddenOpposition: string[];
+  recommendedActions: string;
+  createdAt: string;
+}
+
+export class InsufficientResponsesError extends Error {}
+
+/**
+ * POST /api/ai/consensus-summary — 대상 팀원 전원 응답 또는 deadline 경과 시에만 성공(409).
+ * 조건 미충족이면 InsufficientResponsesError를 던진다(호출부에서 사용자 메시지로 구분해서 보여줄 것).
+ */
+export async function postConsensusSummary(proposalId: string): Promise<ConsensusSummary> {
+  try {
+    const { data } = await httpClient.post<ConsensusSummaryDto>("/api/ai/consensus-summary", {
+      proposalId: Number(proposalId),
+    });
+    return {
+      id: String(data.id),
+      proposalId: String(data.proposalId),
+      consensusStatus: data.consensusStatus,
+      summary: data.summary,
+      keyIssues: data.keyIssues,
+      culturalAnalysis: data.culturalAnalysis,
+      hiddenOpposition: data.hiddenOpposition,
+      recommendedActions: data.recommendedActions,
+      generatedAt: data.createdAt,
+    };
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.data?.error?.code === "INSUFFICIENT_RESPONSES") {
+      throw new InsufficientResponsesError(error.response.data.error.message);
+    }
+    throw error;
+  }
 }
 
 export interface UserSummary {

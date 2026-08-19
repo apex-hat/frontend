@@ -17,12 +17,18 @@ function readStoredUser(): AuthUser | null {
     if (!stored) return null;
 
     const user = JSON.parse(stored) as Partial<AuthUser>;
-    if (!user.id || !user.name || !user.email || !user.country || !user.timezone || !user.culture_tag) {
+    // id/name/email은 Backend가 JIT 동기화 시 항상 채우지만, country/timezone/culture_tag는
+    // 온보딩(PATCH /api/users/me)을 거치기 전까지 비어있을 수 있다 — 그것 때문에 세션을
+    // 무효화하면 새로고침할 때마다 로그아웃되므로 이 셋은 필수로 요구하지 않는다.
+    if (!user.id || !user.name || !user.email) {
       window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
       return null;
     }
     return {
       ...user,
+      country: user.country ?? "",
+      timezone: user.timezone ?? "UTC",
+      culture_tag: user.culture_tag ?? "",
       preferred_language: user.preferred_language ?? "ko",
     } as AuthUser;
   } catch {
