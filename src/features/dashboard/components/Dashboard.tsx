@@ -444,7 +444,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
           </section>
         </div>
       )}
-      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} teamId={selectedTeamId} />
+      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} />
     </div>
   );
 }
