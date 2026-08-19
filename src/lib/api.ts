@@ -94,6 +94,38 @@ export async function postIntentAnalysis(content: string): Promise<IntentAnalysi
   return data;
 }
 
+export interface CultureInterpretation {
+  culture: string;
+  interpretation: string;
+}
+
+export interface ContextAnalysisResult {
+  id: string;
+  originalText: string;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH";
+  interpretations: CultureInterpretation[];
+  flaggedPhrases: string[];
+  suggestion: string;
+}
+
+interface ContextAnalysisResponseDto {
+  id: number;
+  originalText: string;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH";
+  interpretations: CultureInterpretation[];
+  flaggedPhrases: string[];
+  suggestion: string;
+}
+
+/** POST /api/ai/context-analysis — proposalId 없이 등록 전에도 호출 가능(제안 등록 시 cultureAnalysisIds로 연결) */
+export async function postContextAnalysis(originalText: string, targetCultures: string[]): Promise<ContextAnalysisResult> {
+  const { data } = await httpClient.post<ContextAnalysisResponseDto>("/api/ai/context-analysis", {
+    originalText,
+    targetCultures,
+  });
+  return { ...data, id: String(data.id) };
+}
+
 interface ConsensusSummaryDto {
   id: number;
   proposalId: number;
@@ -398,6 +430,7 @@ export async function createProposal(
   content: string,
   deadline: string,
   targetCultures: string[] = [],
+  cultureAnalysisIds: string[] = [],
 ): Promise<Proposal> {
   const { data } = await httpClient.post<ProposalResponseDto>("/api/proposals", {
     teamId: Number(teamId),
@@ -405,6 +438,7 @@ export async function createProposal(
     content,
     deadline,
     targetCultures,
+    cultureAnalysisIds: cultureAnalysisIds.map(Number),
   });
   return toProposal(data);
 }
