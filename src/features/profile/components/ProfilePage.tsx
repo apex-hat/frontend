@@ -3,6 +3,7 @@ import type { AuthUser, Notification, SupportedLanguage } from "../../../types";
 import { getUtcOffsetLabel } from "../../../lib/timezone";
 import { getNotifications, markNotificationRead } from "../../../lib/api";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
+import { getUserHandle } from "../../workspace/workspaceStorage";
 import BrandMark from "../../../components/branding/BrandMark";
 import NotificationPanel from "../../dashboard/components/NotificationPanel";
 import ConnectionButton from "../../workspace/components/ConnectionButton";
@@ -81,8 +82,10 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
   const [country, setCountry] = useState(user.country);
   const [timezone, setTimezone] = useState(user.timezone);
   const [language, setLanguage] = useState<SupportedLanguage>(user.preferred_language);
+  const [tagCopied, setTagCopied] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isConnectionManagerOpen, setIsConnectionManagerOpen] = useState(false);
+  const userHandle = getUserHandle(user);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,14 +167,31 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="profile-name" className="mb-1.5 block text-xs text-ink-dim">이름</label>
-              <input
-                id="profile-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className="w-full rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-night"
-              />
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div>
+                <label htmlFor="profile-name" className="mb-1.5 block text-xs text-ink-dim">이름</label>
+                <input
+                  id="profile-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="w-full rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-night"
+                />
+              </div>
+              <div className="flex gap-1.5">
+                  <input id="profile-handle" aria-label="고유 ID" value={userHandle} readOnly className="w-24 cursor-default rounded-lg border border-surface-3 bg-void/40 px-2.5 py-2.5 font-mono text-[11px] text-ink-faint" />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(`${name.trim() || user.name} ${userHandle}`);
+                      setTagCopied(true);
+                      window.setTimeout(() => setTagCopied(false), 1200);
+                    }}
+                    title="친구 추가에 사용할 고유 ID 복사"
+                    className="rounded-lg border border-surface-3 px-2.5 text-xs text-ink-dim hover:text-ink"
+                  >
+                    {tagCopied ? "완료" : "복사"}
+                  </button>
+              </div>
             </div>
 
             <div>
