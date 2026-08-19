@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import ConsensusSummaryModal from '../../components/consensus/ConsensusSummaryModal'
 import OpinionForm from '../../components/opinion/OpinionForm'
 import OpinionList from '../../components/opinion/OpinionList'
-import { requestMockConsensus } from '../../mocks/consensus'
 import {
   createOpinion,
   deleteOpinion,
   getOpinions,
   getTeamMembers,
+  InsufficientResponsesError,
+  postConsensusSummary,
   updateOpinion,
   type TeamMemberProfile,
 } from '../../lib/api'
@@ -186,9 +187,13 @@ function ConsensusDevPage({
     setSummaryError(null)
 
     try {
-      setConsensus(await requestMockConsensus(opinions))
-    } catch {
-      setSummaryError('의견 요약을 불러오지 못했습니다.')
+      setConsensus(await postConsensusSummary(proposalId))
+    } catch (error) {
+      setSummaryError(
+        error instanceof InsufficientResponsesError
+          ? error.message
+          : '의견 요약을 불러오지 못했습니다.',
+      )
     } finally {
       setIsSummaryLoading(false)
     }

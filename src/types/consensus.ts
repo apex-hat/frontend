@@ -1,14 +1,13 @@
-export interface OpinionCategorySummary {
-  summary: string
-}
+export type ConsensusStatus = "AGREED" | "PARTIAL" | "DISAGREED" | "PENDING"
 
 export interface ConsensusSummary {
   id: string
   proposalId: string
+  consensusStatus: ConsensusStatus
   summary: string
-  agree?: OpinionCategorySummary
-  disagree?: OpinionCategorySummary
-  conditional?: OpinionCategorySummary
-  recommendation: string
+  keyIssues: string[]
+  culturalAnalysis: string[]
+  hiddenOpposition: string[]
+  recommendedActions: string
   generatedAt: string
 }

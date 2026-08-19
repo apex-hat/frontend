@@ -1,31 +1,10 @@
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
 import { isAxiosError } from "axios";
 import type { AuthUser, Notification, Opinion, Proposal, ProposalStatus, Stance, Team, TeamRole } from "../types";
-import {
-  AVATAR_COLORS,
-  CURRENT_USER_ID,
-  MOCK_NOTIFICATIONS,
-  MOCK_TEAM,
-  MOCK_TEAM_MEMBERS,
-  MOCK_USERS,
-} from "../features/dashboard/data/mockData";
+import type { ConsensusSummary, ConsensusStatus } from "../types/consensus";
+import { AVATAR_COLORS } from "../features/dashboard/data/mockData";
 import { auth } from "./firebase";
 import { httpClient } from "./httpClient";
-
-// mock/실서버 전환은 이 플래그 하나로. 컴포넌트는 아래 함수들만 호출하고
-// fetch/mock 분기는 절대 컴포넌트 안에 넣지 않는다.
-const USE_MOCK = true;
-
-const MOCK_DELAY_MS = 120;
-const delay = <T,>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value), MOCK_DELAY_MS));
-
-/** fetch는 401/500 같은 HTTP 에러도 reject하지 않으므로, 응답을 쓰기 전에 res.ok를 직접 확인한다. */
-async function parseJson<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    throw new Error(`API request failed: ${res.status} ${res.statusText}`);
-  }
-  return res.json();
-}
 
 // --- Auth -------------------------------------------------------------
 
@@ -36,18 +15,17 @@ export async function login(email: string, password: string): Promise<AuthUser> 
 }
 
 /**
- * Firebase Auth로 계정을 만들고 JIT 동기화된 Backend 프로필을 조회해 반환한다.
- * country/timezone/preferredLanguage는 여기서 받지 않는다 — Backend는 이 값을 저장할
- * 방법이 없다(`/api/auth/signup`은 501, `/api/users/me`는 PATCH 미제공, JIT 동기화는
- * Firebase ID Token의 custom claim만 읽는데 클라이언트 SDK로는 custom claim을 설정할
- * 수 없음). 계약 변경 없이는 반영 불가능하므로 실제로 전달되는 값은 이름뿐이다.
+ * Firebase Auth로 계정을 만들고 JIT 동기화된 Backend 프로필을 조회한 뒤,
+ * country/timezone은 PATCH /api/users/me로 채운다(JIT 동기화는 Firebase ID Token의
+ * custom claim만 읽는데 클라이언트 SDK로는 custom claim을 설정할 수 없어서 여기서 별도 처리).
  */
-export async function signup(name: string, email: string, password: string): Promise<AuthUser> {
+export async function signup(name: string, email: string, password: string, country: string, timezone: string): Promise<AuthUser> {
   const credential = await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(credential.user, { displayName: name });
   // updateProfile은 이미 발급된 ID Token의 name claim을 갱신하지 않으므로, 강제로 새 토큰을 받아온다.
   await credential.user.getIdToken(true);
-  return getMe();
+  await getMe();
+  return updateCurrentUser({ country, timeZone: timezone });
 }
 
 export async function logout(): Promise<void> {
@@ -79,6 +57,28 @@ export async function getMe(): Promise<AuthUser> {
   };
 }
 
+interface UserUpdatePayload {
+  name?: string;
+  country?: string;
+  timeZone?: string;
+  location?: string;
+  cultureTag?: string;
+}
+
+/** PATCH /api/users/me — 전달한 필드만 반영되는 부분 수정(값을 생략하면 기존 값 유지) */
+export async function updateCurrentUser(payload: UserUpdatePayload): Promise<AuthUser> {
+  const { data } = await httpClient.patch<UserMeResponse>("/api/users/me", payload);
+  return {
+    id: String(data.id),
+    name: data.name || data.email,
+    email: data.email,
+    country: data.country,
+    timezone: data.timeZone,
+    culture_tag: data.cultureTag,
+    preferred_language: "ko",
+  };
+}
+
 // --- AI -------------------------------------------------------------
 
 export interface IntentAnalysisResult {
@@ -91,6 +91,80 @@ export interface IntentAnalysisResult {
 export async function postIntentAnalysis(content: string): Promise<IntentAnalysisResult> {
   const { data } = await httpClient.post<IntentAnalysisResult>("/api/ai/intent-analysis", { content });
   return data;
+}
+
+export interface CultureInterpretation {
+  culture: string;
+  interpretation: string;
+}
+
+export interface ContextAnalysisResult {
+  id: string;
+  originalText: string;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH";
+  interpretations: CultureInterpretation[];
+  flaggedPhrases: string[];
+  suggestion: string;
+}
+
+interface ContextAnalysisResponseDto {
+  id: number;
+  originalText: string;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH";
+  interpretations: CultureInterpretation[];
+  flaggedPhrases: string[];
+  suggestion: string;
+}
+
+/** POST /api/ai/context-analysis — proposalId 없이 등록 전에도 호출 가능(제안 등록 시 cultureAnalysisIds로 연결) */
+export async function postContextAnalysis(originalText: string, targetCultures: string[]): Promise<ContextAnalysisResult> {
+  const { data } = await httpClient.post<ContextAnalysisResponseDto>("/api/ai/context-analysis", {
+    originalText,
+    targetCultures,
+  });
+  return { ...data, id: String(data.id) };
+}
+
+interface ConsensusSummaryDto {
+  id: number;
+  proposalId: number;
+  consensusStatus: ConsensusStatus;
+  summary: string;
+  keyIssues: string[];
+  culturalAnalysis: string[];
+  hiddenOpposition: string[];
+  recommendedActions: string;
+  createdAt: string;
+}
+
+export class InsufficientResponsesError extends Error {}
+
+/**
+ * POST /api/ai/consensus-summary — 대상 팀원 전원 응답 또는 deadline 경과 시에만 성공(409).
+ * 조건 미충족이면 InsufficientResponsesError를 던진다(호출부에서 사용자 메시지로 구분해서 보여줄 것).
+ */
+export async function postConsensusSummary(proposalId: string): Promise<ConsensusSummary> {
+  try {
+    const { data } = await httpClient.post<ConsensusSummaryDto>("/api/ai/consensus-summary", {
+      proposalId: Number(proposalId),
+    });
+    return {
+      id: String(data.id),
+      proposalId: String(data.proposalId),
+      consensusStatus: data.consensusStatus,
+      summary: data.summary,
+      keyIssues: data.keyIssues,
+      culturalAnalysis: data.culturalAnalysis,
+      hiddenOpposition: data.hiddenOpposition,
+      recommendedActions: data.recommendedActions,
+      generatedAt: data.createdAt,
+    };
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.data?.error?.code === "INSUFFICIENT_RESPONSES") {
+      throw new InsufficientResponsesError(error.response.data.error.message);
+    }
+    throw error;
+  }
 }
 
 export interface UserSummary {
@@ -222,28 +296,41 @@ export interface TimezoneEntry {
   avatarColor: string;
 }
 
-/** GET /api/dashboard/timezones — 팀원 목록 + 현지 시간 계산용 timezone + 근무 여부는 클라이언트에서 파생 */
-export async function getTimezones(teamId: string = MOCK_TEAM.id): Promise<TimezoneEntry[]> {
-  if (USE_MOCK) {
-    const entries = MOCK_TEAM_MEMBERS.filter((tm) => tm.team_id === teamId)
-      .map((tm) => {
-        const user = MOCK_USERS.find((u) => u.id === tm.user_id);
-        // 위치 정보(country/timezone)가 없으면 대시보드에서 조용히 필터링
-        if (!user || !user.country || !user.timezone) return null;
-        return {
-          user_id: user.id,
-          name: user.name,
-          country: user.country,
-          timezone: user.timezone || "Asia/Seoul",
-          culture_tag: user.culture_tag,
-          role: tm.role,
-          avatarColor: AVATAR_COLORS[user.id] ?? "#7C8FE0",
-        };
-      })
-      .filter((e): e is TimezoneEntry => e !== null);
-    return delay(entries);
-  }
-  return fetch(`/api/dashboard/timezones?teamId=${teamId}`).then((r) => parseJson<TimezoneEntry[]>(r));
+interface DashboardTimezoneMemberDto {
+  userId: number;
+  country: string;
+  timeZone: string;
+  localTime: string;
+  location: string;
+}
+
+/**
+ * GET /api/dashboard/timezones — Backend 응답엔 country/timeZone만 있고 name/role/culture_tag가
+ * 없어(README §10, 근거 없는 컬럼을 새로 만들지 않기로 한 결정), 이미 연동해둔 팀원 목록
+ * (getTeamMembers)으로 보강한다. 근무 여부는 여전히 클라이언트에서 timezone 기준으로 파생한다.
+ */
+export async function getTimezones(teamId: string): Promise<TimezoneEntry[]> {
+  const [{ data }, members] = await Promise.all([
+    httpClient.get<{ members: DashboardTimezoneMemberDto[] }>("/api/dashboard/timezones", { params: { teamId: Number(teamId) } }),
+    getTeamMembers(teamId),
+  ]);
+  const memberByUserId = new Map(members.map((member) => [member.user_id, member]));
+
+  return data.members
+    .map((dto) => {
+      const member = memberByUserId.get(String(dto.userId));
+      if (!dto.country || !dto.timeZone) return null;
+      return {
+        user_id: String(dto.userId),
+        name: member?.name ?? "팀원",
+        country: dto.country,
+        timezone: dto.timeZone,
+        culture_tag: member?.culture_tag ?? "",
+        role: member?.role ?? "MEMBER",
+        avatarColor: AVATAR_COLORS[String(dto.userId)] ?? "#7C8FE0",
+      };
+    })
+    .filter((entry): entry is TimezoneEntry => entry !== null);
 }
 
 export interface ProposalStatusResult {
@@ -355,6 +442,7 @@ export async function createProposal(
   content: string,
   deadline: string,
   targetCultures: string[] = [],
+  cultureAnalysisIds: string[] = [],
 ): Promise<Proposal> {
   const { data } = await httpClient.post<ProposalResponseDto>("/api/proposals", {
     teamId: Number(teamId),
@@ -362,6 +450,7 @@ export async function createProposal(
     content,
     deadline,
     targetCultures,
+    cultureAnalysisIds: cultureAnalysisIds.map(Number),
   });
   return toProposal(data);
 }
@@ -398,6 +487,12 @@ export async function publishProposal(proposalId: string): Promise<Proposal> {
   return toProposal(data);
 }
 
+/** POST /api/proposals/{proposalId}/complete — CONSENSUS_READY만 허용(그 외 409), decidedBy는 인증된 호출자로 고정 */
+export async function completeProposal(proposalId: string, decision: string): Promise<Proposal> {
+  const { data } = await httpClient.post<ProposalResponseDto>(`/api/proposals/${proposalId}/complete`, { decision });
+  return toProposal(data);
+}
+
 /**
  * 제안 생성엔 실제 teamId가 필요한데 팀 생성/선택 UI가 없다(앱 전체가 단일 암시적 팀
  * 가정). GET /api/teams를 먼저 확인해 있으면 그 팀을, 없으면 그때만 1회 기본 팀을
@@ -412,42 +507,35 @@ export async function getOrCreateDefaultTeamId(): Promise<string> {
 
 // --- Notifications --------------------------------------------------------
 
-const MOCK_READ_NOTIFICATIONS_KEY = "meridian.mock-read-notifications";
-
-function getMockReadNotificationIds() {
-  try {
-    return new Set<string>(JSON.parse(window.sessionStorage.getItem(MOCK_READ_NOTIFICATIONS_KEY) ?? "[]") as string[]);
-  } catch {
-    return new Set<string>();
-  }
+interface NotificationResponseDto {
+  id: number;
+  proposalId: number | null;
+  type: Notification["type"];
+  title: string | null;
+  content: string | null;
+  isRead: boolean;
+  createdAt: string;
 }
 
-export async function getNotifications(userId: string = CURRENT_USER_ID): Promise<Notification[]> {
-  if (USE_MOCK) {
-    // 동일 알림 중복 방지(방어적): 같은 id는 한 번만
-    const seen = new Set<string>();
-    const deduped = MOCK_NOTIFICATIONS.filter((n) => n.user_id === userId).filter((n) => {
-      if (seen.has(n.id)) return false;
-      seen.add(n.id);
-      return true;
-    });
-    const readIds = getMockReadNotificationIds();
-    return delay(deduped.map((notification) => readIds.has(notification.id) ? { ...notification, is_read: true } : notification));
-  }
-  return fetch("/api/notifications").then((r) => parseJson<Notification[]>(r));
+function toNotification(dto: NotificationResponseDto): Notification {
+  return {
+    id: String(dto.id),
+    user_id: "",
+    proposal_id: dto.proposalId !== null ? String(dto.proposalId) : null,
+    type: dto.type,
+    message: dto.title && dto.content ? `${dto.title} — ${dto.content}` : dto.title ?? dto.content ?? "",
+    is_read: dto.isRead,
+    created_at: dto.createdAt,
+  };
 }
 
+/** GET /api/notifications — Backend가 인증된 사용자 기준으로 알아서 필터링하므로 userId 파라미터가 없다 */
+export async function getNotifications(): Promise<Notification[]> {
+  const { data } = await httpClient.get<NotificationResponseDto[]>("/api/notifications");
+  return data.map(toNotification);
+}
+
+/** PATCH /api/notifications/{notificationId} */
 export async function markNotificationRead(notificationId: string): Promise<void> {
-  if (USE_MOCK) {
-    const readIds = getMockReadNotificationIds();
-    readIds.add(notificationId);
-    window.sessionStorage.setItem(MOCK_READ_NOTIFICATIONS_KEY, JSON.stringify([...readIds]));
-    return delay(undefined);
-  }
-  const res = await fetch(`/api/notifications/${notificationId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ is_read: true }),
-  });
-  if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+  await httpClient.patch(`/api/notifications/${notificationId}`);
 }

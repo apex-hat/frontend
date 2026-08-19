@@ -3,7 +3,14 @@ import { DayPicker } from "@daypicker/react";
 import { ko } from "@daypicker/react/locale";
 import "@daypicker/react/style.css";
 import styles from "./ProposalForm.module.css";
-import { createProposal, getOrCreateDefaultTeamId, publishProposal, updateProposal } from "../../lib/api";
+import {
+  createProposal,
+  getOrCreateDefaultTeamId,
+  postContextAnalysis,
+  publishProposal,
+  updateProposal,
+  type ContextAnalysisResult,
+} from "../../lib/api";
 import {
   GROUPS_CHANGED_EVENT,
   loadGroups,
@@ -94,6 +101,9 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
+  const [cultureAnalysis, setCultureAnalysis] = useState<ContextAnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // 마감 기한은 오늘 이전 날짜를 선택할 수 없도록 date input의 min으로 사용
   const todayStr = getTodayDateString();
@@ -124,6 +134,28 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
         ? prev.targetCultures.filter((item) => item !== code)
         : [...prev.targetCultures, code],
     }));
+  };
+
+  const handleAnalyze = async () => {
+    if (!formData.content.trim()) {
+      setAnalysisError("먼저 제안 내용을 입력해주세요.");
+      return;
+    }
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    try {
+      const result = await postContextAnalysis(formData.content, formData.targetCultures);
+      setCultureAnalysis(result);
+    } catch {
+      setAnalysisError("문화 맥락 분석에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const applySuggestion = () => {
+    if (!cultureAnalysis) return;
+    setFormData((prev) => ({ ...prev, content: cultureAnalysis.suggestion }));
   };
 
   const hour24 = (Number(deadlineHour) % 12) + (deadlinePeriod === "PM" ? 12 : 0);
@@ -164,7 +196,8 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
         await updateProposal(proposal.id, proposalData.title, proposalData.content, proposalData.deadline, proposalData.targetCultures);
       } else if (!targetProposalId) {
         const teamId = await getOrCreateDefaultTeamId();
-        const created = await createProposal(teamId, proposalData.title, proposalData.content, proposalData.deadline, proposalData.targetCultures);
+        const cultureAnalysisIds = cultureAnalysis ? [cultureAnalysis.id] : [];
+        const created = await createProposal(teamId, proposalData.title, proposalData.content, proposalData.deadline, proposalData.targetCultures, cultureAnalysisIds);
         targetProposalId = created.id;
         setPendingProposalId(created.id);
 
@@ -307,6 +340,56 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
           })}
         </div>
         <p className={styles.emptyGroupHint}>선택한 문화권 기준으로 AI가 표현의 오해 가능성을 분석합니다. 선택하지 않아도 등록할 수 있습니다.</p>
+
+        <button
+          type="button"
+          className={styles.analyzeButton}
+          onClick={handleAnalyze}
+          disabled={isAnalyzing || !formData.content.trim()}
+        >
+          {isAnalyzing ? "분석 중..." : "AI 문화 맥락 분석"}
+        </button>
+        {analysisError && <p className={styles.errorText}>{analysisError}</p>}
+
+        {cultureAnalysis && (
+          <div className={styles.analysisResult}>
+            <span className={`${styles.riskBadge} ${styles[`risk${cultureAnalysis.riskLevel}`]}`}>
+              위험도: {cultureAnalysis.riskLevel === "LOW" ? "낮음" : cultureAnalysis.riskLevel === "MEDIUM" ? "중간" : "높음"}
+            </span>
+
+            {cultureAnalysis.interpretations.length > 0 && (
+              <div className={styles.analysisSection}>
+                <h4 className={styles.analysisSectionTitle}>문화권별 해석</h4>
+                <ul className={styles.analysisList}>
+                  {cultureAnalysis.interpretations.map((item) => (
+                    <li key={item.culture}><strong>{item.culture}</strong> — {item.interpretation}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {cultureAnalysis.flaggedPhrases.length > 0 && (
+              <div className={styles.analysisSection}>
+                <h4 className={styles.analysisSectionTitle}>오해 가능 표현</h4>
+                <div className={styles.cultureOptions}>
+                  {cultureAnalysis.flaggedPhrases.map((phrase, index) => (
+                    <span key={index} className={styles.flaggedChip}>{phrase}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {cultureAnalysis.suggestion && (
+              <div className={styles.analysisSection}>
+                <h4 className={styles.analysisSectionTitle}>수정 제안</h4>
+                <p className={styles.suggestionText}>{cultureAnalysis.suggestion}</p>
+                <button type="button" className={styles.applySuggestionButton} onClick={applySuggestion}>
+                  이 문장으로 내용 교체
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className={styles.field}>
