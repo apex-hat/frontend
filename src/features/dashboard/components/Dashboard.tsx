@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AuthUser, Notification, Opinion, Proposal } from "../../../types";
 import {
+  completeProposal as completeProposalApi,
   deleteProposal as deleteProposalApi,
   getNotifications,
   getOrCreateDefaultTeamId,
@@ -25,10 +26,7 @@ import {
   loadMessages,
   saveMessages,
 } from "../../workspace/workspaceStorage";
-import {
-  completeSubmittedProposal,
-  loadSubmittedProposals,
-} from "../../../mocks/proposal";
+import { loadSubmittedProposals } from "../../../mocks/proposal";
 import BrandMark from "../../../components/branding/BrandMark";
 import ConnectionButton from "../../workspace/components/ConnectionButton";
 import { MOCK_PROPOSAL_GROUP_NAMES } from "../data/mockData";
@@ -87,6 +85,8 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [proposalMenu, setProposalMenu] = useState<{ proposal: Proposal; x: number; y: number } | null>(null);
   const [completionTarget, setCompletionTarget] = useState<Proposal | null>(null);
   const [completionComment, setCompletionComment] = useState("");
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
   const [analysisTarget, setAnalysisTarget] = useState<Proposal | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
   const [workspaceGroups, setWorkspaceGroups] = useState(loadGroups);
@@ -187,17 +187,26 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const openCompletion = (proposal: Proposal) => {
     setCompletionTarget(proposal);
     setCompletionComment("");
+    setCompletionError(null);
     setProposalMenu(null);
   };
 
-  const completeProposal = () => {
+  const completeProposal = async () => {
     if (!completionTarget || !completionComment.trim()) return;
     const opinions = opinionsByProposal[completionTarget.id] ?? [];
     const resultSummary = buildResultSummary(opinions);
     const finalComment = completionComment.trim();
-    const completed = completeSubmittedProposal(completionTarget.id, finalComment, resultSummary);
-    if (!completed) return;
-    setSubmittedProposals(loadSubmittedProposals());
+
+    setIsCompleting(true);
+    setCompletionError(null);
+    let completed: Proposal;
+    try {
+      completed = await completeProposalApi(completionTarget.id, finalComment);
+    } catch {
+      setCompletionError("완료 처리에 실패했습니다. AI 합의 요약이 먼저 진행되어야 완료할 수 있습니다.");
+      setIsCompleting(false);
+      return;
+    }
 
     const storedProposal = loadSubmittedProposals().find((proposal) => proposal.id === completionTarget.id);
     const targetGroup = loadGroups().find((group) => group.name === storedProposal?.targetGroup);
@@ -215,11 +224,12 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     }
 
     setProposals((current) => sortProposals(current.map((item) => item.id === completionTarget.id
-      ? { ...item, status: "COMPLETED", completed_at: completed.completed_at }
+      ? { ...item, status: completed.status, completed_at: completed.completed_at }
       : item)));
     setExpandedId(null);
     setCompletionTarget(null);
     setCompletionComment("");
+    setIsCompleting(false);
   };
 
   const activeProposalCount = proposals.filter((proposal) => proposal.status === "OPEN").length;
@@ -406,7 +416,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                   <button type="button" onClick={() => { setDeleteTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
                 </>
               )}
-              {proposalMenu.proposal.status === "OPEN" && (
+              {proposalMenu.proposal.status === "CONSENSUS_READY" && (
                 <button type="button" onClick={() => openCompletion(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-consensus">완료하기</button>
               )}
             </>
@@ -441,9 +451,10 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               className="w-full resize-none rounded-xl border border-surface-3 bg-surface-2 px-3.5 py-3 text-sm leading-6 text-ink outline-none transition focus:border-night"
             />
             <p className="mt-2 text-[10px] text-ink-faint">완료 후 결과 분석과 최종 결정이 그룹 채팅에 공유됩니다.</p>
+            {completionError && <p className="mt-2 text-[11px] text-alert">{completionError}</p>}
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" onClick={() => setCompletionTarget(null)} className="px-3 py-2 text-xs text-ink-dim hover:text-ink">취소</button>
-              <button type="button" onClick={completeProposal} disabled={!completionComment.trim()} className="rounded-lg bg-ink px-4 py-2 text-xs font-semibold text-void transition disabled:cursor-default disabled:opacity-35">완료 처리</button>
+              <button type="button" onClick={completeProposal} disabled={!completionComment.trim() || isCompleting} className="rounded-lg bg-ink px-4 py-2 text-xs font-semibold text-void transition disabled:cursor-default disabled:opacity-35">{isCompleting ? "처리 중..." : "완료 처리"}</button>
             </div>
           </section>
         </div>

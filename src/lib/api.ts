@@ -487,6 +487,12 @@ export async function publishProposal(proposalId: string): Promise<Proposal> {
   return toProposal(data);
 }
 
+/** POST /api/proposals/{proposalId}/complete — CONSENSUS_READY만 허용(그 외 409), decidedBy는 인증된 호출자로 고정 */
+export async function completeProposal(proposalId: string, decision: string): Promise<Proposal> {
+  const { data } = await httpClient.post<ProposalResponseDto>(`/api/proposals/${proposalId}/complete`, { decision });
+  return toProposal(data);
+}
+
 /**
  * 제안 생성엔 실제 teamId가 필요한데 팀 생성/선택 UI가 없다(앱 전체가 단일 암시적 팀
  * 가정). GET /api/teams를 먼저 확인해 있으면 그 팀을, 없으면 그때만 1회 기본 팀을
