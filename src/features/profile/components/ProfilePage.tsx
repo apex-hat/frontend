@@ -185,7 +185,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
                   <button
                     type="button"
                     onClick={async () => {
-                      const copied = await copyToClipboard(`${name.trim() || user.name} ${userHandle}`);
+                      const copied = await copyToClipboard(userHandle);
                       if (copied) {
                         setTagCopied(true);
                         window.setTimeout(() => setTagCopied(false), 1200);
