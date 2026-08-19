@@ -59,6 +59,8 @@ export interface Proposal {
   /** Backend 실연동 이후에만 채워짐(Mock 데이터에는 없을 수 있어 optional) */
   content?: string;
   author_id?: string;
+  /** AI 문화 맥락 분석 대상 문화권(국가 코드). Backend 실연동 이후에만 채워짐 */
+  target_cultures?: string[];
 }
 
 export interface Opinion {
