@@ -39,6 +39,7 @@ interface UserMeResponse {
   country: string;
   timeZone: string;
   cultureTag: string;
+  friendCode: string;
 }
 
 /** GET /api/users/me — Backend는 camelCase라 여기서만 snake_case AuthUser로 매핑한다. */
@@ -54,6 +55,7 @@ export async function getMe(): Promise<AuthUser> {
     culture_tag: data.cultureTag,
     // Backend UserResponse에는 아직 preferred_language가 없어 기본값 사용
     preferred_language: "ko",
+    friend_code: data.friendCode,
   };
 }
 
@@ -76,6 +78,7 @@ export async function updateCurrentUser(payload: UserUpdatePayload): Promise<Aut
     timezone: data.timeZone,
     culture_tag: data.cultureTag,
     preferred_language: "ko",
+    friend_code: data.friendCode,
   };
 }
 
@@ -282,6 +285,76 @@ export async function addTeamMember(teamId: string, userId: string, role: TeamRo
 /** DELETE /api/teams/{teamId}/members/{userId} — 호출자는 해당 팀의 PM이어야 함 */
 export async function removeTeamMember(teamId: string, userId: string): Promise<void> {
   await httpClient.delete(`/api/teams/${teamId}/members/${userId}`);
+}
+
+// --- Friends ----------------------------------------------------------
+
+export type FriendRequestStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+
+export interface FriendRequestSummary {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  addresseeId: string;
+  addresseeName: string;
+  status: FriendRequestStatus;
+  createdAt: string;
+}
+
+interface FriendRequestResponseDto {
+  id: number;
+  requesterId: number;
+  requesterName: string;
+  addresseeId: number;
+  addresseeName: string;
+  status: FriendRequestStatus;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+function toFriendRequestSummary(dto: FriendRequestResponseDto): FriendRequestSummary {
+  return {
+    id: String(dto.id),
+    requesterId: String(dto.requesterId),
+    requesterName: dto.requesterName,
+    addresseeId: String(dto.addresseeId),
+    addresseeName: dto.addresseeName,
+    status: dto.status,
+    createdAt: dto.createdAt,
+  };
+}
+
+export class FriendRequestError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/** POST /api/friends/requests — 고유 ID(#MER-XXXX)로 친구 요청을 보낸다. */
+export async function sendFriendRequest(friendCode: string): Promise<FriendRequestSummary> {
+  try {
+    const { data } = await httpClient.post<FriendRequestResponseDto>("/api/friends/requests", { friendCode });
+    return toFriendRequestSummary(data);
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.data?.error) {
+      throw new FriendRequestError(error.response.data.error.code, error.response.data.error.message);
+    }
+    throw error;
+  }
+}
+
+/** GET /api/friends/requests — 나에게 온 대기 중인 친구 요청 목록 */
+export async function getIncomingFriendRequests(): Promise<FriendRequestSummary[]> {
+  const { data } = await httpClient.get<FriendRequestResponseDto[]>("/api/friends/requests");
+  return data.map(toFriendRequestSummary);
+}
+
+/** PATCH /api/friends/requests/{requestId} — 친구 요청 수락/거절 */
+export async function respondToFriendRequest(requestId: string, accept: boolean): Promise<FriendRequestSummary> {
+  const { data } = await httpClient.patch<FriendRequestResponseDto>(`/api/friends/requests/${requestId}`, { accept });
+  return toFriendRequestSummary(data);
 }
 
 // --- Dashboard ------------------------------------------------------------

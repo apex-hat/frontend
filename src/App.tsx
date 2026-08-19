@@ -30,6 +30,7 @@ function readStoredUser(): AuthUser | null {
       timezone: user.timezone ?? "UTC",
       culture_tag: user.culture_tag ?? "",
       preferred_language: user.preferred_language ?? "ko",
+      friend_code: user.friend_code ?? "",
     } as AuthUser;
   } catch {
     window.sessionStorage.removeItem(AUTH_STORAGE_KEY);

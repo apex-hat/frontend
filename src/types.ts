@@ -30,6 +30,8 @@ export interface User {
   /** 예: "high-context", "low-context" */
   culture_tag: string;
   preferred_language: SupportedLanguage;
+  /** 친구 요청에 쓰는 고유 코드(예: "MER-7F3K"). 화면에는 "#" 접두사를 붙여 표시한다. */
+  friend_code: string;
   created_at: string;
 }
 
@@ -89,5 +91,5 @@ export interface Notification {
 /** POST /api/auth/login, /api/auth/signup 응답 형태 */
 export type AuthUser = Pick<
   User,
-  "id" | "name" | "email" | "country" | "timezone" | "culture_tag" | "preferred_language"
+  "id" | "name" | "email" | "country" | "timezone" | "culture_tag" | "preferred_language" | "friend_code"
 >;

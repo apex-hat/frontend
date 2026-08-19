@@ -4,7 +4,6 @@ import { getUtcOffsetLabel } from "../../../lib/timezone";
 import { getNotifications, markNotificationRead } from "../../../lib/api";
 import { copyToClipboard } from "../../../lib/clipboard";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
-import { getUserHandle } from "../../workspace/workspaceStorage";
 import BrandMark from "../../../components/branding/BrandMark";
 import NotificationPanel from "../../dashboard/components/NotificationPanel";
 import ConnectionButton from "../../workspace/components/ConnectionButton";
@@ -87,7 +86,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
   const [tagCopied, setTagCopied] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isConnectionManagerOpen, setIsConnectionManagerOpen] = useState(false);
-  const userHandle = getUserHandle(user);
+  const userHandle = user.friend_code ? `#${user.friend_code}` : "";
   const { selectedTeamId } = useTeamSwitcher(user);
 
   useEffect(() => {
