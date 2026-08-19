@@ -3,17 +3,15 @@ import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-do
 import ProposalForm from "./ProposalForm";
 import ProposalInfoPage from "./ProposalInfoPage";
 import ConsensusDevPage from "../consensus/ConsensusDevPage";
-import { loadSubmittedProposals } from "../../mocks/proposal";
-import { getNotifications, getProposal, markNotificationRead } from "../../lib/api";
+import { getNotifications, getProposal, getTeamMembers, markNotificationRead } from "../../lib/api";
 import type { AuthUser, Notification, Proposal } from "../../types";
 import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSidebar";
 import UserHandleButton from "../../features/workspace/components/UserHandleButton";
 import FriendManagerModal from "../../features/workspace/components/FriendManagerModal";
 import NotificationPanel from "../../features/dashboard/components/NotificationPanel";
-import { MOCK_PROPOSAL_GROUP_NAMES } from "../../features/dashboard/data/mockData";
 import BrandMark from "../../components/branding/BrandMark";
 import ConnectionButton from "../../features/workspace/components/ConnectionButton";
-import { loadGroups } from "../../features/workspace/workspaceStorage";
+import { useTeamSwitcher } from "../../features/workspace/useTeamSwitcher";
 
 interface Props {
   user: AuthUser;
@@ -22,8 +20,9 @@ interface Props {
   onLogout: () => void;
 }
 
-function ProposalFormRoute({ onSubmitted }: { onSubmitted: () => void }) {
-  return <ProposalForm onSubmitted={onSubmitted} />;
+function ProposalFormRoute({ teamId, onSubmitted }: { teamId: string | null; onSubmitted: () => void }) {
+  if (!teamId) return <p className="py-16 text-center text-sm text-ink-dim">팀 정보를 불러오는 중...</p>;
+  return <ProposalForm teamId={teamId} onSubmitted={onSubmitted} />;
 }
 
 /** 실제 Proposal은 PUT이 DRAFT 상태에서만 허용되므로(그 외 409), 작성자 본인의 DRAFT가 아니면 접근을 막는다. */
@@ -88,16 +87,16 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
     if (!proposalId) return;
 
     getProposal(proposalId)
-      .then((item) => {
+      .then(async (item) => {
         if (cancelled) return;
-        const submittedProposal = loadSubmittedProposals().find((candidate) => candidate.id === proposalId);
-        const targetGroupName = submittedProposal?.targetGroup ?? MOCK_PROPOSAL_GROUP_NAMES[item.id];
+        const members = await getTeamMembers(item.target_team_id).catch(() => []);
+        if (cancelled) return;
         setProposal({
           id: item.id,
           title: item.title,
           content: item.content ?? "제안 내용을 확인하고 의견을 남겨주세요.",
           targetTeamId: item.target_team_id,
-          teamMemberCount: loadGroups().find((group) => group.name === targetGroupName)?.memberCount ?? 1,
+          teamMemberCount: Math.max(1, members.length),
         });
       })
       .catch(() => {
@@ -139,6 +138,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
+  const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup } = useTeamSwitcher(user);
 
   useEffect(() => {
     let cancelled = false;
@@ -199,7 +199,14 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
 
       <div className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_82%]">
         <div className="hidden h-full border-r border-surface-3 px-4 lg:block">
-          <WorkspaceSidebar user={user} />
+          <WorkspaceSidebar
+            user={user}
+            teams={teams}
+            selectedTeamId={selectedTeamId}
+            isLoadingTeams={isLoadingTeams}
+            onSelectTeam={selectTeam}
+            onCreateGroup={createGroup}
+          />
         </div>
         <div className="relative min-w-0 px-4 sm:px-6 2xl:px-8">
           <button
@@ -215,7 +222,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </button>
           <Routes>
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="new" element={<ProposalFormRoute onSubmitted={onBackToDashboard} />} />
+            <Route path="new" element={<ProposalFormRoute teamId={selectedTeamId} onSubmitted={onBackToDashboard} />} />
             <Route path=":proposalId/edit" element={<ProposalEditRoute userId={user.id} onSubmitted={onBackToDashboard} />} />
             <Route path=":proposalId/detail" element={<ProposalInfoRoute />} />
             <Route path=":proposalId/opinions" element={<ProposalOpinionsRoute user={user} />} />
@@ -223,7 +230,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </Routes>
         </div>
       </div>
-      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} />
+      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} teamId={selectedTeamId} />
     </div>
   );
 }

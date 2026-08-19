@@ -1,15 +1,16 @@
 import { useState, type FormEvent } from "react";
 import {
   addContact,
-  joinGroupByCode,
   loadContacts,
   type WorkspaceContact,
 } from "../workspaceStorage";
-import { addTeamMember, getOrCreateDefaultTeamId, searchUserByEmail, type UserSummary } from "../../../lib/api";
+import { addTeamMember, searchUserByEmail, type UserSummary } from "../../../lib/api";
 
 interface FriendManagerModalProps {
   open: boolean;
   onClose: () => void;
+  /** "팀원 추가" 탭에서 팀원을 추가할 대상 팀. 아직 팀이 준비되지 않았으면 null. */
+  teamId: string | null;
 }
 
 const INCOMING_REQUEST = {
@@ -20,11 +21,10 @@ const INCOMING_REQUEST = {
   online: true,
 } satisfies WorkspaceContact;
 
-export default function FriendManagerModal({ open, onClose }: FriendManagerModalProps) {
-  const [mode, setMode] = useState<"friend" | "group" | "team">("friend");
+export default function FriendManagerModal({ open, onClose, teamId }: FriendManagerModalProps) {
+  const [mode, setMode] = useState<"friend" | "team">("friend");
   const [contacts, setContacts] = useState(loadContacts);
   const [friendHandle, setFriendHandle] = useState("");
-  const [groupCode, setGroupCode] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [teamEmail, setTeamEmail] = useState("");
   const [foundTeammate, setFoundTeammate] = useState<UserSummary | null>(null);
@@ -48,21 +48,6 @@ export default function FriendManagerModal({ open, onClose }: FriendManagerModal
     }
     setStatus(`${handle}님에게 친구 요청을 보냈습니다.`);
     setFriendHandle("");
-  };
-
-  const joinGroup = (event: FormEvent) => {
-    event.preventDefault();
-    const result = joinGroupByCode(groupCode);
-    if (result.status === "invalid") {
-      setStatus("일치하는 그룹 코드를 찾지 못했습니다.");
-      return;
-    }
-    if (result.status === "already") {
-      setStatus(`이미 ${result.group.name}에 참여하고 있습니다.`);
-      return;
-    }
-    setStatus(`${result.group.name}에 참여했습니다.`);
-    setGroupCode("");
   };
 
   const acceptRequest = () => {
@@ -93,10 +78,9 @@ export default function FriendManagerModal({ open, onClose }: FriendManagerModal
   };
 
   const addTeammate = async () => {
-    if (!foundTeammate) return;
+    if (!foundTeammate || !teamId) return;
     setIsAddingTeammate(true);
     try {
-      const teamId = await getOrCreateDefaultTeamId();
       await addTeamMember(teamId, foundTeammate.id, "MEMBER");
       setStatus(`${foundTeammate.name}님을 팀에 추가했습니다.`);
       setFoundTeammate(null);
@@ -114,14 +98,13 @@ export default function FriendManagerModal({ open, onClose }: FriendManagerModal
         <div className="mb-5 flex items-center justify-between">
           <div>
             <h2 id="connection-manager-title" className="font-display text-xl text-ink">연결 추가</h2>
-            <p className="mt-1 text-[11px] text-ink-faint">친구를 찾거나 그룹 코드로 참여하세요.</p>
+            <p className="mt-1 text-[11px] text-ink-faint">친구를 찾거나 팀원을 추가하세요.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="닫기" className="text-lg text-ink-dim transition hover:text-ink">×</button>
         </div>
 
-        <div className="mb-5 grid grid-cols-3 rounded-lg bg-surface-2 p-1">
+        <div className="mb-5 grid grid-cols-2 rounded-lg bg-surface-2 p-1">
           <button type="button" onClick={() => { setMode("friend"); setStatus(null); }} className={`rounded-md py-2 text-xs transition ${mode === "friend" ? "bg-surface-3 text-ink" : "text-ink-faint hover:text-ink-dim"}`}>친구 추가</button>
-          <button type="button" onClick={() => { setMode("group"); setStatus(null); }} className={`rounded-md py-2 text-xs transition ${mode === "group" ? "bg-surface-3 text-ink" : "text-ink-faint hover:text-ink-dim"}`}>그룹 참여</button>
           <button type="button" onClick={() => { setMode("team"); setStatus(null); }} className={`rounded-md py-2 text-xs transition ${mode === "team" ? "bg-surface-3 text-ink" : "text-ink-faint hover:text-ink-dim"}`}>팀원 추가</button>
         </div>
 
@@ -146,15 +129,6 @@ export default function FriendManagerModal({ open, onClose }: FriendManagerModal
               {incomingAccepted ? <span className="text-[11px] text-consensus">수락됨</span> : <button type="button" onClick={acceptRequest} className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-dim hover:text-ink">수락</button>}
             </div>
           </>
-        ) : mode === "group" ? (
-          <form onSubmit={joinGroup}>
-            <label htmlFor="group-invite-code" className="mb-1.5 block text-xs text-ink-dim">그룹 참여 코드</label>
-            <div className="flex gap-2">
-              <input id="group-invite-code" value={groupCode} onChange={(event) => setGroupCode(event.target.value.toUpperCase())} placeholder="예: HACK26" className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 font-mono text-xs uppercase tracking-wider text-ink outline-none focus:border-night" />
-              <button type="submit" className="rounded-lg bg-ink px-4 text-xs font-semibold text-void">참여</button>
-            </div>
-            <p className="mt-2 text-[10px] text-ink-faint">테스트 코드: HACK26 · REMOTE7 · DESIGN</p>
-          </form>
         ) : (
           <>
             <form onSubmit={searchTeammate}>
@@ -173,7 +147,7 @@ export default function FriendManagerModal({ open, onClose }: FriendManagerModal
                 </button>
               </div>
             </form>
-            <p className="mt-2 text-[10px] text-ink-faint">실제 가입된 이메일로 검색해 현재 팀에 추가합니다.</p>
+            <p className="mt-2 text-[10px] text-ink-faint">실제 가입된 이메일로 검색해 현재 선택된 팀에 추가합니다.</p>
 
             {foundTeammate && (
               <div className="mt-4 flex items-center gap-3 rounded-xl bg-surface-2 p-3">
@@ -187,7 +161,7 @@ export default function FriendManagerModal({ open, onClose }: FriendManagerModal
                 <button
                   type="button"
                   onClick={addTeammate}
-                  disabled={isAddingTeammate}
+                  disabled={isAddingTeammate || !teamId}
                   className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-dim hover:text-ink disabled:opacity-50"
                 >
                   {isAddingTeammate ? "추가 중" : "추가"}

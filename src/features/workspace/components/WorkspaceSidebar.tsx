@@ -1,428 +1,182 @@
-import { useEffect, useState, type FormEvent } from "react";
-import type { AuthUser } from "../../../types";
-import {
-  CONTACTS_CHANGED_EVENT,
-  GROUPS_CHANGED_EVENT,
-  createGroup,
-  leaveGroup,
-  loadContacts,
-  loadGroups,
-  loadMessages,
-  loadUnreadChatIds,
-  saveLastOpenedChat,
-  saveMessages,
-  saveUnreadChatIds,
-  type ChatMessage,
-  type WorkspaceContact,
-  type WorkspaceGroup,
-} from "../workspaceStorage";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { AuthUser, Team } from "../../../types";
+import { getTeamMembers, type TeamMemberProfile } from "../../../lib/api";
 
 interface WorkspaceSidebarProps {
   user: AuthUser;
+  teams: Team[];
+  selectedTeamId: string | null;
+  isLoadingTeams: boolean;
+  onSelectTeam: (teamId: string) => void;
+  onCreateGroup: (name: string) => Promise<Team>;
 }
 
-const MEMBER_PROFILES = [
-  { name: "이민아", color: "#63C7A6" },
-  { name: "Alex Turner", color: "#7C8FE0" },
-  { name: "Sofia Almeida", color: "#E8607A" },
-  { name: "Omar Haddad", color: "#63C7A6" },
-  { name: "佐藤 陽翔", color: "#7C8FE0" },
-  { name: "Priya Nair", color: "#E8607A" },
-  { name: "Jack Wilson", color: "#F2A65A" },
-  { name: "Lena Schmidt", color: "#F2A65A" },
-  { name: "Noah Williams", color: "#7C8FE0" },
-];
+const AVATAR_PALETTE = ["#F2A65A", "#63C7A6", "#7C8FE0", "#E8607A"];
 
-function GroupAvatar({ compact = false }: { compact?: boolean }) {
-  return (
-    <span className={`flex shrink-0 items-center justify-center rounded-lg border border-surface-3 bg-surface-2 text-ink-dim ${compact ? "h-7 w-7" : "h-8 w-8"}`} aria-hidden="true">
-      <svg width={compact ? 13 : 15} height={compact ? 13 : 15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-        <circle cx="9" cy="8" r="3" />
-        <circle cx="17" cy="10" r="2.5" />
-        <path d="M3.5 18.5c.5-3.2 2.4-5 5.5-5s5 1.8 5.5 5" />
-        <path d="M15 14.5c2.8-.5 4.7.8 5.5 3.5" />
-      </svg>
-    </span>
-  );
+function colorForUser(userId: string) {
+  let hash = 0;
+  for (const character of userId) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
 
-function formatChatTime(value?: string, timeZone?: string) {
-  if (!value) return "";
-  const date = new Date(value);
-  const now = new Date();
-  const dateFormatter = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone });
-  const isToday = dateFormatter.format(date) === dateFormatter.format(now);
-  const dateParts = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", timeZone }).format(date);
-  return isToday
-    ? new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit", timeZone }).format(date)
-    : dateParts;
-}
-
-function groupMessagesByMinute(messages: ChatMessage[]) {
-  return messages.reduce<Array<{ key: string; messages: ChatMessage[] }>>((groups, message) => {
-    const minute = Math.floor(new Date(message.createdAt).getTime() / 60_000);
-    const key = `${message.sender}-${message.senderName ?? ""}-${minute}`;
-    const latestGroup = groups.at(-1);
-    if (latestGroup?.key === key) {
-      latestGroup.messages.push(message);
-    } else {
-      groups.push({ key, messages: [message] });
-    }
-    return groups;
-  }, []);
-}
-
-export default function WorkspaceSidebar({ user }: WorkspaceSidebarProps) {
-  const [groups, setGroups] = useState(loadGroups);
-  const [contacts, setContacts] = useState(loadContacts);
-  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadingTeams, onSelectTeam, onCreateGroup }: WorkspaceSidebarProps) {
+  const [members, setMembers] = useState<TeamMemberProfile[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [isTeamMenuOpen, setIsTeamMenuOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
-  const [createdGroup, setCreatedGroup] = useState<WorkspaceGroup | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ group: WorkspaceGroup; x: number; y: number } | null>(null);
-  const [memberGroup, setMemberGroup] = useState<WorkspaceGroup | null>(null);
-  const [leaveTarget, setLeaveTarget] = useState<WorkspaceGroup | null>(null);
-  const [activeContact, setActiveContact] = useState<WorkspaceContact | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [messageText, setMessageText] = useState("");
-  const [unreadChatIds, setUnreadChatIds] = useState(loadUnreadChatIds);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const teamMenuRef = useRef<HTMLDivElement>(null);
+
+  const selectedTeam = teams.find((team) => team.id === selectedTeamId) ?? null;
 
   useEffect(() => {
-    const syncGroups = () => setGroups(loadGroups());
-    const syncContacts = () => setContacts(loadContacts());
-    const closeContextMenu = () => {
-      setContextMenu(null);
-    };
-    window.addEventListener(GROUPS_CHANGED_EVENT, syncGroups);
-    window.addEventListener(CONTACTS_CHANGED_EVENT, syncContacts);
-    window.addEventListener("click", closeContextMenu);
+    if (!selectedTeamId) return;
+    let cancelled = false;
+    getTeamMembers(selectedTeamId)
+      .then((list) => {
+        if (!cancelled) setMembers(list);
+      })
+      .catch(() => { /* 팀원 조회 실패 시 조용히 빈 상태로 둔다 */ })
+      .finally(() => {
+        if (!cancelled) setIsLoadingMembers(false);
+      });
     return () => {
-      window.removeEventListener(GROUPS_CHANGED_EVENT, syncGroups);
-      window.removeEventListener(CONTACTS_CHANGED_EVENT, syncContacts);
-      window.removeEventListener("click", closeContextMenu);
+      cancelled = true;
     };
+  }, [selectedTeamId]);
+
+  useEffect(() => {
+    const closeTeamMenu = (event: MouseEvent) => {
+      if (teamMenuRef.current && !teamMenuRef.current.contains(event.target as Node)) setIsTeamMenuOpen(false);
+    };
+    document.addEventListener("mousedown", closeTeamMenu);
+    return () => document.removeEventListener("mousedown", closeTeamMenu);
   }, []);
 
-  const openGroupModal = () => {
+  const openCreateModal = () => {
     setGroupName("");
-    setCreatedGroup(null);
-    setCopied(false);
-    setIsGroupModalOpen(true);
+    setCreateError(null);
+    setIsCreateOpen(true);
+    setIsTeamMenuOpen(false);
   };
 
-  const handleGroupCreate = (event: FormEvent) => {
+  const handleCreateGroup = async (event: FormEvent) => {
     event.preventDefault();
     const name = groupName.trim();
     if (!name) return;
-    const group = createGroup(name);
-    setGroups(loadGroups());
-    setCreatedGroup(group);
-  };
-
-  const copyInviteCode = async () => {
-    if (!createdGroup) return;
+    setIsCreating(true);
+    setCreateError(null);
     try {
-      await navigator.clipboard.writeText(createdGroup.inviteCode);
-      setCopied(true);
+      await onCreateGroup(name);
+      setIsCreateOpen(false);
     } catch {
-      setCopied(false);
+      setCreateError("그룹 생성에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsCreating(false);
     }
   };
-
-  const copyGroupCode = async (group: WorkspaceGroup) => {
-    try {
-      await navigator.clipboard.writeText(group.inviteCode);
-    } catch { /* 브라우저 권한이 없으면 별도 상태 문구 없이 유지 */ }
-    setContextMenu(null);
-  };
-
-  const confirmLeaveGroup = () => {
-    if (!leaveTarget) return;
-    setGroups(leaveGroup(leaveTarget.id));
-    setLeaveTarget(null);
-  };
-
-  const openChat = (contact: WorkspaceContact) => {
-    const saved = loadMessages(contact.id);
-    setActiveContact(contact);
-    setMessages(saved);
-    setMessageText("");
-    const group = contact.id.startsWith("group-")
-      ? groups.find((item) => `group-${item.id}` === contact.id)
-      : undefined;
-    saveLastOpenedChat({
-      id: contact.id,
-      name: contact.name,
-      type: group ? "GROUP" : "DIRECT",
-      memberCount: group?.memberCount,
-    });
-    if (unreadChatIds.includes(contact.id)) {
-      setUnreadChatIds((current) => {
-        const next = current.filter((id) => id !== contact.id);
-        saveUnreadChatIds(next);
-        return next;
-      });
-    }
-  };
-
-  const sendMessage = (event: FormEvent) => {
-    event.preventDefault();
-    const text = messageText.trim();
-    if (!text || !activeContact) return;
-    const next = [...messages, {
-      id: crypto.randomUUID(),
-      sender: "me" as const,
-      text,
-      createdAt: new Date().toISOString(),
-    }];
-    setMessages(next);
-    saveMessages(activeContact.id, next);
-    setMessageText("");
-  };
-
-  const groupChats: WorkspaceContact[] = groups.map((group) => ({
-    id: `group-${group.id}`,
-    name: group.name,
-    handle: `${group.memberCount}명`,
-    avatarColor: "#7C8FE0",
-    online: false,
-  }));
-  const chatList = [...groupChats, ...contacts]
-    .map((contact) => {
-      const conversationMessages = loadMessages(contact.id);
-      return { contact, latestMessage: conversationMessages.at(-1) };
-    })
-    .sort((a, b) => new Date(b.latestMessage?.createdAt ?? 0).getTime() - new Date(a.latestMessage?.createdAt ?? 0).getTime());
-  const groupedMessages = groupMessagesByMinute(messages);
 
   return (
-    <>
-      <aside className="lg:sticky lg:top-[65px] lg:max-h-[calc(100vh-65px)] lg:overflow-y-auto">
-        {activeContact ? (
-            <div className="flex h-[calc(100vh-8.5rem)] min-h-[420px] flex-col">
-              <div className="flex h-8 items-center gap-1.5 border-b border-surface-3">
-                <button
-                  type="button"
-                  onClick={() => setActiveContact(null)}
-                  aria-label="대화 목록으로 돌아가기"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center text-ink-dim transition hover:text-ink"
-                >
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m15 18-6-6 6-6" />
-                  </svg>
-                </button>
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <h2 className="truncate text-xs font-semibold text-ink">{activeContact.name}</h2>
-                  {activeContact.id.startsWith("group-") && <p className="shrink-0 text-[9px] text-ink-faint">{activeContact.handle}</p>}
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-2.5 overflow-y-auto py-4">
-                <p className="mx-auto mb-3 w-fit rounded-xl bg-surface-2/80 px-3 py-1.5 text-center text-[9px] leading-relaxed text-ink-dim shadow-[0_5px_18px_rgba(0,0,0,0.22)]">메시지를 보내 대화를 시작하세요.</p>
-                {groupedMessages.map((messageGroup) => {
-                  const message = messageGroup.messages[0];
-                  const lastMessage = messageGroup.messages.at(-1) ?? message;
-                  const senderName = message.senderName ?? (activeContact.id.startsWith("group-") ? "팀원" : activeContact.name);
-                  const senderColor = message.senderAvatarColor ?? activeContact.avatarColor;
-                  return message.sender === "me" ? (
-                    <div key={messageGroup.key} className="flex justify-end">
-                      <div className="max-w-[82%]">
-                        <div className="space-y-1">
-                          {messageGroup.messages.map((item) => (
-                            <p key={item.id} className="rounded-lg rounded-br-sm bg-night px-2.5 py-1.5 text-[10px] leading-relaxed text-ink">{item.text}</p>
-                          ))}
-                        </div>
-                        <p className="mt-1 text-right text-[8px] text-ink-faint">{formatChatTime(lastMessage.createdAt, user.timezone)}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div key={messageGroup.key} className="flex items-start gap-2">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-void" style={{ backgroundColor: senderColor }}>
-                        {senderName.slice(0, 1)}
-                      </span>
-                      <div className="max-w-[78%]">
-                        {activeContact.id.startsWith("group-") && <p className="mb-1 text-[8px] text-ink-faint">{senderName}</p>}
-                        <div className="space-y-1">
-                          {messageGroup.messages.map((item) => (
-                            <p key={item.id} className="rounded-lg rounded-bl-sm bg-surface-2 px-2.5 py-1.5 text-[10px] leading-relaxed text-ink-dim">{item.text}</p>
-                          ))}
-                        </div>
-                        <p className="mt-1 text-[8px] text-ink-faint">{formatChatTime(lastMessage.createdAt, user.timezone)}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <form onSubmit={sendMessage} className="flex items-center gap-2 border-t border-surface-3 pt-3">
-                <input
-                  value={messageText}
-                  onChange={(event) => setMessageText(event.target.value)}
-                  placeholder="메시지 입력"
-                  className="min-w-0 flex-1 rounded-full border border-surface-3 bg-surface-2 px-3 py-2 text-[11px] text-ink outline-none transition focus:border-ink-faint"
-                />
-                <button type="submit" aria-label="메시지 전송" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-void transition hover:opacity-85">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m5 12 14-7-4 14-3-6-7-1Z" />
-                  </svg>
-                </button>
-              </form>
-            </div>
-          ) : (
-            <div>
-              <div className="flex h-8 items-center justify-between gap-2">
-                <h2 className="text-xs font-semibold text-ink">메시지</h2>
-                <div className="flex items-center">
-                  <button
-                    type="button"
-                    onClick={openGroupModal}
-                    aria-label="채팅방 만들기"
-                    title="채팅방 만들기"
-                    className="flex h-5 w-5 items-center justify-center text-ink-dim transition hover:text-ink"
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div className="border-t border-surface-3">
-                {chatList.map(({ contact, latestMessage }) => (
-                  <div
-                    key={contact.id}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      if (!contact.id.startsWith("group-")) return;
-                      const group = groups.find((item) => `group-${item.id}` === contact.id);
-                      if (group) setContextMenu({ group, x: event.clientX, y: event.clientY });
-                    }}
-                    className="flex items-center gap-2.5 border-b border-surface-3 px-1 py-2.5 transition hover:bg-surface-2/60"
-                  >
-                    <button type="button" onClick={() => openChat(contact)} aria-label={`${contact.name} 대화 열기`} className="shrink-0">
-                      {contact.id.startsWith("group-") ? (
-                        <GroupAvatar />
-                      ) : (
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-semibold text-void" style={{ backgroundColor: contact.avatarColor }}>
-                          {contact.name.slice(0, 1)}
-                        </span>
-                      )}
-                    </button>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <button type="button" onClick={() => openChat(contact)} className="min-w-0 flex-1 truncate text-left text-[11px] font-medium text-ink">
-                          {contact.name}
-                        </button>
-                        <span className="shrink-0 text-[9px] text-ink-faint">{formatChatTime(latestMessage?.createdAt, user.timezone)}</span>
-                      </div>
-                      <button type="button" onClick={() => openChat(contact)} className="mt-1 flex w-full items-center gap-2 text-left">
-                        <span className="min-w-0 flex-1 truncate text-[9px] text-ink-faint">
-                          {latestMessage ? `${latestMessage.sender === "me" ? "나: " : ""}${latestMessage.text}` : "대화를 시작해보세요"}
-                        </span>
-                        {unreadChatIds.includes(contact.id) && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-night" aria-label="읽지 않은 메시지" />}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        }
-      </aside>
-
-      {contextMenu && (
-        <div
-          className="fixed z-50 w-44 overflow-hidden rounded-xl border border-surface-3 bg-surface-2 py-1 shadow-panel"
-          style={{ left: Math.min(contextMenu.x, window.innerWidth - 190), top: Math.min(contextMenu.y, window.innerHeight - 150) }}
-          onClick={(event) => event.stopPropagation()}
+    <aside className="lg:sticky lg:top-[65px] lg:max-h-[calc(100vh-65px)] lg:overflow-y-auto">
+      <div ref={teamMenuRef}>
+        <button
+          type="button"
+          onClick={() => teams.length > 0 && setIsTeamMenuOpen((open) => !open)}
+          aria-expanded={isTeamMenuOpen}
+          className="flex h-8 w-full items-center justify-between gap-2 text-left"
         >
-          <button type="button" onClick={() => { setMemberGroup(contextMenu.group); setContextMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">멤버 보기</button>
-          <button type="button" onClick={() => void copyGroupCode(contextMenu.group)} className="w-full px-3 py-2 text-left text-xs text-ink-dim hover:bg-surface-3 hover:text-ink">참여 코드 복사</button>
-          <div className="my-1 border-t border-surface-3" />
-          <button type="button" onClick={() => { setLeaveTarget(contextMenu.group); setContextMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-alert hover:bg-alert/10">채팅방 나가기</button>
-        </div>
-      )}
+          <span className="min-w-0 truncate text-xs font-semibold text-ink">
+            {isLoadingTeams ? "불러오는 중..." : selectedTeam?.name ?? "팀 없음"}
+          </span>
+          {teams.length > 1 && (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 text-ink-faint transition-transform ${isTeamMenuOpen ? "rotate-180" : ""}`}>
+              <path d="m7 10 5 5 5-5" />
+            </svg>
+          )}
+        </button>
 
-      {memberGroup && (
+        {isTeamMenuOpen && (
+          <div className="mb-2 overflow-hidden rounded-xl border border-surface-3 bg-surface-2 py-1 shadow-panel">
+            {teams.map((team) => (
+              <button
+                key={team.id}
+                type="button"
+                onClick={() => { onSelectTeam(team.id); setIsTeamMenuOpen(false); }}
+                className={`w-full truncate px-3 py-2 text-left text-xs transition ${team.id === selectedTeamId ? "text-ink" : "text-ink-dim hover:text-ink"}`}
+              >
+                {team.name}
+              </button>
+            ))}
+            <div className="my-1 border-t border-surface-3" />
+            <button type="button" onClick={openCreateModal} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:text-ink">
+              + 새 그룹 만들기
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-2 flex h-6 items-center justify-between gap-2">
+        <h2 className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">팀원</h2>
+        <span className="text-[10px] text-ink-faint">{members.length}명</span>
+      </div>
+      <div className="border-t border-surface-3">
+        {isLoadingMembers && <p className="py-4 text-center text-[10px] text-ink-faint">불러오는 중...</p>}
+        {!isLoadingMembers && members.length === 0 && (
+          <p className="py-4 text-center text-[10px] text-ink-faint">아직 팀원이 없습니다.</p>
+        )}
+        {members.map((member) => (
+          <div key={member.user_id} className="flex items-center gap-2.5 border-b border-surface-3 px-1 py-2.5">
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-void"
+              style={{ backgroundColor: colorForUser(member.user_id) }}
+            >
+              {member.name.slice(0, 1)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-ink">
+                  {member.name}
+                  {member.user_id === user.id && <span className="ml-1 text-[9px] text-ink-faint">(나)</span>}
+                </p>
+                {member.role === "PM" && (
+                  <span className="shrink-0 rounded-full bg-surface-2 px-1.5 py-0.5 text-[8px] text-ink-faint">PM</span>
+                )}
+              </div>
+              <p className="mt-0.5 truncate text-[9px] text-ink-faint">{member.email}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
-          <section role="dialog" aria-modal="true" aria-labelledby="member-list-title" className="w-full max-w-sm rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
+          <section role="dialog" aria-modal="true" aria-labelledby="create-group-title" className="w-full max-w-sm rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
             <div className="mb-5 flex items-center justify-between">
+              <h2 id="create-group-title" className="font-display text-lg text-ink">새 그룹 만들기</h2>
+              <button type="button" onClick={() => setIsCreateOpen(false)} aria-label="닫기" className="text-lg text-ink-dim hover:text-ink">×</button>
+            </div>
+            <form onSubmit={handleCreateGroup} className="space-y-4">
               <div>
-                <h2 id="member-list-title" className="font-display text-lg text-ink">{memberGroup.name}</h2>
-                <p className="mt-0.5 text-xs text-ink-faint">멤버 {memberGroup.memberCount}명</p>
+                <label htmlFor="new-group-name" className="mb-1.5 block text-xs text-ink-dim">그룹 이름</label>
+                <input
+                  id="new-group-name"
+                  value={groupName}
+                  onChange={(event) => setGroupName(event.target.value)}
+                  placeholder="예: 신규 서비스 개발 그룹"
+                  autoFocus
+                  className="w-full rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 text-sm text-ink outline-none focus:border-night"
+                />
               </div>
-              <button type="button" onClick={() => setMemberGroup(null)} aria-label="닫기" className="flex h-6 w-6 items-center justify-center text-lg text-ink-dim hover:text-ink">×</button>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-day text-[10px] font-semibold text-void">{user.name.slice(0, 1)}</span>
-                <span className="text-sm text-ink">{user.name}</span>
-              </div>
-              {MEMBER_PROFILES.slice(0, Math.max(0, memberGroup.memberCount - 1)).map((member) => (
-                <div key={member.name} className="flex items-center gap-3 rounded-lg px-2 py-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-semibold text-void" style={{ backgroundColor: member.color }}>{member.name.slice(0, 1)}</span>
-                  <span className="text-sm text-ink">{member.name}</span>
-                </div>
-              ))}
-            </div>
+              {createError && <p className="text-xs text-alert">{createError}</p>}
+              <button type="submit" disabled={isCreating || !groupName.trim()} className="w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-void disabled:opacity-50">
+                {isCreating ? "생성 중..." : "그룹 생성"}
+              </button>
+            </form>
           </section>
         </div>
       )}
-
-      {leaveTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
-          <section role="dialog" aria-modal="true" aria-labelledby="leave-group-title" className="w-full max-w-sm rounded-2xl border border-surface-3 bg-surface p-6 text-center shadow-panel">
-            <h2 id="leave-group-title" className="font-display text-lg text-ink">{leaveTarget.name}에서 나갈까요?</h2>
-            <p className="mt-2 text-sm text-ink-dim">나간 뒤에는 이 그룹의 제안과 대화를 볼 수 없습니다.</p>
-            <div className="mt-6 flex gap-2">
-              <button type="button" onClick={() => setLeaveTarget(null)} className="flex-1 rounded-lg border border-surface-3 py-2.5 text-sm text-ink-dim hover:text-ink">취소</button>
-              <button type="button" onClick={confirmLeaveGroup} className="flex-1 rounded-lg bg-alert py-2.5 text-sm font-semibold text-void">나가기</button>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {isGroupModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
-          <section role="dialog" aria-modal="true" aria-label={createdGroup ? "채팅방 생성 완료" : undefined} aria-labelledby={createdGroup ? undefined : "group-modal-title"} className="relative w-full max-w-md rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
-            {!createdGroup ? (
-              <div className="mb-5 flex items-center justify-between">
-                <h2 id="group-modal-title" className="font-display text-xl text-ink">채팅방 만들기</h2>
-                <button type="button" onClick={() => setIsGroupModalOpen(false)} aria-label="닫기" className="flex h-6 w-6 items-center justify-center text-lg text-ink-dim hover:text-ink">×</button>
-              </div>
-            ) : (
-              <button type="button" onClick={() => setIsGroupModalOpen(false)} aria-label="닫기" className="absolute right-5 top-5 text-lg text-ink-dim hover:text-ink">×</button>
-            )}
-
-            {!createdGroup ? (
-              <form onSubmit={handleGroupCreate} className="space-y-4">
-                <div>
-                  <label htmlFor="group-name" className="mb-1.5 block text-xs text-ink-dim">채팅방 이름</label>
-                  <input
-                    id="group-name"
-                    value={groupName}
-                    onChange={(event) => setGroupName(event.target.value)}
-                    placeholder="예: 신규 서비스 개발 그룹"
-                    autoFocus
-                    className="w-full rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 text-sm text-ink outline-none focus:border-night"
-                  />
-                </div>
-                <button type="submit" className="w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-void">채팅방 생성</button>
-              </form>
-            ) : (
-              <div className="pr-8">
-                <p className="text-sm text-ink"><strong>{createdGroup.name}</strong> 채팅방이 생성되었습니다.</p>
-                <p className="mt-1 text-xs text-ink-faint">아래 코드를 공유해 참여자를 초대하세요.</p>
-                <div className="mt-4 flex gap-2">
-                  <input readOnly value={createdGroup.inviteCode} className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3 py-2 font-mono text-xs tracking-wider text-ink-dim" />
-                  <button type="button" onClick={copyInviteCode} className="shrink-0 rounded-lg border border-surface-3 px-3 text-xs text-ink-dim hover:text-ink">{copied ? "복사됨" : "복사"}</button>
-                </div>
-              </div>
-            )}
-          </section>
-        </div>
-      )}
-
-    </>
+    </aside>
   );
 }

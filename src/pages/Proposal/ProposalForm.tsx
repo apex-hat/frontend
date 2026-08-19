@@ -5,18 +5,11 @@ import "@daypicker/react/style.css";
 import styles from "./ProposalForm.module.css";
 import {
   createProposal,
-  getOrCreateDefaultTeamId,
   postContextAnalysis,
   publishProposal,
   updateProposal,
   type ContextAnalysisResult,
 } from "../../lib/api";
-import {
-  GROUPS_CHANGED_EVENT,
-  loadGroups,
-  loadMessages,
-  saveMessages,
-} from "../../features/workspace/workspaceStorage";
 import { type ProposalFormData } from "../../types/proposal";
 import type { Proposal } from "../../types";
 
@@ -26,7 +19,6 @@ import type { Proposal } from "../../types";
 const initialFormData: ProposalFormData = {
   title: "",
   content: "",
-  targetGroup: "",
   deadline: "",
   targetCultures: [],
 };
@@ -71,17 +63,16 @@ const MINUTES = ["00", "10", "20", "30", "40", "50"];
 interface ProposalFormProps {
   onSubmitted: () => void;
   proposal?: Proposal;
+  /** 새 제안을 생성할 때만 필요(대상 팀). 기존 제안 수정 시에는 사용하지 않는다. */
+  teamId?: string;
 }
 
-export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProps) {
+export default function ProposalForm({ onSubmitted, proposal, teamId }: ProposalFormProps) {
   const editingDeadline = proposal?.deadline ? new Date(proposal.deadline) : null;
   const editingHour = editingDeadline?.getHours() ?? 18;
-  const [groups, setGroups] = useState(loadGroups);
   const [formData, setFormData] = useState<ProposalFormData>(() => proposal ? {
     title: proposal.title,
     content: proposal.content ?? "",
-    // 실제 Proposal에는 targetGroup(워크스페이스 채팅 그룹 태그)이 없어 수정 시 미리 채울 수 없다.
-    targetGroup: "",
     deadline: editingDeadline ? toDateString(editingDeadline) : "",
     targetCultures: proposal.target_cultures ?? [],
   } : initialFormData);
@@ -98,9 +89,7 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
   const [pendingProposalId, setPendingProposalId] = useState<string | null>(null);
   const [publishFailed, setPublishFailed] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
-  const groupMenuRef = useRef<HTMLDivElement>(null);
   const [cultureAnalysis, setCultureAnalysis] = useState<ContextAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -109,15 +98,8 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
   const todayStr = getTodayDateString();
 
   useEffect(() => {
-    const syncGroups = () => setGroups(loadGroups());
-    window.addEventListener(GROUPS_CHANGED_EVENT, syncGroups);
-    return () => window.removeEventListener(GROUPS_CHANGED_EVENT, syncGroups);
-  }, []);
-
-  useEffect(() => {
     const closePopovers = (event: MouseEvent) => {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) setIsCalendarOpen(false);
-      if (groupMenuRef.current && !groupMenuRef.current.contains(event.target as Node)) setIsGroupMenuOpen(false);
     };
     document.addEventListener("mousedown", closePopovers);
     return () => document.removeEventListener("mousedown", closePopovers);
@@ -169,7 +151,6 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
   const isFormValid =
     formData.title.trim() !== "" &&
     formData.content.trim() !== "" &&
-    formData.targetGroup.trim() !== "" &&
     isDeadlineValid;
 
   const handleSubmitClick = async () => {
@@ -178,7 +159,7 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
       setError(
         (!isDeadlineValid || !isDeadlineInFuture) && formData.deadline !== ""
           ? "마감 기한은 현재 시각 이후로 설정해주세요."
-          : "제목, 내용, 대상 그룹, 마감 기한을 모두 입력해주세요.",
+          : "제목, 내용, 마감 기한을 모두 입력해주세요.",
       );
       return;
     }
@@ -194,32 +175,11 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
     try {
       if (proposal) {
         await updateProposal(proposal.id, proposalData.title, proposalData.content, proposalData.deadline, proposalData.targetCultures);
-      } else if (!targetProposalId) {
-        const teamId = await getOrCreateDefaultTeamId();
+      } else if (!targetProposalId && teamId) {
         const cultureAnalysisIds = cultureAnalysis ? [cultureAnalysis.id] : [];
         const created = await createProposal(teamId, proposalData.title, proposalData.content, proposalData.deadline, proposalData.targetCultures, cultureAnalysisIds);
         targetProposalId = created.id;
         setPendingProposalId(created.id);
-
-        const targetGroup = groups.find((group) => group.name === formData.targetGroup);
-        if (targetGroup) {
-          const chatId = `group-${targetGroup.id}`;
-          const deadlineLabel = new Intl.DateTimeFormat("ko-KR", {
-            month: "long",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-          }).format(deadlineDate!);
-          saveMessages(chatId, [
-            ...loadMessages(chatId),
-            {
-              id: crypto.randomUUID(),
-              sender: "me",
-              text: `[제안] ${formData.title.trim()} ${deadlineLabel}까지`,
-              createdAt: new Date().toISOString(),
-            },
-          ]);
-        }
       }
     } catch {
       setIsSubmitting(false);
@@ -276,49 +236,6 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
           />
           <span className={styles.characterCount}>{formData.content.length}/100</span>
         </div>
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="targetGroup">
-          대상 그룹
-        </label>
-        <div className={styles.groupPicker} ref={groupMenuRef}>
-          <button
-            id="targetGroup"
-            type="button"
-            className={styles.groupTrigger}
-            onClick={() => groups.length > 0 && setIsGroupMenuOpen((open) => !open)}
-            aria-expanded={isGroupMenuOpen}
-          >
-            <span className={formData.targetGroup ? styles.groupValue : styles.groupPlaceholder}>
-              {formData.targetGroup || (groups.length > 0 ? "제안할 그룹을 선택하세요" : "먼저 그룹을 만들어주세요")}
-            </span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="m7 10 5 5 5-5" />
-            </svg>
-          </button>
-          {isGroupMenuOpen && (
-            <div className={styles.groupMenu} role="listbox">
-              {groups.map((group) => (
-                <button
-                  key={group.id}
-                  type="button"
-                  role="option"
-                  aria-selected={formData.targetGroup === group.name}
-                  className={styles.groupOption}
-                  onClick={() => {
-                    handleChange("targetGroup", group.name);
-                    setIsGroupMenuOpen(false);
-                  }}
-                >
-                  <span>{group.name}</span>
-                  <small>{group.memberCount}명</small>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        {groups.length === 0 && <p className={styles.emptyGroupHint}>왼쪽 메시지 영역의 + 버튼에서 그룹을 만들 수 있습니다.</p>}
       </div>
 
       <div className={styles.field}>

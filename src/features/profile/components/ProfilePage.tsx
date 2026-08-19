@@ -8,6 +8,7 @@ import BrandMark from "../../../components/branding/BrandMark";
 import NotificationPanel from "../../dashboard/components/NotificationPanel";
 import ConnectionButton from "../../workspace/components/ConnectionButton";
 import FriendManagerModal from "../../workspace/components/FriendManagerModal";
+import { useTeamSwitcher } from "../../workspace/useTeamSwitcher";
 
 interface ProfilePageProps {
   user: AuthUser;
@@ -86,6 +87,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isConnectionManagerOpen, setIsConnectionManagerOpen] = useState(false);
   const userHandle = getUserHandle(user);
+  const { selectedTeamId } = useTeamSwitcher(user);
 
   useEffect(() => {
     let cancelled = false;
@@ -263,7 +265,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
         </section>
         </div>
       </main>
-      <FriendManagerModal open={isConnectionManagerOpen} onClose={() => setIsConnectionManagerOpen(false)} />
+      <FriendManagerModal open={isConnectionManagerOpen} onClose={() => setIsConnectionManagerOpen(false)} teamId={selectedTeamId} />
     </div>
   );
 }
