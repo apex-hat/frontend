@@ -493,18 +493,6 @@ export async function completeProposal(proposalId: string, decision: string): Pr
   return toProposal(data);
 }
 
-/**
- * 제안 생성엔 실제 teamId가 필요한데 팀 생성/선택 UI가 없다(앱 전체가 단일 암시적 팀
- * 가정). GET /api/teams를 먼저 확인해 있으면 그 팀을, 없으면 그때만 1회 기본 팀을
- * 만들어 쓴다 — 매번 서버 상태를 먼저 확인하므로 새로고침해도 중복 생성되지 않는다.
- */
-export async function getOrCreateDefaultTeamId(): Promise<string> {
-  const teams = await getTeams();
-  if (teams.length > 0) return teams[0].id;
-  const created = await createTeam("Meridian Team", "", "");
-  return created.id;
-}
-
 // --- Notifications --------------------------------------------------------
 
 interface NotificationResponseDto {

@@ -5,7 +5,6 @@ import "@daypicker/react/style.css";
 import styles from "./ProposalForm.module.css";
 import {
   createProposal,
-  getOrCreateDefaultTeamId,
   postContextAnalysis,
   publishProposal,
   updateProposal,
@@ -64,9 +63,11 @@ const MINUTES = ["00", "10", "20", "30", "40", "50"];
 interface ProposalFormProps {
   onSubmitted: () => void;
   proposal?: Proposal;
+  /** 새 제안을 생성할 때만 필요(대상 팀). 기존 제안 수정 시에는 사용하지 않는다. */
+  teamId?: string;
 }
 
-export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProps) {
+export default function ProposalForm({ onSubmitted, proposal, teamId }: ProposalFormProps) {
   const editingDeadline = proposal?.deadline ? new Date(proposal.deadline) : null;
   const editingHour = editingDeadline?.getHours() ?? 18;
   const [formData, setFormData] = useState<ProposalFormData>(() => proposal ? {
@@ -174,8 +175,7 @@ export default function ProposalForm({ onSubmitted, proposal }: ProposalFormProp
     try {
       if (proposal) {
         await updateProposal(proposal.id, proposalData.title, proposalData.content, proposalData.deadline, proposalData.targetCultures);
-      } else if (!targetProposalId) {
-        const teamId = await getOrCreateDefaultTeamId();
+      } else if (!targetProposalId && teamId) {
         const cultureAnalysisIds = cultureAnalysis ? [cultureAnalysis.id] : [];
         const created = await createProposal(teamId, proposalData.title, proposalData.content, proposalData.deadline, proposalData.targetCultures, cultureAnalysisIds);
         targetProposalId = created.id;

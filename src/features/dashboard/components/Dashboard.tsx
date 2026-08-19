@@ -4,7 +4,6 @@ import {
   completeProposal as completeProposalApi,
   deleteProposal as deleteProposalApi,
   getNotifications,
-  getOrCreateDefaultTeamId,
   getProposalStatus,
   getProposals,
   getTimezones,
@@ -20,6 +19,7 @@ import FriendManagerModal from "../../workspace/components/FriendManagerModal";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
 import BrandMark from "../../../components/branding/BrandMark";
 import ConnectionButton from "../../workspace/components/ConnectionButton";
+import { useTeamSwitcher } from "../../workspace/useTeamSwitcher";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -78,12 +78,13 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [analysisTarget, setAnalysisTarget] = useState<Proposal | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
+  const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup } = useTeamSwitcher(user);
 
   useEffect(() => {
+    if (!selectedTeamId) return;
     let cancelled = false;
 
-    getOrCreateDefaultTeamId()
-      .then((teamId) => getTimezones(teamId))
+    getTimezones(selectedTeamId)
       .then((list) => {
         if (!cancelled) {
           setMembers(list.map((member) => (
@@ -120,7 +121,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, selectedTeamId]);
 
   useEffect(() => {
     if (!proposalMenu) return;
@@ -242,7 +243,14 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
 
       <main className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_82%]">
         <div className="hidden h-full border-r border-surface-3 px-4 lg:block">
-          <WorkspaceSidebar user={user} />
+          <WorkspaceSidebar
+            user={user}
+            teams={teams}
+            selectedTeamId={selectedTeamId}
+            isLoadingTeams={isLoadingTeams}
+            onSelectTeam={selectTeam}
+            onCreateGroup={createGroup}
+          />
         </div>
 
         <div className="min-w-0 space-y-8 px-4 py-8 sm:px-6 2xl:px-8">
@@ -436,7 +444,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
           </section>
         </div>
       )}
-      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} />
+      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} teamId={selectedTeamId} />
     </div>
   );
 }

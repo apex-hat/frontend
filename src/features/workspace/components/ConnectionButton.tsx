@@ -7,8 +7,8 @@ export default function ConnectionButton({ onClick }: ConnectionButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      aria-label="친구 추가 또는 그룹 참여"
-      title="친구 추가 또는 그룹 참여"
+      aria-label="친구 추가 또는 팀원 추가"
+      title="친구 추가 또는 팀원 추가"
       className="flex h-7 w-7 items-center justify-center text-ink-dim transition hover:text-ink"
     >
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
