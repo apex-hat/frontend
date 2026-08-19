@@ -3,17 +3,14 @@ import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-do
 import ProposalForm from "./ProposalForm";
 import ProposalInfoPage from "./ProposalInfoPage";
 import ConsensusDevPage from "../consensus/ConsensusDevPage";
-import { loadSubmittedProposals } from "../../mocks/proposal";
-import { getNotifications, getProposal, markNotificationRead } from "../../lib/api";
+import { getNotifications, getProposal, getTeamMembers, markNotificationRead } from "../../lib/api";
 import type { AuthUser, Notification, Proposal } from "../../types";
 import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSidebar";
 import UserHandleButton from "../../features/workspace/components/UserHandleButton";
 import FriendManagerModal from "../../features/workspace/components/FriendManagerModal";
 import NotificationPanel from "../../features/dashboard/components/NotificationPanel";
-import { MOCK_PROPOSAL_GROUP_NAMES } from "../../features/dashboard/data/mockData";
 import BrandMark from "../../components/branding/BrandMark";
 import ConnectionButton from "../../features/workspace/components/ConnectionButton";
-import { loadGroups } from "../../features/workspace/workspaceStorage";
 
 interface Props {
   user: AuthUser;
@@ -88,16 +85,16 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
     if (!proposalId) return;
 
     getProposal(proposalId)
-      .then((item) => {
+      .then(async (item) => {
         if (cancelled) return;
-        const submittedProposal = loadSubmittedProposals().find((candidate) => candidate.id === proposalId);
-        const targetGroupName = submittedProposal?.targetGroup ?? MOCK_PROPOSAL_GROUP_NAMES[item.id];
+        const members = await getTeamMembers(item.target_team_id).catch(() => []);
+        if (cancelled) return;
         setProposal({
           id: item.id,
           title: item.title,
           content: item.content ?? "제안 내용을 확인하고 의견을 남겨주세요.",
           targetTeamId: item.target_team_id,
-          teamMemberCount: loadGroups().find((group) => group.name === targetGroupName)?.memberCount ?? 1,
+          teamMemberCount: Math.max(1, members.length),
         });
       })
       .catch(() => {

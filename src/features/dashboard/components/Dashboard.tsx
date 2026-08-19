@@ -18,18 +18,8 @@ import TeamMemberRow from "./TeamMemberRow";
 import WorkspaceSidebar from "../../workspace/components/WorkspaceSidebar";
 import FriendManagerModal from "../../workspace/components/FriendManagerModal";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
-import {
-  GROUPS_CHANGED_EVENT,
-  LAST_OPENED_CHAT_CHANGED_EVENT,
-  loadGroups,
-  loadLastOpenedChat,
-  loadMessages,
-  saveMessages,
-} from "../../workspace/workspaceStorage";
-import { loadSubmittedProposals } from "../../../mocks/proposal";
 import BrandMark from "../../../components/branding/BrandMark";
 import ConnectionButton from "../../workspace/components/ConnectionButton";
-import { MOCK_PROPOSAL_GROUP_NAMES } from "../data/mockData";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -81,7 +71,6 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [opinionsByProposal, setOpinionsByProposal] = useState<Record<string, Opinion[]>>({});
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
-  const [lastOpenedChat, setLastOpenedChat] = useState(loadLastOpenedChat);
   const [proposalMenu, setProposalMenu] = useState<{ proposal: Proposal; x: number; y: number } | null>(null);
   const [completionTarget, setCompletionTarget] = useState<Proposal | null>(null);
   const [completionComment, setCompletionComment] = useState("");
@@ -89,8 +78,6 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [analysisTarget, setAnalysisTarget] = useState<Proposal | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
-  const [workspaceGroups, setWorkspaceGroups] = useState(loadGroups);
-  const [submittedProposals, setSubmittedProposals] = useState(loadSubmittedProposals);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,17 +123,6 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   }, [user]);
 
   useEffect(() => {
-    const syncLastOpenedChat = () => setLastOpenedChat(loadLastOpenedChat());
-    const syncGroups = () => setWorkspaceGroups(loadGroups());
-    window.addEventListener(LAST_OPENED_CHAT_CHANGED_EVENT, syncLastOpenedChat);
-    window.addEventListener(GROUPS_CHANGED_EVENT, syncGroups);
-    return () => {
-      window.removeEventListener(LAST_OPENED_CHAT_CHANGED_EVENT, syncLastOpenedChat);
-      window.removeEventListener(GROUPS_CHANGED_EVENT, syncGroups);
-    };
-  }, []);
-
-  useEffect(() => {
     if (!proposalMenu) return;
     const closeMenu = () => setProposalMenu(null);
     window.addEventListener("mousedown", closeMenu);
@@ -179,7 +155,6 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
       window.alert("삭제에 실패했습니다. 이미 게시된 제안일 수 있어요.");
       return;
     }
-    setSubmittedProposals((current) => current.filter((item) => item.id !== target.id));
     setProposals((current) => current.filter((item) => item.id !== target.id));
     setExpandedId((current) => current === target.id ? null : current);
   };
@@ -193,8 +168,6 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
 
   const completeProposal = async () => {
     if (!completionTarget || !completionComment.trim()) return;
-    const opinions = opinionsByProposal[completionTarget.id] ?? [];
-    const resultSummary = buildResultSummary(opinions);
     const finalComment = completionComment.trim();
 
     setIsCompleting(true);
@@ -208,21 +181,6 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
       return;
     }
 
-    const storedProposal = loadSubmittedProposals().find((proposal) => proposal.id === completionTarget.id);
-    const targetGroup = loadGroups().find((group) => group.name === storedProposal?.targetGroup);
-    if (targetGroup) {
-      const chatId = `group-${targetGroup.id}`;
-      saveMessages(chatId, [
-        ...loadMessages(chatId),
-        {
-          id: crypto.randomUUID(),
-          sender: "me",
-          text: `[합의 결과] ${completionTarget.title} · ${resultSummary} 최종 결정: ${finalComment}`,
-          createdAt: completed.completed_at ?? new Date().toISOString(),
-        },
-      ]);
-    }
-
     setProposals((current) => sortProposals(current.map((item) => item.id === completionTarget.id
       ? { ...item, status: completed.status, completed_at: completed.completed_at }
       : item)));
@@ -233,23 +191,9 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   };
 
   const activeProposalCount = proposals.filter((proposal) => proposal.status === "OPEN").length;
-  const storedAnalysisProposal = analysisTarget
-    ? submittedProposals.find((proposal) => proposal.id === analysisTarget.id)
-    : undefined;
   const analysisOpinions = analysisTarget ? opinionsByProposal[analysisTarget.id] ?? [] : [];
-  const analysisSummary = storedAnalysisProposal?.result_summary ?? buildResultSummary(analysisOpinions);
-  const finalDecision = storedAnalysisProposal?.final_comment
-    ?? "조건부 및 반대 의견의 우려를 반영해 실행 범위를 조정하고, 팀에 최종 내용을 공유합니다.";
-  const clockMembers = !lastOpenedChat
-    ? members
-    : lastOpenedChat.type === "DIRECT"
-      ? members.filter((member) => member.name === lastOpenedChat.name)
-      : members.slice(0, Math.max(1, Math.min(lastOpenedChat.memberCount ?? members.length, members.length)));
-  const clockTitle = !lastOpenedChat
-    ? "지금, 팀은 어디쯤 깨어있을까요"
-    : lastOpenedChat.type === "DIRECT"
-      ? `${lastOpenedChat.name}의 현재 시간`
-      : `${lastOpenedChat.name} 멤버들은 어디쯤 깨어있을까요`;
+  const analysisSummary = buildResultSummary(analysisOpinions);
+  const finalDecision = "조건부 및 반대 의견의 우려를 반영해 실행 범위를 조정하고, 팀에 최종 내용을 공유합니다.";
 
   const markAllRead = () => {
     const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
@@ -302,7 +246,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
         </div>
 
         <div className="min-w-0 space-y-8 px-4 py-8 sm:px-6 2xl:px-8">
-          <WorldClockStrip members={clockMembers.length > 0 ? clockMembers : members} title={clockTitle} />
+          <WorldClockStrip members={members} title="지금, 팀은 어디쯤 깨어있을까요" />
 
           <section>
           <div className="flex items-center justify-between gap-4 mb-4">
@@ -323,9 +267,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
             {proposals.map((proposal) => {
               const isOpen = expandedId === proposal.id;
               const opinions = opinionsByProposal[proposal.id] ?? [];
-              const submittedProposal = submittedProposals.find((item) => item.id === proposal.id);
-              const targetGroupName = submittedProposal?.targetGroup ?? MOCK_PROPOSAL_GROUP_NAMES[proposal.id];
-              const total = workspaceGroups.find((group) => group.name === targetGroupName)?.memberCount ?? members.length;
+              const total = members.length;
               const proposalMembers = members.slice(0, total);
               const proposalMemberIds = new Set(proposalMembers.map((member) => member.user_id));
               const responded = opinions.filter((opinion) => proposalMemberIds.has(opinion.user_id)).length;

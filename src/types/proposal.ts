@@ -3,7 +3,6 @@
 export interface ProposalFormData {
   title: string; // 제목
   content: string; // 내용
-  targetGroup: string; // 제안을 공유할 대상 그룹
   deadline: string; // 마감 기한 (ISO 8601)
   targetCultures: string[]; // AI 문화 맥락 분석 대상 문화권(국가 코드)
 }
