@@ -1,0 +1,114 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 24px 72px;
+  color: #f3f4f6;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.title {
+  margin: 0;
+  color: #f3f4f6;
+  font-family: "Outfit", system-ui, sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.newButton {
+  padding: 9px 16px;
+  border: 1px solid #f3f4f6;
+  border-radius: 999px;
+  color: #0e1015;
+  background: #f3f4f6;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.newButton:hover { opacity: 0.9; }
+.newButton:active { transform: scale(0.98); }
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  display: block;
+  width: 100%;
+  padding: 18px 20px;
+  border: 1px solid #2e3650;
+  border-radius: 16px;
+  color: #f3f4f6;
+  background: #171a22;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.card:hover {
+  border-color: #4a5482;
+  background: #1e2230;
+  transform: translateY(-1px);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.cardTitle {
+  min-width: 0;
+  color: #f3f4f6;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.riskBadge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.riskLow { color: #63c7a6; border-color: rgb(99 199 166 / 30%); background: rgb(99 199 166 / 12%); }
+.riskMedium { color: #f2a65a; border-color: rgb(242 166 90 / 30%); background: rgb(242 166 90 / 12%); }
+.riskHigh { color: #e8607a; border-color: rgb(232 96 122 / 30%); background: rgb(232 96 122 / 12%); }
+
+.cardMeta {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.emptyText,
+.loadingText {
+  margin: 0;
+  padding: 56px 24px;
+  border: 1px dashed #2e3650;
+  border-radius: 16px;
+  color: #6b7280;
+  text-align: center;
+  font-size: 14px;
+}
+
+@media (max-width: 560px) {
+  .container { padding: 28px 16px 56px; }
+  .header { align-items: flex-start; }
+  .cardTop { align-items: flex-start; }
+}

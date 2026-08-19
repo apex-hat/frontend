@@ -1,122 +1,140 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from "react";
+import { signOut } from "firebase/auth";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import LoginPage from "./features/auth/components/LoginPage";
+import SignupPage from "./features/auth/components/SignupPage";
+import Dashboard from "./features/dashboard/components/Dashboard";
+import ProfilePage from "./features/profile/components/ProfilePage";
+import ProposalPage from "./pages/Proposal/ProposalPage";
+import { auth } from "./lib/firebase";
+import type { AuthUser } from "./types";
 
-function App() {
-  const [count, setCount] = useState(0)
+const AUTH_STORAGE_KEY = "meridian.auth-user";
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+function readStoredUser(): AuthUser | null {
+  try {
+    const stored = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
+    if (!stored) return null;
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    const user = JSON.parse(stored) as Partial<AuthUser>;
+    if (!user.id || !user.name || !user.email || !user.country || !user.timezone || !user.culture_tag) {
+      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+    return {
+      ...user,
+      preferred_language: user.preferred_language ?? "ko",
+    } as AuthUser;
+  } catch {
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
 }
 
-export default App
+export default function App() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<AuthUser | null>(readStoredUser);
+
+  const completeAuth = (authenticatedUser: AuthUser) => {
+    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedUser));
+    setUser(authenticatedUser);
+    navigate("/dashboard", { replace: true });
+  };
+
+  const logout = () => {
+    void signOut(auth);
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    setUser(null);
+    navigate("/login", { replace: true });
+  };
+
+  const updateProfile = (updatedUser: AuthUser) => {
+    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    navigate("/dashboard");
+  };
+
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
+      />
+      <Route
+        path="/login"
+        element={
+          user ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <LoginPage
+              onLogin={completeAuth}
+              onNavigateSignup={() => navigate("/signup")}
+            />
+          )
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          user ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <SignupPage
+              onSignup={completeAuth}
+              onNavigateLogin={() => navigate("/login")}
+            />
+          )
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          user ? (
+            <Dashboard
+              user={user}
+              onCreateProposal={() => navigate("/proposals/new")}
+              onOpenProposal={(proposalId) => navigate(`/proposals/${proposalId}/opinions`)}
+              onEditProposal={(proposalId) => navigate(`/proposals/${proposalId}/edit`)}
+              onViewProposal={(proposalId) => navigate(`/proposals/${proposalId}/detail`)}
+              onOpenProfile={() => navigate("/profile")}
+              onLogout={logout}
+            />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          user ? (
+            <ProfilePage
+              user={user}
+              onSave={updateProfile}
+              onBack={() => navigate("/dashboard")}
+              onLogout={logout}
+            />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/proposals/*"
+        element={
+          user ? (
+            <ProposalPage
+              user={user}
+              onBackToDashboard={() => navigate("/dashboard")}
+              onOpenProfile={() => navigate("/profile")}
+              onLogout={logout}
+            />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
+    </Routes>
+  );
+}

@@ -1,0 +1,12 @@
+.card { color: #f3f4f6; }
+.summary { margin: 0; color: #d1d5db; font-size: 15px; line-height: 1.75; }
+.categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; align-items: stretch; margin-top: 24px; }
+.category { display: flex; min-height: 142px; box-sizing: border-box; flex-direction: column; padding: 17px; border: 1px solid #2e3650; border-top-width: 3px; border-radius: 12px; background: #171a22; }
+.categoryTitle { margin: 0 0 10px; font-size: 13px; font-weight: 700; }
+.agree { color: #63c7a6; border-top-color: #63c7a6; background: rgb(99 199 166 / 8%); }
+.disagree { color: #e8607a; border-top-color: #e8607a; background: rgb(232 96 122 / 8%); }
+.conditional { color: #f2a65a; border-top-color: #f2a65a; background: rgb(242 166 90 / 8%); }
+.categorySummary { margin: 0; color: #9ca3af; font-size: 13px; line-height: 1.6; }
+.emptyCategories { grid-column: 1 / -1; margin: 0; padding: 24px; color: #6b7280; font-size: 14px; text-align: center; }
+.generatedAt { display: block; margin-top: 12px; color: #6b7280; font-size: 11px; text-align: right; }
+@media (max-width: 520px) { .categories { grid-template-columns: 1fr; } }

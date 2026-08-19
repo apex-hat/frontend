@@ -1,0 +1,86 @@
+:global(#root):has([data-consensus-dev-page]) { border-inline: 0; }
+
+.page {
+  --meridian-primary: #7c8fe0;
+  --meridian-primary-dark: #a8b5ee;
+  --meridian-primary-soft: rgb(124 143 224 / 12%);
+  --meridian-primary-border: rgb(124 143 224 / 32%);
+  width: 100%;
+  max-width: 800px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+  color: #f3f4f6;
+  background: transparent;
+  text-align: left;
+}
+
+.pageHeader { margin-bottom: 26px; }
+.title { margin: 0; color: #f3f4f6; font-family: "Outfit", system-ui, sans-serif; font-size: clamp(24px, 4vw, 31px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.22; }
+.description { margin: 13px 0 0; padding: 12px 14px; border: 1px solid #252b3c; border-radius: 11px; color: #b4bac7; background: #171a22; font-size: 13px; line-height: 1.65; }
+.status { margin: 10px 0 0; color: #a8b5ee; font-size: 12px; }
+.section + .section { margin-top: 40px; }
+.sectionTitle { display: flex; align-items: center; gap: 9px; margin: 0 0 16px; color: #f3f4f6; font-family: "Outfit", system-ui, sans-serif; font-size: 19px; font-weight: 600; }
+.sectionTitle::before { width: 3px; height: 17px; border-radius: 2px; background: #7c8fe0; content: ''; }
+.sectionTitle span { color: #7c8fe0; font-size: 13px; }
+.listHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+
+.summaryButton {
+  margin-bottom: 16px;
+  padding: 7px 12px;
+  border: 1px solid #2e3650;
+  border-radius: 999px;
+  color: #f3f4f6;
+  background: #171a22;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.summaryButton:hover { border-color: #4a5482; background: #1e2230; }
+.summaryButton:focus-visible { outline: 3px solid rgb(124 143 224 / 22%); outline-offset: 2px; }
+.summaryButton:disabled { color: #6b7280; cursor: default; }
+
+.filters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 16px; }
+.filterButton { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 9px; border: 1px solid #2e3650; border-radius: 9px; color: #9ca3af; background: #171a22; font: inherit; cursor: pointer; }
+.filterButton span { font-size: 12px; }
+.filterButton strong { color: #f3f4f6; font-size: 14px; font-weight: 700; }
+.filterButton:hover { border-color: #4a5482; background: #1e2230; }
+.filterButton:focus-visible { outline: 3px solid rgb(124 143 224 / 20%); outline-offset: 2px; }
+.filterSelected { border-color: #7c8fe0; color: #a8b5ee; background: rgb(124 143 224 / 12%); box-shadow: inset 0 0 0 1px #7c8fe0; }
+
+.dialogBackdrop {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(0 0 0 / 65%);
+  backdrop-filter: blur(4px);
+}
+
+.deleteDialog {
+  width: min(100%, 380px);
+  box-sizing: border-box;
+  padding: 24px;
+  border: 1px solid #2e3650;
+  border-radius: 16px;
+  background: #171a22;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 38%);
+}
+
+.deleteDialog h2 { margin: 0; color: #f3f4f6; font-size: 18px; font-weight: 650; }
+.deletePreview { overflow: hidden; display: -webkit-box; margin: 12px 0 0; color: #b4bac7; font-size: 13px; line-height: 1.6; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.deleteNotice { margin: 8px 0 0; color: #777f90; font-size: 12px; }
+.dialogActions { display: flex; gap: 8px; margin-top: 24px; }
+.dialogActions button { flex: 1; padding: 10px 12px; border: 1px solid #2e3650; border-radius: 9px; color: #b4bac7; background: transparent; font: inherit; font-size: 13px; cursor: pointer; transition: border-color 150ms ease, color 150ms ease, opacity 150ms ease; }
+.dialogActions button:hover { border-color: #4a5482; color: #f3f4f6; }
+.dialogActions .deleteConfirmButton { border-color: #ef6b72; color: #111318; background: #ef6b72; font-weight: 700; }
+.dialogActions .deleteConfirmButton:hover { border-color: #ef6b72; color: #111318; opacity: .9; }
+
+@media (max-width: 520px) {
+  .page { padding: 28px 16px 56px; }
+  .listHeader { align-items: flex-start; }
+}

@@ -1,0 +1,49 @@
+.container {
+  max-width: 720px;
+  box-sizing: border-box;
+  margin: 16px auto 0;
+  padding: 22px;
+  border: 1px solid #2e3650;
+  border-radius: 16px;
+  color: #f3f4f6;
+  background: #171a22;
+}
+
+.title { margin: 0 0 14px; color: #f3f4f6; font-family: "Outfit", system-ui, sans-serif; font-size: 17px; font-weight: 600; }
+.compareRow { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.compareCol { min-width: 0; }
+.colLabel { margin-bottom: 7px; color: #9ca3af; font-size: 12px; font-weight: 600; }
+
+.textBox {
+  min-height: 100px;
+  padding: 14px;
+  border-radius: 9px;
+  color: #d1d5db;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.originalBox { border: 1px solid #2e3650; background: #1e2230; }
+.suggestedBox { border: 1px solid rgb(124 143 224 / 32%); background: rgb(124 143 224 / 10%); }
+.actions { display: flex; gap: 12px; margin-top: 16px; }
+
+.applyButton {
+  padding: 9px 15px;
+  border: 1px solid #f3f4f6;
+  border-radius: 9px;
+  color: #0e1015;
+  background: #f3f4f6;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.appliedBadge { display: flex; align-items: center; padding: 8px 0; color: #63c7a6; font-size: 13px; font-weight: 600; }
+.hint { margin: 10px 0 0; color: #6b7280; font-size: 12px; }
+
+@media (max-width: 600px) {
+  .compareRow { grid-template-columns: 1fr; }
+}
