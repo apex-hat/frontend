@@ -1,10 +1,14 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
-  addContact,
-  loadContacts,
-  type WorkspaceContact,
-} from "../workspaceStorage";
-import { addTeamMember, searchUserByEmail, type UserSummary } from "../../../lib/api";
+  addTeamMember,
+  searchUserByEmail,
+  sendFriendRequest,
+  getIncomingFriendRequests,
+  respondToFriendRequest,
+  FriendRequestError,
+  type FriendRequestSummary,
+  type UserSummary,
+} from "../../../lib/api";
 
 interface FriendManagerModalProps {
   open: boolean;
@@ -13,46 +17,77 @@ interface FriendManagerModalProps {
   teamId: string | null;
 }
 
-const INCOMING_REQUEST = {
-  id: "u-nora",
-  name: "Nora Kim",
-  handle: "#MER-NORA",
-  avatarColor: "#F2A65A",
-  online: true,
-} satisfies WorkspaceContact;
-
 export default function FriendManagerModal({ open, onClose, teamId }: FriendManagerModalProps) {
   const [mode, setMode] = useState<"friend" | "team">("friend");
-  const [contacts, setContacts] = useState(loadContacts);
   const [friendHandle, setFriendHandle] = useState("");
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [incomingRequests, setIncomingRequests] = useState<FriendRequestSummary[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
   const [teamEmail, setTeamEmail] = useState("");
   const [foundTeammate, setFoundTeammate] = useState<UserSummary | null>(null);
   const [isSearchingTeammate, setIsSearchingTeammate] = useState(false);
   const [isAddingTeammate, setIsAddingTeammate] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    getIncomingFriendRequests()
+      .then((list) => {
+        if (!cancelled) setIncomingRequests(list);
+      })
+      .catch(() => { /* 조회 실패 시 빈 목록으로 둔다 */ })
+      .finally(() => {
+        if (!cancelled) setIsLoadingRequests(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   if (!open) return null;
 
-  const incomingAccepted = contacts.some((contact) => contact.handle === INCOMING_REQUEST.handle);
-
-  const sendFriendRequest = (event: FormEvent) => {
+  const submitFriendRequest = async (event: FormEvent) => {
     event.preventDefault();
-    const handle = friendHandle.trim().toUpperCase().match(/#MER-[A-Z0-9]{4,}/)?.[0];
+    const handle = friendHandle.trim().toUpperCase().match(/#?MER-[A-Z0-9]{4,}/)?.[0];
     if (!handle) {
       setStatus("#MER-XXXX 형식으로 입력해주세요.");
       return;
     }
-    if (contacts.some((contact) => contact.handle === handle)) {
-      setStatus("이미 친구로 등록된 사용자입니다.");
-      return;
+    setIsSendingRequest(true);
+    setStatus(null);
+    try {
+      await sendFriendRequest(handle);
+      setStatus(`${handle}님에게 친구 요청을 보냈습니다.`);
+      setFriendHandle("");
+    } catch (error) {
+      if (error instanceof FriendRequestError) {
+        setStatus(
+          error.code === "USER_NOT_FOUND" ? "해당 고유 ID의 사용자를 찾을 수 없습니다."
+            : error.code === "SELF_FRIEND_REQUEST" ? "자기 자신에게는 요청을 보낼 수 없습니다."
+              : error.code === "FRIEND_REQUEST_EXISTS" ? "이미 친구이거나 요청이 진행 중입니다."
+                : "친구 요청에 실패했습니다.",
+        );
+      } else {
+        setStatus("친구 요청에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      }
+    } finally {
+      setIsSendingRequest(false);
     }
-    setStatus(`${handle}님에게 친구 요청을 보냈습니다.`);
-    setFriendHandle("");
   };
 
-  const acceptRequest = () => {
-    setContacts(addContact(INCOMING_REQUEST));
-    setStatus("Nora Kim님의 친구 요청을 수락했습니다. 개인 채팅이 생성되었습니다.");
+  const respond = async (requestId: string, accept: boolean, requesterName: string) => {
+    setRespondingId(requestId);
+    try {
+      await respondToFriendRequest(requestId, accept);
+      setIncomingRequests((current) => current.filter((request) => request.id !== requestId));
+      setStatus(accept ? `${requesterName}님의 친구 요청을 수락했습니다.` : `${requesterName}님의 친구 요청을 거절했습니다.`);
+    } catch {
+      setStatus("요청 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setRespondingId(null);
+    }
   };
 
   const searchTeammate = async (event: FormEvent) => {
@@ -110,23 +145,51 @@ export default function FriendManagerModal({ open, onClose, teamId }: FriendMana
 
         {mode === "friend" ? (
           <>
-            <form onSubmit={sendFriendRequest}>
+            <form onSubmit={submitFriendRequest}>
               <label htmlFor="friend-manager-handle" className="mb-1.5 block text-xs text-ink-dim">친구 고유 ID</label>
               <div className="flex gap-2">
                 <input id="friend-manager-handle" value={friendHandle} onChange={(event) => setFriendHandle(event.target.value)} placeholder="#MER-XXXX" className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 font-mono text-xs uppercase text-ink outline-none focus:border-night" />
-                <button type="submit" className="rounded-lg bg-ink px-4 text-xs font-semibold text-void">요청</button>
+                <button type="submit" disabled={isSendingRequest} className="rounded-lg bg-ink px-4 text-xs font-semibold text-void disabled:opacity-50">
+                  {isSendingRequest ? "전송 중" : "요청"}
+                </button>
               </div>
             </form>
 
             <div className="my-5 border-t border-surface-3" />
             <p className="mb-3 text-xs font-semibold text-ink">받은 요청</p>
-            <div className="flex items-center gap-3 rounded-xl bg-surface-2 p-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-semibold text-void" style={{ backgroundColor: INCOMING_REQUEST.avatarColor }}>N</span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-ink">{INCOMING_REQUEST.name}</p>
-                <p className="font-mono text-[9px] text-ink-faint">{INCOMING_REQUEST.handle}</p>
-              </div>
-              {incomingAccepted ? <span className="text-[11px] text-consensus">수락됨</span> : <button type="button" onClick={acceptRequest} className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-dim hover:text-ink">수락</button>}
+            {isLoadingRequests && <p className="text-xs text-ink-faint">불러오는 중...</p>}
+            {!isLoadingRequests && incomingRequests.length === 0 && (
+              <p className="text-xs text-ink-faint">받은 친구 요청이 없습니다.</p>
+            )}
+            <div className="space-y-2">
+              {incomingRequests.map((request) => (
+                <div key={request.id} className="flex items-center gap-3 rounded-xl bg-surface-2 p-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-night text-[10px] font-semibold text-void">
+                    {request.requesterName.slice(0, 1).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-ink">{request.requesterName}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => respond(request.id, true, request.requesterName)}
+                      disabled={respondingId === request.id}
+                      className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-dim hover:text-ink disabled:opacity-50"
+                    >
+                      수락
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => respond(request.id, false, request.requesterName)}
+                      disabled={respondingId === request.id}
+                      className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-faint hover:text-ink disabled:opacity-50"
+                    >
+                      거절
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </>
         ) : (
