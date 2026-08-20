@@ -17,7 +17,8 @@ export type NotificationType =
   | "OPINION_REQUESTED"
   | "DEADLINE_APPROACHING"
   | "CONSENSUS_SUMMARY_COMPLETED"
-  | "FRIEND_REQUEST";
+  | "FRIEND_REQUEST"
+  | "TEAM_INVITE";
 
 export interface User {
   id: string;

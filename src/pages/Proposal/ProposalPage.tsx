@@ -139,6 +139,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
+  const [friendManagerMode, setFriendManagerMode] = useState<"friend" | "team">("friend");
   const [chatFriend, setChatFriend] = useState<FriendSummary | null>(null);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
   const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup, renameTeam } = useTeamSwitcher(user);
@@ -166,6 +167,10 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
   const selectNotification = (notification: Notification) => {
     markRead(notification);
     if (notification.type === "FRIEND_REQUEST") {
+      setFriendManagerMode("friend");
+      setIsFriendManagerOpen(true);
+    } else if (notification.type === "TEAM_INVITE") {
+      setFriendManagerMode("team");
       setIsFriendManagerOpen(true);
     } else if (notification.proposal_id) {
       navigate(`/proposals/${notification.proposal_id}/opinions`);
@@ -193,7 +198,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
 
           <div className="flex items-center gap-3">
             <NotificationPanel notifications={notifications} onMarkAllRead={markAllRead} onMarkRead={markRead} onSelect={selectNotification} />
-            <ConnectionButton onClick={() => setIsFriendManagerOpen(true)} />
+            <ConnectionButton onClick={() => { setFriendManagerMode("friend"); setIsFriendManagerOpen(true); }} />
             <div className="flex items-center gap-2 border-l border-surface-3 pl-3">
               <UserHandleButton user={user} onOpenProfile={onOpenProfile} onLogout={onLogout} />
             </div>
@@ -237,7 +242,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </Routes>
         </div>
       </div>
-      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} onOpenChat={setChatFriend} />
+      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} onOpenChat={setChatFriend} initialMode={friendManagerMode} />
       <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} onRenameTeam={renameTeam} />
     </div>
   );

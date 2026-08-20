@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { addTeamMember, getTeamMembers, removeTeamMember, searchUserByEmail, type TeamMemberProfile, type UserSummary } from "../../../lib/api";
+import { getTeamMembers, removeTeamMember, searchUserByFriendCode, sendTeamInvite, TeamInviteError, type TeamMemberProfile, type UserSummary } from "../../../lib/api";
 import type { AuthUser, Team } from "../../../types";
 
 interface Props {
@@ -13,8 +13,9 @@ interface Props {
 
 export default function TeamManagerModal({ open, onClose, user, team, onMembersChanged, onRenameTeam }: Props) {
   const [members, setMembers] = useState<TeamMemberProfile[]>([]);
-  const [email, setEmail] = useState("");
+  const [friendCode, setFriendCode] = useState("");
   const [foundUser, setFoundUser] = useState<UserSummary | null>(null);
+  const [matchedFriendCode, setMatchedFriendCode] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -62,15 +63,22 @@ export default function TeamManagerModal({ open, onClose, user, team, onMembersC
 
   const search = async (event: FormEvent) => {
     event.preventDefault();
-    if (!email.trim()) return;
+    const handle = friendCode.trim().toUpperCase().match(/#?MER-[A-Z0-9]{4,}/)?.[0];
+    if (!handle) {
+      setStatus("#MER-XXXX 형식으로 입력해주세요.");
+      return;
+    }
     setIsBusy(true);
     setFoundUser(null);
     setStatus(null);
     try {
-      const result = await searchUserByEmail(email.trim());
-      if (!result) setStatus("해당 이메일로 가입한 사용자가 없습니다.");
+      const result = await searchUserByFriendCode(handle);
+      if (!result) setStatus("해당 고유 ID로 가입한 사용자가 없습니다.");
       else if (members.some((member) => member.user_id === result.id)) setStatus("이미 이 팀에 참여한 사용자입니다.");
-      else setFoundUser(result);
+      else {
+        setFoundUser(result);
+        setMatchedFriendCode(handle);
+      }
     } catch {
       setStatus("사용자 검색에 실패했습니다.");
     } finally {
@@ -78,18 +86,22 @@ export default function TeamManagerModal({ open, onClose, user, team, onMembersC
     }
   };
 
-  const add = async () => {
+  const invite = async () => {
     if (!foundUser) return;
     setIsBusy(true);
     try {
-      const added = await addTeamMember(team.id, foundUser.id, "MEMBER");
-      setMembers((current) => [...current, added]);
-      setStatus(`${foundUser.name}님을 팀에 추가했습니다.`);
+      await sendTeamInvite(team.id, matchedFriendCode);
+      setStatus(`${foundUser.name}님에게 초대를 보냈습니다. 상대가 수락하면 팀원이 됩니다.`);
       setFoundUser(null);
-      setEmail("");
-      onMembersChanged?.();
-    } catch {
-      setStatus("추가하지 못했습니다. PM 권한을 확인해주세요.");
+      setFriendCode("");
+    } catch (error) {
+      setStatus(
+        error instanceof TeamInviteError
+          ? error.code === "TEAM_MEMBER_ALREADY_EXISTS" ? "이미 이 팀에 참여한 사용자입니다."
+            : error.code === "TEAM_INVITE_EXISTS" ? "이미 초대를 보낸 사용자입니다."
+              : "초대에 실패했습니다. PM 권한을 확인해주세요."
+          : "초대에 실패했습니다. PM 권한을 확인해주세요.",
+      );
     } finally {
       setIsBusy(false);
     }
@@ -167,14 +179,14 @@ export default function TeamManagerModal({ open, onClose, user, team, onMembersC
         </div>
 
         <div className="mt-5 border-t border-surface-3 pt-5">
-          <p className="text-xs font-semibold text-ink">팀원 추가</p>
+          <p className="text-xs font-semibold text-ink">팀원 초대</p>
           {isPm ? (
             <>
-              <p className="mt-1 text-[10px] leading-4 text-ink-faint">현재는 초대 링크 방식이 아니라, 이미 가입한 사용자의 이메일을 검색해 바로 팀에 추가합니다.</p>
-              <form onSubmit={search} className="mt-3 flex gap-2"><input type="email" value={email} onChange={(event) => { setEmail(event.target.value); setFoundUser(null); }} placeholder="teammate@example.com" className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3 py-2 text-xs text-ink outline-none focus:border-night" /><button disabled={isBusy} className="rounded-lg bg-ink px-4 text-xs font-semibold text-void disabled:opacity-50">검색</button></form>
-              {foundUser && <div className="mt-3 flex items-center gap-3 rounded-xl bg-surface-2 p-3"><div className="min-w-0 flex-1"><p className="text-xs text-ink">{foundUser.name}</p><p className="truncate text-[9px] text-ink-faint">{foundUser.email}</p></div><button type="button" onClick={add} disabled={isBusy} className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-dim hover:text-ink">추가</button></div>}
+              <p className="mt-1 text-[10px] leading-4 text-ink-faint">상대의 고유 ID(#MER-XXXX)로 초대를 보내면, 상대가 수락해야 팀원이 됩니다.</p>
+              <form onSubmit={search} className="mt-3 flex gap-2"><input value={friendCode} onChange={(event) => { setFriendCode(event.target.value); setFoundUser(null); }} placeholder="#MER-XXXX" className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3 py-2 font-mono text-xs uppercase text-ink outline-none focus:border-night" /><button disabled={isBusy} className="rounded-lg bg-ink px-4 text-xs font-semibold text-void disabled:opacity-50">검색</button></form>
+              {foundUser && <div className="mt-3 flex items-center gap-3 rounded-xl bg-surface-2 p-3"><div className="min-w-0 flex-1"><p className="text-xs text-ink">{foundUser.name}</p><p className="truncate text-[9px] text-ink-faint">{foundUser.email}</p></div><button type="button" onClick={invite} disabled={isBusy} className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-dim hover:text-ink">초대</button></div>}
             </>
-          ) : <p className="mt-2 text-[10px] text-ink-faint">PM만 팀원을 추가하거나 내보낼 수 있습니다.</p>}
+          ) : <p className="mt-2 text-[10px] text-ink-faint">PM만 팀원을 초대하거나 내보낼 수 있습니다.</p>}
         </div>
         {status && <p className="mt-4 rounded-lg bg-surface-2 px-3 py-2.5 text-xs text-ink-dim">{status}</p>}
       </section>

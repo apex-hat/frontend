@@ -182,10 +182,10 @@ interface UserSummaryDto {
   email: string;
 }
 
-/** GET /api/users/search?email= — 팀원 초대 시 이메일로 상대의 userId를 찾는다. 없으면 null. */
-export async function searchUserByEmail(email: string): Promise<UserSummary | null> {
+/** GET /api/users/search?friendCode= — 팀 초대 시 고유 ID로 상대의 userId를 찾는다. 없으면 null. */
+export async function searchUserByFriendCode(friendCode: string): Promise<UserSummary | null> {
   try {
-    const { data } = await httpClient.get<UserSummaryDto>("/api/users/search", { params: { email } });
+    const { data } = await httpClient.get<UserSummaryDto>("/api/users/search", { params: { friendCode } });
     return { id: String(data.id), name: data.name, email: data.email };
   } catch (error) {
     if (isAxiosError(error) && error.response?.status === 404) return null;
@@ -291,6 +291,83 @@ export async function addTeamMember(teamId: string, userId: string, role: TeamRo
 /** DELETE /api/teams/{teamId}/members/{userId} — 호출자는 해당 팀의 PM이어야 함 */
 export async function removeTeamMember(teamId: string, userId: string): Promise<void> {
   await httpClient.delete(`/api/teams/${teamId}/members/${userId}`);
+}
+
+// --- Team Invites -------------------------------------------------------
+// 즉시 추가되는 addTeamMember와 달리, 상대가 수락해야만 실제 팀원이 된다.
+
+export type TeamInviteStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+
+export interface TeamInviteSummary {
+  id: string;
+  teamId: string;
+  teamName: string;
+  invitedUserId: string;
+  invitedUserName: string;
+  invitedById: string;
+  invitedByName: string;
+  status: TeamInviteStatus;
+  createdAt: string;
+}
+
+interface TeamInviteResponseDto {
+  id: number;
+  teamId: number;
+  teamName: string;
+  invitedUserId: number;
+  invitedUserName: string;
+  invitedById: number;
+  invitedByName: string;
+  status: TeamInviteStatus;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+function toTeamInviteSummary(dto: TeamInviteResponseDto): TeamInviteSummary {
+  return {
+    id: String(dto.id),
+    teamId: String(dto.teamId),
+    teamName: dto.teamName,
+    invitedUserId: String(dto.invitedUserId),
+    invitedUserName: dto.invitedUserName,
+    invitedById: String(dto.invitedById),
+    invitedByName: dto.invitedByName,
+    status: dto.status,
+    createdAt: dto.createdAt,
+  };
+}
+
+export class TeamInviteError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/** POST /api/teams/{teamId}/invites — 고유 ID(#MER-XXXX)로 팀 초대를 보낸다(PM만 가능). */
+export async function sendTeamInvite(teamId: string, friendCode: string): Promise<TeamInviteSummary> {
+  try {
+    const { data } = await httpClient.post<TeamInviteResponseDto>(`/api/teams/${teamId}/invites`, { friendCode });
+    return toTeamInviteSummary(data);
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.data?.error) {
+      throw new TeamInviteError(error.response.data.error.code, error.response.data.error.message);
+    }
+    throw error;
+  }
+}
+
+/** GET /api/team-invites — 나에게 온 대기 중인 팀 초대 목록 */
+export async function getIncomingTeamInvites(): Promise<TeamInviteSummary[]> {
+  const { data } = await httpClient.get<TeamInviteResponseDto[]>("/api/team-invites");
+  return data.map(toTeamInviteSummary);
+}
+
+/** PATCH /api/team-invites/{inviteId} — 팀 초대 수락/거절 */
+export async function respondToTeamInvite(inviteId: string, accept: boolean): Promise<TeamInviteSummary> {
+  const { data } = await httpClient.patch<TeamInviteResponseDto>(`/api/team-invites/${inviteId}`, { accept });
+  return toTeamInviteSummary(data);
 }
 
 // --- Friends ----------------------------------------------------------

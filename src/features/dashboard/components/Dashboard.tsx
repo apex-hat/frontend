@@ -79,6 +79,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   });
   const [opinionsByProposal, setOpinionsByProposal] = useState<Record<string, Opinion[]>>({});
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
+  const [friendManagerMode, setFriendManagerMode] = useState<"friend" | "team">("friend");
   const [proposalMenu, setProposalMenu] = useState<{ proposal: Proposal; x: number; y: number } | null>(null);
   const [completionTarget, setCompletionTarget] = useState<Proposal | null>(null);
   const [completionComment, setCompletionComment] = useState("");
@@ -254,6 +255,12 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n)));
     markNotificationRead(notification.id);
     if (notification.type === "FRIEND_REQUEST") {
+      setFriendManagerMode("friend");
+      setIsFriendManagerOpen(true);
+      return;
+    }
+    if (notification.type === "TEAM_INVITE") {
+      setFriendManagerMode("team");
       setIsFriendManagerOpen(true);
       return;
     }
@@ -279,7 +286,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               onMarkRead={markRead}
               onSelect={selectNotification}
             />
-            <ConnectionButton onClick={() => setIsFriendManagerOpen(true)} />
+            <ConnectionButton onClick={() => { setFriendManagerMode("friend"); setIsFriendManagerOpen(true); }} />
             <div className="flex items-center gap-2 pl-3 border-l border-surface-3">
               <UserHandleButton user={user} onOpenProfile={onOpenProfile} onLogout={onLogout} />
             </div>
@@ -507,7 +514,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
           </section>
         </div>
       )}
-      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} onOpenChat={setChatFriend} />
+      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} onOpenChat={setChatFriend} initialMode={friendManagerMode} />
       <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} onMembersChanged={() => setMembersVersion((value) => value + 1)} onRenameTeam={renameTeam} />
     </div>
   );
