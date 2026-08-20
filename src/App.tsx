@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { signOut } from "firebase/auth";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import LoginPage from "./features/auth/components/LoginPage";
 import SignupPage from "./features/auth/components/SignupPage";
@@ -41,6 +41,20 @@ function readStoredUser(): AuthUser | null {
 export default function App() {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(readStoredUser);
+
+  // sessionStorage 캐시는 UI 표시용일 뿐, 실제 인증 상태의 원천은 Firebase다.
+  // 캐시는 남아있는데 Firebase 세션이 끊긴 경우(예: 스토리지 접근 제한, 세션 만료)를 그대로 두면
+  // 화면은 로그인된 것처럼 보이면서 모든 API 요청이 토큰 없이 401을 받는 상태가 된다.
+  // Firebase가 로그아웃 상태를 보고하면 캐시를 지우고 로그인 화면으로 되돌린다.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (!firebaseUser) {
+        window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        setUser(null);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const completeAuth = (authenticatedUser: AuthUser) => {
     window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedUser));
@@ -100,7 +114,6 @@ export default function App() {
             <Dashboard
               user={user}
               onCreateProposal={() => navigate("/proposals/new")}
-              onOpenProposal={(proposalId) => navigate(`/proposals/${proposalId}/opinions`)}
               onEditProposal={(proposalId) => navigate(`/proposals/${proposalId}/edit`)}
               onViewProposal={(proposalId) => navigate(`/proposals/${proposalId}/detail`)}
               onOpenProfile={() => navigate("/profile")}

@@ -1,5 +1,5 @@
 .container {
-  max-width: 600px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 20px 24px 56px;
   color: #f3f4f6;
@@ -53,7 +53,7 @@
 
 .textareaWrap { position: relative; }
 
-.textarea { min-height: 104px; padding-bottom: 25px; resize: none; }
+.textarea { min-height: 240px; padding-bottom: 25px; resize: vertical; }
 
 .characterCount {
   position: absolute;
@@ -318,7 +318,7 @@
 .calendarPopover {
   position: absolute;
   z-index: 40;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 8px);
   right: 0;
   padding: 10px;
   border: 1px solid #2e3650;

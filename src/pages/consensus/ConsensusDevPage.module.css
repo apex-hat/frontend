@@ -6,18 +6,35 @@
   --meridian-primary-soft: rgb(124 143 224 / 12%);
   --meridian-primary-border: rgb(124 143 224 / 32%);
   width: 100%;
-  max-width: 800px;
+  max-width: 1400px;
   box-sizing: border-box;
   margin: 0 auto;
-  padding: 40px 24px 80px;
+  padding: 40px 8px 80px;
   color: #f3f4f6;
   background: transparent;
   text-align: left;
 }
 
+.layout { display: grid; grid-template-columns: minmax(560px, 1fr) 380px; align-items: start; gap: 32px; }
+.mainColumn { min-width: 0; }
+.sideColumn { min-width: 0; }
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
 .pageHeader { margin-bottom: 26px; }
+.titleRow { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .title { margin: 0; color: #f3f4f6; font-family: "Outfit", system-ui, sans-serif; font-size: clamp(24px, 4vw, 31px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.22; }
+.author { margin: 6px 0 0; color: #9ca3af; font-size: 12px; }
+.headerActions { display: flex; flex-shrink: 0; gap: 8px; }
+.headerActionButton { padding: 7px 12px; border: 1px solid #2e3650; border-radius: 999px; color: #f3f4f6; background: #171a22; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.headerActionButton:hover { border-color: #4a5482; background: #1e2230; }
+.headerActionButton:focus-visible { outline: 3px solid rgb(124 143 224 / 22%); outline-offset: 2px; }
+.headerActionDanger { border-color: rgb(239 68 68 / 40%); color: #f87171; }
+.headerActionDanger:hover { border-color: rgb(239 68 68 / 70%); background: rgb(239 68 68 / 10%); }
 .description { margin: 13px 0 0; padding: 12px 14px; border: 1px solid #252b3c; border-radius: 11px; color: #b4bac7; background: #171a22; font-size: 13px; line-height: 1.65; }
+.deadline { display: inline-flex; align-items: center; gap: 6px; width: fit-content; margin: 10px 0 0; padding: 6px 12px; border: 1px solid #252b3c; border-radius: 999px; color: #b4bac7; background: rgb(23 26 34 / 50%); font-size: 12px; }
 .status { margin: 10px 0 0; color: #a8b5ee; font-size: 12px; }
 .section + .section { margin-top: 40px; }
 .sectionTitle { display: flex; align-items: center; gap: 9px; margin: 0 0 16px; color: #f3f4f6; font-family: "Outfit", system-ui, sans-serif; font-size: 19px; font-weight: 600; }
