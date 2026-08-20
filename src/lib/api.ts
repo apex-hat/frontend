@@ -231,6 +231,12 @@ export async function getTeam(teamId: string): Promise<Team> {
   return toTeam(data);
 }
 
+/** PATCH /api/teams/{teamId} — 호출자는 해당 팀의 PM이어야 함 */
+export async function updateTeamName(teamId: string, name: string): Promise<Team> {
+  const { data } = await httpClient.patch<TeamResponseDto>(`/api/teams/${teamId}`, { name });
+  return toTeam(data);
+}
+
 /** GET/POST /api/teams/{teamId}/members 응답 — 조인 row가 아니라 유저 프로필과 합쳐진 형태라 types.ts의 TeamMember와 다르다 */
 export interface TeamMemberProfile {
   user_id: string;

@@ -8,14 +8,18 @@ interface Props {
   user: AuthUser;
   team: Team | null;
   onMembersChanged?: () => void;
+  onRenameTeam?: (teamId: string, name: string) => Promise<unknown>;
 }
 
-export default function TeamManagerModal({ open, onClose, user, team, onMembersChanged }: Props) {
+export default function TeamManagerModal({ open, onClose, user, team, onMembersChanged, onRenameTeam }: Props) {
   const [members, setMembers] = useState<TeamMemberProfile[]>([]);
   const [email, setEmail] = useState("");
   const [foundUser, setFoundUser] = useState<UserSummary | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
 
   const loadMembers = () => {
     if (!team) return;
@@ -32,6 +36,29 @@ export default function TeamManagerModal({ open, onClose, user, team, onMembersC
 
   const me = members.find((member) => member.user_id === user.id);
   const isPm = me?.role === "PM";
+
+  const startEditName = () => {
+    setNameDraft(team.name);
+    setIsEditingName(true);
+  };
+
+  const saveEditName = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = nameDraft.trim();
+    if (!trimmed || trimmed === team.name) {
+      setIsEditingName(false);
+      return;
+    }
+    setIsSavingName(true);
+    try {
+      await onRenameTeam?.(team.id, trimmed);
+      setIsEditingName(false);
+    } catch {
+      setStatus("팀명을 변경하지 못했습니다.");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   const search = async (event: FormEvent) => {
     event.preventDefault();
@@ -87,9 +114,41 @@ export default function TeamManagerModal({ open, onClose, user, team, onMembersC
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
       <section role="dialog" aria-modal="true" aria-labelledby="team-manager-title" className="w-full max-w-md rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="text-[10px] text-ink-faint">팀 관리</p>
-            <h2 id="team-manager-title" className="mt-1 font-display text-xl text-ink">{team.name}</h2>
+            {isEditingName ? (
+              <form onSubmit={saveEditName} className="mt-1 flex items-center gap-1.5">
+                <input
+                  id="team-manager-title"
+                  autoFocus
+                  value={nameDraft}
+                  onChange={(event) => setNameDraft(event.target.value)}
+                  onBlur={saveEditName}
+                  onKeyDown={(event) => { if (event.key === "Escape") setIsEditingName(false); }}
+                  disabled={isSavingName}
+                  aria-label="팀명 수정"
+                  className="min-w-0 flex-1 rounded-md border border-surface-3 bg-surface-2 px-2 py-1 font-display text-xl text-ink outline-none focus:border-night"
+                />
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={isPm ? startEditName : undefined}
+                disabled={!isPm}
+                title={isPm ? "팀명 수정" : undefined}
+                className="group mt-1 flex items-center gap-1.5 disabled:cursor-default"
+              >
+                <h2 id="team-manager-title" className="truncate font-display text-xl text-ink">{team.name}</h2>
+                {isPm && (
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-transparent text-ink-faint opacity-0 transition group-hover:border-surface-3 group-hover:text-ink-dim group-hover:opacity-100">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                  </span>
+                )}
+              </button>
+            )}
           </div>
           <button type="button" onClick={onClose} aria-label="닫기" className="text-lg text-ink-dim hover:text-ink">×</button>
         </div>
