@@ -22,6 +22,8 @@ interface FriendManagerModalProps {
   currentUserId: string;
   /** "팀원 추가" 탭에서 팀원을 추가할 대상 팀. 아직 팀이 준비되지 않았으면 null. */
   teamId: string | null;
+  /** 친구의 메시지 버튼을 눌렀을 때 보드 좌측 채팅을 여는 콜백. */
+  onOpenChat?: (friend: FriendSummary) => void;
 }
 
 const CHAT_POLL_INTERVAL_MS = 3000;
@@ -30,7 +32,7 @@ function formatMessageTime(iso: string) {
   return new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 }
 
-export default function FriendManagerModal({ open, onClose, currentUserId, teamId }: FriendManagerModalProps) {
+export default function FriendManagerModal({ open, onClose, currentUserId, teamId, onOpenChat: onOpenSidebarChat }: FriendManagerModalProps) {
   const [mode, setMode] = useState<"friend" | "team">("friend");
   const [friendHandle, setFriendHandle] = useState("");
   const [isSendingRequest, setIsSendingRequest] = useState(false);
@@ -161,6 +163,11 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
   };
 
   const openChat = (friend: FriendSummary) => {
+    if (onOpenSidebarChat) {
+      onOpenSidebarChat(friend);
+      onClose();
+      return;
+    }
     setMessages([]);
     setActiveChatFriend(friend);
   };

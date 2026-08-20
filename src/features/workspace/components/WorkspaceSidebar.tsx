@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { AuthUser, Team } from "../../../types";
-import { getTeamMembers, type TeamMemberProfile } from "../../../lib/api";
+import { getConversation, getTeamMembers, sendMessage, type FriendSummary, type MessageSummary, type TeamMemberProfile } from "../../../lib/api";
 
 interface WorkspaceSidebarProps {
   user: AuthUser;
@@ -9,6 +9,9 @@ interface WorkspaceSidebarProps {
   isLoadingTeams: boolean;
   onSelectTeam: (teamId: string) => void;
   onCreateGroup: (name: string) => Promise<Team>;
+  chatFriend?: FriendSummary | null;
+  onCloseChat?: () => void;
+  onOpenTeamManager?: () => void;
 }
 
 const AVATAR_PALETTE = ["#F2A65A", "#63C7A6", "#7C8FE0", "#E8607A"];
@@ -19,7 +22,7 @@ function colorForUser(userId: string) {
   return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
 
-export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadingTeams, onSelectTeam, onCreateGroup }: WorkspaceSidebarProps) {
+export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadingTeams, onSelectTeam, onCreateGroup, chatFriend = null, onCloseChat, onOpenTeamManager }: WorkspaceSidebarProps) {
   const [members, setMembers] = useState<TeamMemberProfile[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [isTeamMenuOpen, setIsTeamMenuOpen] = useState(false);
@@ -28,6 +31,12 @@ export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadin
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const teamMenuRef = useRef<HTMLDivElement>(null);
+  const messageListRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<MessageSummary[]>([]);
+  const [messageText, setMessageText] = useState("");
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [messageError, setMessageError] = useState<string | null>(null);
 
   const selectedTeam = teams.find((team) => team.id === selectedTeamId) ?? null;
 
@@ -55,6 +64,25 @@ export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadin
     return () => document.removeEventListener("mousedown", closeTeamMenu);
   }, []);
 
+  useEffect(() => {
+    if (!chatFriend) return;
+    let cancelled = false;
+    const load = (showSpinner: boolean) => {
+      if (showSpinner) setIsLoadingMessages(true);
+      getConversation(chatFriend.userId)
+        .then((list) => { if (!cancelled) { setMessages(list); setMessageError(null); } })
+        .catch(() => { if (!cancelled) setMessageError("대화를 불러오지 못했습니다."); })
+        .finally(() => { if (!cancelled && showSpinner) setIsLoadingMessages(false); });
+    };
+    load(true);
+    const interval = window.setInterval(() => load(false), 3000);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, [chatFriend]);
+
+  useEffect(() => {
+    messageListRef.current?.scrollTo({ top: messageListRef.current.scrollHeight });
+  }, [messages]);
+
   const openCreateModal = () => {
     setGroupName("");
     setCreateError(null);
@@ -78,6 +106,54 @@ export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadin
     }
   };
 
+  const submitMessage = async (event: FormEvent) => {
+    event.preventDefault();
+    const content = messageText.trim();
+    if (!chatFriend || !content) return;
+    setIsSendingMessage(true);
+    setMessageError(null);
+    try {
+      const sent = await sendMessage(chatFriend.userId, content);
+      setMessages((current) => [...current, sent]);
+      setMessageText("");
+    } catch {
+      setMessageError("메시지를 보내지 못했습니다. 친구 관계인지 확인해주세요.");
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  if (chatFriend) {
+    return (
+      <aside className="flex h-[calc(100vh-65px)] min-h-0 flex-col py-3">
+        <div className="flex items-center gap-2 border-b border-surface-3 pb-3">
+          <button type="button" onClick={onCloseChat} aria-label="채팅 닫기" className="flex h-7 w-7 items-center justify-center text-ink-dim hover:text-ink">←</button>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-semibold text-ink">{chatFriend.name}</p>
+            <p className="truncate text-[9px] text-ink-faint">{chatFriend.friendCode ? `#${chatFriend.friendCode.replace(/^#/, "")}` : "1:1 메시지"}</p>
+          </div>
+        </div>
+        <div ref={messageListRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto py-3">
+          {isLoadingMessages && <p className="text-center text-[10px] text-ink-faint">대화를 불러오는 중...</p>}
+          {!isLoadingMessages && messages.length === 0 && <p className="px-2 py-6 text-center text-[10px] leading-5 text-ink-faint">아직 메시지가 없어요.<br />먼저 인사해보세요.</p>}
+          {messages.map((message) => {
+            const mine = message.senderId === user.id;
+            return (
+              <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[82%] rounded-xl px-2.5 py-2 text-[11px] leading-5 ${mine ? "rounded-br-sm bg-night text-ink" : "rounded-bl-sm bg-surface-2 text-ink-dim"}`}>{message.content}</div>
+              </div>
+            );
+          })}
+        </div>
+        {messageError && <p className="mb-2 text-[9px] text-alert">{messageError}</p>}
+        <form onSubmit={submitMessage} className="flex gap-1.5 border-t border-surface-3 pt-3">
+          <input value={messageText} onChange={(event) => setMessageText(event.target.value)} placeholder="메시지 입력" className="min-w-0 flex-1 rounded-full border border-surface-3 bg-surface-2 px-3 py-2 text-[11px] text-ink outline-none focus:border-night" />
+          <button type="submit" disabled={!messageText.trim() || isSendingMessage} className="h-8 shrink-0 rounded-full bg-ink px-3 text-[10px] font-semibold text-void disabled:opacity-40">전송</button>
+        </form>
+      </aside>
+    );
+  }
+
   return (
     <aside className="lg:sticky lg:top-[65px] lg:max-h-[calc(100vh-65px)] lg:overflow-y-auto">
       <div ref={teamMenuRef}>
@@ -99,7 +175,7 @@ export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadin
 
         {isTeamMenuOpen && (
           <div className="mb-2 overflow-hidden rounded-xl border border-surface-3 bg-surface-2 py-1 shadow-panel">
-            {teams.map((team) => (
+            {teams.filter((team) => team.id !== selectedTeamId).map((team) => (
               <button
                 key={team.id}
                 type="button"
@@ -110,6 +186,11 @@ export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadin
               </button>
             ))}
             <div className="my-1 border-t border-surface-3" />
+            {selectedTeam && onOpenTeamManager && (
+              <button type="button" onClick={() => { onOpenTeamManager(); setIsTeamMenuOpen(false); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:text-ink">
+                팀 관리
+              </button>
+            )}
             <button type="button" onClick={openCreateModal} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:text-ink">
               + 새 그룹 만들기
             </button>
