@@ -274,7 +274,14 @@ export async function leaveTeam(teamId: string): Promise<void> {
   }
 }
 
-export type ActivityAction = "MEMBER_REMOVED" | "MEMBER_LEFT" | "PM_TRANSFERRED" | "OPINION_UPDATED_BY_PM" | "OPINION_DELETED_BY_PM";
+export type ActivityAction =
+  | "MEMBER_REMOVED"
+  | "MEMBER_LEFT"
+  | "PM_TRANSFERRED"
+  | "OPINION_UPDATED_BY_PM"
+  | "OPINION_DELETED_BY_PM"
+  | "PROPOSAL_UPDATED_BY_PM"
+  | "PROPOSAL_DELETED_BY_PM";
 
 export interface ActivityLogEntry {
   id: string;

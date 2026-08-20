@@ -71,6 +71,12 @@ export default function TeamManagerModal({ open, onClose, user, team, onMembersC
 
   /** 팀원이 나뿐이면 PM 권한을 넘길 대상 자체가 없어 나가기가 불가능하다 — 이 경우 삭제로 유도한다. */
   const isSoleMember = members.length <= 1;
+  /**
+   * Backend는 "총 팀원 수"가 아니라 "이 팀에 PM이 몇 명인지"로 나가기 가능 여부를 판단한다
+   * (TeamService.leaveTeam: PM 역할 인원이 1명 이하일 때만 양도를 요구). 팀원이 여러 명이어도
+   * 다른 PM이 이미 있으면 바로 나갈 수 있으므로, isSoleMember만으로는 이 조건을 판단할 수 없다.
+   */
+  const isOnlyPm = isPm && !members.some((member) => member.role === "PM" && member.user_id !== user.id);
   const pendingInvites = sentInvites.filter((invite) => invite.status === "PENDING");
 
   const startEditName = () => {
@@ -336,14 +342,14 @@ export default function TeamManagerModal({ open, onClose, user, team, onMembersC
           <p className="mt-1 text-[10px] leading-4 text-ink-faint">
             {isPm && isSoleMember
               ? "혼자 남은 팀이라 나갈 대상이 없습니다. 팀을 정리하려면 아래 위험 구역에서 팀을 삭제하세요."
-              : isPm
+              : isOnlyPm
                 ? "PM은 다른 팀원에게 PM 권한을 먼저 넘긴 뒤에만 나갈 수 있습니다."
                 : "이 팀에서 나가면 더 이상 팀의 제안과 대화를 볼 수 없습니다."}
           </p>
           <button
             type="button"
             onClick={leave}
-            disabled={isLeavingTeam || (isPm && isSoleMember)}
+            disabled={isLeavingTeam || isOnlyPm}
             className="mt-3 rounded-lg border border-surface-3 px-4 py-2 text-xs font-semibold text-ink-dim transition hover:bg-surface-2 hover:text-ink disabled:opacity-50"
           >
             {isLeavingTeam ? "나가는 중…" : "팀 나가기"}
