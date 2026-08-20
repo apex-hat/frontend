@@ -17,7 +17,8 @@ export type NotificationType =
   | "OPINION_REQUESTED"
   | "DEADLINE_APPROACHING"
   | "CONSENSUS_SUMMARY_COMPLETED"
-  | "FRIEND_REQUEST";
+  | "FRIEND_REQUEST"
+  | "TEAM_INVITE";
 
 export interface User {
   id: string;
@@ -55,6 +56,8 @@ export interface Proposal {
   id: string;
   title: string;
   target_team_id: string;
+  /** Backend가 targetTeam.name을 함께 내려줌 — 전체 팀 보기에서 배지로 사용 */
+  target_team_name: string;
   status: ProposalStatus;
   deadline: string;
   created_at: string;

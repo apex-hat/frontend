@@ -86,10 +86,11 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
   const [tagCopied, setTagCopied] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isConnectionManagerOpen, setIsConnectionManagerOpen] = useState(false);
+  const [friendManagerMode, setFriendManagerMode] = useState<"friend" | "team">("friend");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const userHandle = user.friend_code ? `#${user.friend_code}` : "";
-  const { selectedTeamId } = useTeamSwitcher(user);
+  const { selectedTeamId, reload: reloadTeams } = useTeamSwitcher(user);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,8 +113,15 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
 
   const selectNotification = (notification: Notification) => {
     markRead(notification);
-    if (notification.type === "FRIEND_REQUEST") setIsConnectionManagerOpen(true);
-    else onBack();
+    if (notification.type === "FRIEND_REQUEST") {
+      setFriendManagerMode("friend");
+      setIsConnectionManagerOpen(true);
+    } else if (notification.type === "TEAM_INVITE") {
+      setFriendManagerMode("team");
+      setIsConnectionManagerOpen(true);
+    } else {
+      onBack();
+    }
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -146,7 +154,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
           </div>
           <div className="flex items-center gap-3">
             <NotificationPanel notifications={notifications} onMarkAllRead={markAllRead} onMarkRead={markRead} onSelect={selectNotification} />
-            <ConnectionButton onClick={() => setIsConnectionManagerOpen(true)} />
+            <ConnectionButton onClick={() => { setFriendManagerMode("friend"); setIsConnectionManagerOpen(true); }} />
             <div className="flex items-center border-l border-surface-3 pl-3">
               <UserHandleButton user={user} onLogout={onLogout} />
             </div>
@@ -276,7 +284,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
         </section>
         </div>
       </main>
-      <FriendManagerModal open={isConnectionManagerOpen} onClose={() => setIsConnectionManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} />
+      <FriendManagerModal open={isConnectionManagerOpen} onClose={() => setIsConnectionManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} initialMode={friendManagerMode} onTeamJoined={reloadTeams} />
     </div>
   );
 }

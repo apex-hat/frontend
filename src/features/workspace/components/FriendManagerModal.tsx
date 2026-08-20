@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
-  addTeamMember,
-  searchUserByEmail,
+  searchUserByFriendCode,
   sendFriendRequest,
   getIncomingFriendRequests,
   respondToFriendRequest,
   getFriends,
   sendMessage,
   getConversation,
+  sendTeamInvite,
+  getIncomingTeamInvites,
+  respondToTeamInvite,
   FriendRequestError,
+  TeamInviteError,
   type FriendRequestSummary,
   type FriendSummary,
   type MessageSummary,
+  type TeamInviteSummary,
   type UserSummary,
 } from "../../../lib/api";
 
@@ -20,10 +24,14 @@ interface FriendManagerModalProps {
   onClose: () => void;
   /** 메시지 말풍선을 좌/우로 나눌 기준이 되는 현재 로그인 사용자 id. */
   currentUserId: string;
-  /** "팀원 추가" 탭에서 팀원을 추가할 대상 팀. 아직 팀이 준비되지 않았으면 null. */
+  /** "팀원 초대" 탭에서 초대를 보낼 대상 팀. 아직 팀이 준비되지 않았으면 null. */
   teamId: string | null;
   /** 친구의 메시지 버튼을 눌렀을 때 보드 좌측 채팅을 여는 콜백. */
   onOpenChat?: (friend: FriendSummary) => void;
+  /** 알림(FRIEND_REQUEST/TEAM_INVITE) 클릭처럼, 열릴 때 특정 탭을 보여줘야 할 때 지정. */
+  initialMode?: "friend" | "team";
+  /** 팀 초대를 수락해 새로운 팀에 합류했을 때, 팀 목록을 다시 불러오도록 알리는 콜백. */
+  onTeamJoined?: (teamId: string) => void;
 }
 
 const CHAT_POLL_INTERVAL_MS = 3000;
@@ -32,7 +40,7 @@ function formatMessageTime(iso: string) {
   return new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 }
 
-export default function FriendManagerModal({ open, onClose, currentUserId, teamId, onOpenChat: onOpenSidebarChat }: FriendManagerModalProps) {
+export default function FriendManagerModal({ open, onClose, currentUserId, teamId, onOpenChat: onOpenSidebarChat, initialMode, onTeamJoined }: FriendManagerModalProps) {
   const [mode, setMode] = useState<"friend" | "team">("friend");
   const [friendHandle, setFriendHandle] = useState("");
   const [isSendingRequest, setIsSendingRequest] = useState(false);
@@ -42,10 +50,14 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [friends, setFriends] = useState<FriendSummary[]>([]);
   const [isLoadingFriends, setIsLoadingFriends] = useState(true);
-  const [teamEmail, setTeamEmail] = useState("");
+  const [teamFriendCode, setTeamFriendCode] = useState("");
+  const [matchedTeammateCode, setMatchedTeammateCode] = useState("");
   const [foundTeammate, setFoundTeammate] = useState<UserSummary | null>(null);
   const [isSearchingTeammate, setIsSearchingTeammate] = useState(false);
-  const [isAddingTeammate, setIsAddingTeammate] = useState(false);
+  const [isInvitingTeammate, setIsInvitingTeammate] = useState(false);
+  const [incomingTeamInvites, setIncomingTeamInvites] = useState<TeamInviteSummary[]>([]);
+  const [isLoadingTeamInvites, setIsLoadingTeamInvites] = useState(true);
+  const [respondingTeamInviteId, setRespondingTeamInviteId] = useState<string | null>(null);
 
   const [activeChatFriend, setActiveChatFriend] = useState<FriendSummary | null>(null);
   const [messages, setMessages] = useState<MessageSummary[]>([]);
@@ -53,6 +65,12 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
   const [messageText, setMessageText] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
+
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open && initialMode) setMode(initialMode);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -72,6 +90,14 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
       .catch(() => { /* 조회 실패 시 빈 목록으로 둔다 */ })
       .finally(() => {
         if (!cancelled) setIsLoadingFriends(false);
+      });
+    getIncomingTeamInvites()
+      .then((list) => {
+        if (!cancelled) setIncomingTeamInvites(list);
+      })
+      .catch(() => { /* 조회 실패 시 빈 목록으로 둔다 */ })
+      .finally(() => {
+        if (!cancelled) setIsLoadingTeamInvites(false);
       });
     return () => {
       cancelled = true;
@@ -196,19 +222,23 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
 
   const searchTeammate = async (event: FormEvent) => {
     event.preventDefault();
-    const email = teamEmail.trim();
-    if (!email) return;
+    const handle = teamFriendCode.trim().toUpperCase().match(/#?MER-[A-Z0-9]{4,}/)?.[0];
+    if (!handle) {
+      setStatus("#MER-XXXX 형식으로 입력해주세요.");
+      return;
+    }
 
     setIsSearchingTeammate(true);
     setFoundTeammate(null);
     setStatus(null);
     try {
-      const user = await searchUserByEmail(email);
+      const user = await searchUserByFriendCode(handle);
       if (!user) {
-        setStatus("해당 이메일로 가입한 사용자를 찾지 못했습니다.");
+        setStatus("해당 고유 ID로 가입한 사용자를 찾지 못했습니다.");
         return;
       }
       setFoundTeammate(user);
+      setMatchedTeammateCode(handle);
     } catch {
       setStatus("검색에 실패했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
@@ -216,18 +246,39 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
     }
   };
 
-  const addTeammate = async () => {
+  const inviteTeammate = async () => {
     if (!foundTeammate || !teamId) return;
-    setIsAddingTeammate(true);
+    setIsInvitingTeammate(true);
     try {
-      await addTeamMember(teamId, foundTeammate.id, "MEMBER");
-      setStatus(`${foundTeammate.name}님을 팀에 추가했습니다.`);
+      await sendTeamInvite(teamId, matchedTeammateCode);
+      setStatus(`${foundTeammate.name}님에게 팀 초대를 보냈습니다. 상대가 수락하면 팀원이 됩니다.`);
       setFoundTeammate(null);
-      setTeamEmail("");
-    } catch {
-      setStatus("팀원 추가에 실패했습니다. 이미 팀에 속해 있거나 권한이 없을 수 있습니다.");
+      setTeamFriendCode("");
+    } catch (error) {
+      setStatus(
+        error instanceof TeamInviteError
+          ? error.code === "TEAM_MEMBER_ALREADY_EXISTS" ? "이미 이 팀에 속한 사용자입니다."
+            : error.code === "TEAM_INVITE_EXISTS" ? "이미 초대를 보낸 사용자입니다."
+              : error.code === "TEAM_PM_REQUIRED" ? "팀 PM만 초대를 보낼 수 있습니다."
+                : "팀 초대에 실패했습니다."
+          : "팀 초대에 실패했습니다. 잠시 후 다시 시도해주세요.",
+      );
     } finally {
-      setIsAddingTeammate(false);
+      setIsInvitingTeammate(false);
+    }
+  };
+
+  const respondTeamInvite = async (inviteId: string, accept: boolean, teamName: string, respondingTeamId: string) => {
+    setRespondingTeamInviteId(inviteId);
+    try {
+      await respondToTeamInvite(inviteId, accept);
+      setIncomingTeamInvites((current) => current.filter((invite) => invite.id !== inviteId));
+      setStatus(accept ? `'${teamName}' 팀 초대를 수락했습니다.` : `'${teamName}' 팀 초대를 거절했습니다.`);
+      if (accept) onTeamJoined?.(respondingTeamId);
+    } catch {
+      setStatus("초대 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setRespondingTeamInviteId(null);
     }
   };
 
@@ -285,14 +336,14 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 id="connection-manager-title" className="font-display text-xl text-ink">연결 추가</h2>
-                <p className="mt-1 text-[11px] text-ink-faint">친구를 찾거나 팀원을 추가하세요.</p>
+                <p className="mt-1 text-[11px] text-ink-faint">친구를 찾거나 팀원을 초대하세요.</p>
               </div>
               <button type="button" onClick={onClose} aria-label="닫기" className="text-lg text-ink-dim transition hover:text-ink">×</button>
             </div>
 
             <div className="mb-5 grid grid-cols-2 rounded-lg bg-surface-2 p-1">
               <button type="button" onClick={() => { setMode("friend"); setStatus(null); }} className={`rounded-md py-2 text-xs transition ${mode === "friend" ? "bg-surface-3 text-ink" : "text-ink-faint hover:text-ink-dim"}`}>친구 추가</button>
-              <button type="button" onClick={() => { setMode("team"); setStatus(null); }} className={`rounded-md py-2 text-xs transition ${mode === "team" ? "bg-surface-3 text-ink" : "text-ink-faint hover:text-ink-dim"}`}>팀원 추가</button>
+              <button type="button" onClick={() => { setMode("team"); setStatus(null); }} className={`rounded-md py-2 text-xs transition ${mode === "team" ? "bg-surface-3 text-ink" : "text-ink-faint hover:text-ink-dim"}`}>팀원 초대</button>
             </div>
 
             {mode === "friend" ? (
@@ -370,22 +421,21 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
             ) : (
               <>
                 <form onSubmit={searchTeammate}>
-                  <label htmlFor="team-invite-email" className="mb-1.5 block text-xs text-ink-dim">팀원 이메일</label>
+                  <label htmlFor="team-invite-code" className="mb-1.5 block text-xs text-ink-dim">팀원 고유 ID</label>
                   <div className="flex gap-2">
                     <input
-                      id="team-invite-email"
-                      type="email"
-                      value={teamEmail}
-                      onChange={(event) => { setTeamEmail(event.target.value); setFoundTeammate(null); }}
-                      placeholder="teammate@example.com"
-                      className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 text-xs text-ink outline-none focus:border-night"
+                      id="team-invite-code"
+                      value={teamFriendCode}
+                      onChange={(event) => { setTeamFriendCode(event.target.value); setFoundTeammate(null); }}
+                      placeholder="#MER-XXXX"
+                      className="min-w-0 flex-1 rounded-lg border border-surface-3 bg-surface-2 px-3.5 py-2.5 font-mono text-xs uppercase text-ink outline-none focus:border-night"
                     />
                     <button type="submit" disabled={isSearchingTeammate} className="rounded-lg bg-ink px-4 text-xs font-semibold text-void disabled:opacity-50">
                       {isSearchingTeammate ? "검색 중" : "검색"}
                     </button>
                   </div>
                 </form>
-                <p className="mt-2 text-[10px] text-ink-faint">실제 가입된 이메일로 검색해 현재 선택된 팀에 추가합니다.</p>
+                <p className="mt-2 text-[10px] text-ink-faint">고유 ID로 초대를 보내면, 상대가 수락해야 현재 선택된 팀에 합류합니다.</p>
 
                 {foundTeammate && (
                   <div className="mt-4 flex items-center gap-3 rounded-xl bg-surface-2 p-3">
@@ -398,14 +448,52 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
                     </div>
                     <button
                       type="button"
-                      onClick={addTeammate}
-                      disabled={isAddingTeammate || !teamId}
+                      onClick={inviteTeammate}
+                      disabled={isInvitingTeammate || !teamId}
                       className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-dim hover:text-ink disabled:opacity-50"
                     >
-                      {isAddingTeammate ? "추가 중" : "추가"}
+                      {isInvitingTeammate ? "초대 중" : "초대"}
                     </button>
                   </div>
                 )}
+
+                <div className="my-5 border-t border-surface-3" />
+                <p className="mb-3 text-xs font-semibold text-ink">받은 팀 초대</p>
+                {isLoadingTeamInvites && <p className="text-xs text-ink-faint">불러오는 중...</p>}
+                {!isLoadingTeamInvites && incomingTeamInvites.length === 0 && (
+                  <p className="text-xs text-ink-faint">받은 팀 초대가 없습니다.</p>
+                )}
+                <div className="space-y-2">
+                  {incomingTeamInvites.map((invite) => (
+                    <div key={invite.id} className="flex items-center gap-3 rounded-xl bg-surface-2 p-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-night text-[10px] font-semibold text-void">
+                        {invite.teamName.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm text-ink">{invite.teamName}</p>
+                        <p className="truncate text-[10px] text-ink-faint">{invite.invitedByName}님이 초대함</p>
+                      </div>
+                      <div className="flex shrink-0 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => respondTeamInvite(invite.id, true, invite.teamName, invite.teamId)}
+                          disabled={respondingTeamInviteId === invite.id}
+                          className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-dim hover:text-ink disabled:opacity-50"
+                        >
+                          수락
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => respondTeamInvite(invite.id, false, invite.teamName, invite.teamId)}
+                          disabled={respondingTeamInviteId === invite.id}
+                          className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-faint hover:text-ink disabled:opacity-50"
+                        >
+                          거절
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
 
