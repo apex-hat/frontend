@@ -51,10 +51,17 @@ export default function TeamManagerModal({ open, onClose, user, team, onMembersC
     getTeamMembers(team.id).then(setMembers).catch(() => setStatus("팀원 목록을 불러오지 못했습니다."));
   };
 
+  // 열려있는 동안 짧은 주기로 다시 조회한다(WebSocket 없이 폴링) — 그렇지 않으면 모달을
+  // 띄워둔 채 다른 사람이 팀에 합류/이탈해도 다시 열기 전까지는 팀원 목록이 안 바뀌었다.
   useEffect(() => {
     if (!open || !team) return;
     loadMembers();
     getTeamActivityLog(team.id).then(setActivityLog).catch(() => {});
+    const interval = window.setInterval(() => {
+      loadMembers();
+      getTeamActivityLog(team.id).then(setActivityLog).catch(() => {});
+    }, 10_000);
+    return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, team?.id]);
 
@@ -64,6 +71,10 @@ export default function TeamManagerModal({ open, onClose, user, team, onMembersC
   useEffect(() => {
     if (!open || !team || !isPm) return;
     getTeamSentInvites(team.id).then(setSentInvites).catch(() => {});
+    const interval = window.setInterval(() => {
+      getTeamSentInvites(team.id).then(setSentInvites).catch(() => {});
+    }, 10_000);
+    return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, team?.id, isPm]);
 

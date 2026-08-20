@@ -72,35 +72,44 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
     if (open && initialMode) setMode(initialMode);
   }
 
+  // 열려있는 동안 짧은 주기로 다시 조회한다(WebSocket 없이 폴링) — 그렇지 않으면
+  // 모달을 띄워둔 채 팀 초대/친구 요청을 받아도 다시 열기 전까지는 안 보였다.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    getIncomingFriendRequests()
-      .then((list) => {
-        if (!cancelled) setIncomingRequests(list);
-      })
-      .catch(() => { /* 조회 실패 시 빈 목록으로 둔다 */ })
-      .finally(() => {
-        if (!cancelled) setIsLoadingRequests(false);
-      });
-    getFriends()
-      .then((list) => {
-        if (!cancelled) setFriends(list);
-      })
-      .catch(() => { /* 조회 실패 시 빈 목록으로 둔다 */ })
-      .finally(() => {
-        if (!cancelled) setIsLoadingFriends(false);
-      });
-    getIncomingTeamInvites()
-      .then((list) => {
-        if (!cancelled) setIncomingTeamInvites(list);
-      })
-      .catch(() => { /* 조회 실패 시 빈 목록으로 둔다 */ })
-      .finally(() => {
-        if (!cancelled) setIsLoadingTeamInvites(false);
-      });
+
+    const load = () => {
+      getIncomingFriendRequests()
+        .then((list) => {
+          if (!cancelled) setIncomingRequests(list);
+        })
+        .catch(() => { /* 조회 실패 시 빈 목록으로 둔다 */ })
+        .finally(() => {
+          if (!cancelled) setIsLoadingRequests(false);
+        });
+      getFriends()
+        .then((list) => {
+          if (!cancelled) setFriends(list);
+        })
+        .catch(() => { /* 조회 실패 시 빈 목록으로 둔다 */ })
+        .finally(() => {
+          if (!cancelled) setIsLoadingFriends(false);
+        });
+      getIncomingTeamInvites()
+        .then((list) => {
+          if (!cancelled) setIncomingTeamInvites(list);
+        })
+        .catch(() => { /* 조회 실패 시 빈 목록으로 둔다 */ })
+        .finally(() => {
+          if (!cancelled) setIsLoadingTeamInvites(false);
+        });
+    };
+
+    load();
+    const interval = window.setInterval(load, 10_000);
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
     };
   }, [open]);
 
