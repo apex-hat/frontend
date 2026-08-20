@@ -5,6 +5,7 @@
   --meridian-primary-dark: #a8b5ee;
   --meridian-primary-soft: rgb(124 143 224 / 12%);
   --meridian-primary-border: rgb(124 143 224 / 32%);
+  container-type: inline-size;
   width: 100%;
   max-width: 1400px;
   box-sizing: border-box;
@@ -19,7 +20,13 @@
 .mainColumn { min-width: 0; }
 .sideColumn { min-width: 0; }
 
-@media (max-width: 960px) {
+/*
+ * 이 페이지는 좌측 팀 사이드바(18%)와 나란히 82% 너비 컬럼 안에 놓이기 때문에,
+ * 뷰포트 폭(viewport width) 기준 @media 브레이크포인트로는 실제로 .layout에 남는
+ * 공간을 알 수 없어 2컬럼이 넘칠 때도 안 넘어가는 문제가 있었다. .page 자신의
+ * 실제 렌더 폭을 기준으로 판단하는 컨테이너 쿼리로 바꿔서 해결한다.
+ */
+@container (max-width: 1040px) {
   .layout { grid-template-columns: 1fr; }
 }
 
@@ -33,7 +40,7 @@
 .headerActionButton:focus-visible { outline: 3px solid rgb(124 143 224 / 22%); outline-offset: 2px; }
 .headerActionDanger { border-color: rgb(239 68 68 / 40%); color: #f87171; }
 .headerActionDanger:hover { border-color: rgb(239 68 68 / 70%); background: rgb(239 68 68 / 10%); }
-.description { margin: 13px 0 0; padding: 12px 14px; border: 1px solid #252b3c; border-radius: 11px; color: #b4bac7; background: #171a22; font-size: 13px; line-height: 1.65; }
+.description { margin: 13px 0 0; padding: 12px 14px; border: 1px solid #252b3c; border-radius: 11px; color: #b4bac7; background: #171a22; font-size: 15px; line-height: 1.65; }
 .deadline { display: inline-flex; align-items: center; gap: 6px; width: fit-content; margin: 10px 0 0; padding: 6px 12px; border: 1px solid #252b3c; border-radius: 999px; color: #b4bac7; background: rgb(23 26 34 / 50%); font-size: 12px; }
 .status { margin: 10px 0 0; color: #a8b5ee; font-size: 12px; }
 .section + .section { margin-top: 40px; }

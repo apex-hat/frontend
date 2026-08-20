@@ -206,25 +206,25 @@ export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadin
           <button type="button" onClick={onCloseChat} aria-label="채팅 닫기" className="flex h-7 w-7 items-center justify-center text-ink-dim hover:text-ink">←</button>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold text-ink">{chatFriend.name}</p>
-            <p className="truncate text-[9px] text-ink-faint">{chatFriend.friendCode ? `#${chatFriend.friendCode.replace(/^#/, "")}` : "1:1 메시지"}</p>
+            <p className="truncate text-[11px] text-ink-faint">{chatFriend.friendCode ? `#${chatFriend.friendCode.replace(/^#/, "")}` : "1:1 메시지"}</p>
           </div>
         </div>
         <div ref={messageListRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto py-3">
-          {isLoadingMessages && <p className="text-center text-[10px] text-ink-faint">대화를 불러오는 중...</p>}
-          {!isLoadingMessages && messages.length === 0 && <p className="px-2 py-6 text-center text-[10px] leading-5 text-ink-faint">아직 메시지가 없어요.<br />먼저 인사해보세요.</p>}
+          {isLoadingMessages && <p className="text-center text-[12px] text-ink-faint">대화를 불러오는 중...</p>}
+          {!isLoadingMessages && messages.length === 0 && <p className="px-2 py-6 text-center text-[12px] leading-5 text-ink-faint">아직 메시지가 없어요.<br />먼저 인사해보세요.</p>}
           {messages.map((message) => {
             const mine = message.senderId === user.id;
             return (
               <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[82%] rounded-xl px-2.5 py-2 text-[11px] leading-5 ${mine ? "rounded-br-sm bg-night text-ink" : "rounded-bl-sm bg-surface-2 text-ink-dim"}`}>{message.content}</div>
+                <div className={`max-w-[82%] rounded-xl px-2.5 py-2 text-[13px] leading-5 ${mine ? "rounded-br-sm bg-night text-ink" : "rounded-bl-sm bg-surface-2 text-ink-dim"}`}>{message.content}</div>
               </div>
             );
           })}
         </div>
-        {messageError && <p className="mb-2 text-[9px] text-alert">{messageError}</p>}
+        {messageError && <p className="mb-2 text-[11px] text-alert">{messageError}</p>}
         <form onSubmit={submitMessage} className="flex gap-1.5 border-t border-surface-3 pt-3">
-          <input value={messageText} onChange={(event) => setMessageText(event.target.value)} placeholder="메시지 입력" className="min-w-0 flex-1 rounded-full border border-surface-3 bg-surface-2 px-3 py-2 text-[11px] text-ink outline-none focus:border-night" />
-          <button type="submit" disabled={!messageText.trim() || isSendingMessage} className="h-8 shrink-0 rounded-full bg-ink px-3 text-[10px] font-semibold text-void disabled:opacity-40">전송</button>
+          <input value={messageText} onChange={(event) => setMessageText(event.target.value)} placeholder="메시지 입력" className="min-w-0 flex-1 rounded-full border border-surface-3 bg-surface-2 px-3 py-2 text-[13px] text-ink outline-none focus:border-night" />
+          <button type="submit" disabled={!messageText.trim() || isSendingMessage} className="h-8 shrink-0 rounded-full bg-ink px-3 text-[12px] font-semibold text-void disabled:opacity-40">전송</button>
         </form>
       </aside>
     );
@@ -237,28 +237,28 @@ export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadin
           <button type="button" onClick={() => setIsTeamChatOpen(false)} aria-label="채팅 닫기" className="flex h-7 w-7 items-center justify-center text-ink-dim hover:text-ink">←</button>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold text-ink">{selectedTeam?.name}</p>
-            <p className="truncate text-[9px] text-ink-faint">팀 채팅</p>
+            <p className="truncate text-[11px] text-ink-faint">팀 채팅</p>
           </div>
         </div>
         <div ref={teamMessageListRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto py-3">
-          {isLoadingTeamMessages && <p className="text-center text-[10px] text-ink-faint">대화를 불러오는 중...</p>}
-          {!isLoadingTeamMessages && teamMessages.length === 0 && <p className="px-2 py-6 text-center text-[10px] leading-5 text-ink-faint">아직 메시지가 없어요.<br />먼저 인사해보세요.</p>}
+          {isLoadingTeamMessages && <p className="text-center text-[12px] text-ink-faint">대화를 불러오는 중...</p>}
+          {!isLoadingTeamMessages && teamMessages.length === 0 && <p className="px-2 py-6 text-center text-[12px] leading-5 text-ink-faint">아직 메시지가 없어요.<br />먼저 인사해보세요.</p>}
           {teamMessages.map((message) => {
             const mine = message.senderId === user.id;
             return (
               <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[82%] rounded-xl px-2.5 py-2 text-[11px] leading-5 ${mine ? "rounded-br-sm bg-night text-ink" : "rounded-bl-sm bg-surface-2 text-ink-dim"}`}>
-                  {!mine && <p className="mb-0.5 text-[9px] font-medium text-ink-faint">{message.senderName}</p>}
+                <div className={`max-w-[82%] rounded-xl px-2.5 py-2 text-[13px] leading-5 ${mine ? "rounded-br-sm bg-night text-ink" : "rounded-bl-sm bg-surface-2 text-ink-dim"}`}>
+                  {!mine && <p className="mb-0.5 text-[11px] font-medium text-ink-faint">{message.senderName}</p>}
                   {message.content}
                 </div>
               </div>
             );
           })}
         </div>
-        {teamMessageError && <p className="mb-2 text-[9px] text-alert">{teamMessageError}</p>}
+        {teamMessageError && <p className="mb-2 text-[11px] text-alert">{teamMessageError}</p>}
         <form onSubmit={submitTeamMessage} className="flex gap-1.5 border-t border-surface-3 pt-3">
-          <input value={teamMessageText} onChange={(event) => setTeamMessageText(event.target.value)} placeholder="메시지 입력" className="min-w-0 flex-1 rounded-full border border-surface-3 bg-surface-2 px-3 py-2 text-[11px] text-ink outline-none focus:border-night" />
-          <button type="submit" disabled={!teamMessageText.trim() || isSendingTeamMessage} className="h-8 shrink-0 rounded-full bg-ink px-3 text-[10px] font-semibold text-void disabled:opacity-40">전송</button>
+          <input value={teamMessageText} onChange={(event) => setTeamMessageText(event.target.value)} placeholder="메시지 입력" className="min-w-0 flex-1 rounded-full border border-surface-3 bg-surface-2 px-3 py-2 text-[13px] text-ink outline-none focus:border-night" />
+          <button type="submit" disabled={!teamMessageText.trim() || isSendingTeamMessage} className="h-8 shrink-0 rounded-full bg-ink px-3 text-[12px] font-semibold text-void disabled:opacity-40">전송</button>
         </form>
       </aside>
     );
@@ -328,34 +328,34 @@ export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadin
       </div>
 
       <div className="mt-2 flex h-6 items-center justify-between gap-2">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">팀원</h2>
-        <span className="text-[10px] text-ink-faint">{members.length}명</span>
+        <h2 className="text-[12px] font-semibold uppercase tracking-wide text-ink-faint">팀원</h2>
+        <span className="text-[12px] text-ink-faint">{members.length}명</span>
       </div>
       <div className="border-t border-surface-3">
-        {!selectedTeamId && <p className="py-4 text-center text-[10px] text-ink-faint">팀을 선택하면 팀원 목록이 표시됩니다.</p>}
-        {selectedTeamId && isLoadingMembers && <p className="py-4 text-center text-[10px] text-ink-faint">불러오는 중...</p>}
+        {!selectedTeamId && <p className="py-4 text-center text-[12px] text-ink-faint">팀을 선택하면 팀원 목록이 표시됩니다.</p>}
+        {selectedTeamId && isLoadingMembers && <p className="py-4 text-center text-[12px] text-ink-faint">불러오는 중...</p>}
         {selectedTeamId && !isLoadingMembers && members.length === 0 && (
-          <p className="py-4 text-center text-[10px] text-ink-faint">아직 팀원이 없습니다.</p>
+          <p className="py-4 text-center text-[12px] text-ink-faint">아직 팀원이 없습니다.</p>
         )}
         {selectedTeamId && members.map((member) => (
           <div key={member.user_id} className="flex items-center gap-2.5 border-b border-surface-3 px-1 py-2.5">
             <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-void"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-void"
               style={{ backgroundColor: colorForUser(member.user_id) }}
             >
               {member.name.slice(0, 1)}
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-ink">
+                <p className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">
                   {member.name}
-                  {member.user_id === user.id && <span className="ml-1 text-[9px] text-ink-faint">(나)</span>}
+                  {member.user_id === user.id && <span className="ml-1 text-[11px] text-ink-faint">(나)</span>}
                 </p>
                 {member.role === "PM" && (
-                  <span className="shrink-0 rounded-full bg-surface-2 px-1.5 py-0.5 text-[8px] text-ink-faint">PM</span>
+                  <span className="shrink-0 rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-ink-faint">PM</span>
                 )}
               </div>
-              <p className="mt-0.5 truncate text-[9px] text-ink-faint">{member.email}</p>
+              <p className="mt-0.5 truncate text-[11px] text-ink-faint">{member.email}</p>
             </div>
           </div>
         ))}

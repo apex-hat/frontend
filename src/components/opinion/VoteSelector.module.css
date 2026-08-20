@@ -1,5 +1,5 @@
 .selector { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.option { min-height: 44px; padding: 10px 14px; border: 1px solid #2e3650; border-radius: 9px; color: #9ca3af; background: #1e2230; font: inherit; font-weight: 600; cursor: pointer; transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease; }
+.option { min-height: 38px; padding: 8px 12px; border: 1px solid #2e3650; border-radius: 9px; color: #9ca3af; background: #1e2230; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease; }
 .option:hover:not(:disabled) { border-color: #4a5482; color: #f3f4f6; }
 .option:focus-visible { outline: 3px solid rgb(124 143 224 / 20%); outline-offset: 2px; }
 .option:disabled { cursor: not-allowed; opacity: 0.55; }
