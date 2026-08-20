@@ -187,6 +187,14 @@ export default function ProposalForm({ onSubmitted, proposal, teamId }: Proposal
       return;
     }
 
+    // 기존 게시글 수정은 상태를 유지하고 저장만 한다. 새 제안만 DRAFT 생성 뒤 게시한다.
+    if (proposal) {
+      setIsSubmitted(true);
+      setIsSubmitting(false);
+      window.setTimeout(onSubmitted, 850);
+      return;
+    }
+
     // 2단계: publish — 이게 성공해야만 팀원에게 노출되는 OPEN 상태가 된다.
     try {
       await publishProposal(targetProposalId!);

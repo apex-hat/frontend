@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-do
 import ProposalForm from "./ProposalForm";
 import ProposalInfoPage from "./ProposalInfoPage";
 import ConsensusDevPage from "../consensus/ConsensusDevPage";
-import { getNotifications, getProposal, getTeamMembers, markNotificationRead } from "../../lib/api";
+import { getNotifications, getProposal, getTeamMembers, markNotificationRead, type FriendSummary } from "../../lib/api";
 import type { AuthUser, Notification, Proposal } from "../../types";
 import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSidebar";
 import UserHandleButton from "../../features/workspace/components/UserHandleButton";
@@ -12,6 +12,7 @@ import NotificationPanel from "../../features/dashboard/components/NotificationP
 import BrandMark from "../../components/branding/BrandMark";
 import ConnectionButton from "../../features/workspace/components/ConnectionButton";
 import { useTeamSwitcher } from "../../features/workspace/useTeamSwitcher";
+import TeamManagerModal from "../../features/workspace/components/TeamManagerModal";
 
 interface Props {
   user: AuthUser;
@@ -25,7 +26,7 @@ function ProposalFormRoute({ teamId, onSubmitted }: { teamId: string | null; onS
   return <ProposalForm teamId={teamId} onSubmitted={onSubmitted} />;
 }
 
-/** 실제 Proposal은 PUT이 DRAFT 상태에서만 허용되므로(그 외 409), 작성자 본인의 DRAFT가 아니면 접근을 막는다. */
+/** 작성자 본인의 작성 중/응답 진행 중 제안만 수정할 수 있다. 합의가 확정된 기록은 잠근다. */
 function ProposalEditRoute({ userId, onSubmitted }: { userId: string; onSubmitted: () => void }) {
   const { proposalId } = useParams();
   const [proposal, setProposal] = useState<Proposal | null | undefined>(null);
@@ -44,7 +45,7 @@ function ProposalEditRoute({ userId, onSubmitted }: { userId: string; onSubmitte
   }, [proposalId]);
 
   if (proposal === null) return <p className="py-16 text-center text-sm text-ink-dim">불러오는 중...</p>;
-  if (!proposalId || !proposal || proposal.author_id !== userId || proposal.status !== "DRAFT") {
+  if (!proposalId || !proposal || proposal.author_id !== userId || ["CONSENSUS_READY", "COMPLETED"].includes(proposal.status)) {
     return <Navigate to="/dashboard" replace />;
   }
   return <ProposalForm proposal={proposal} onSubmitted={onSubmitted} />;
@@ -138,7 +139,10 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
+  const [chatFriend, setChatFriend] = useState<FriendSummary | null>(null);
+  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
   const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup } = useTeamSwitcher(user);
+  const selectedTeam = teams.find((team) => team.id === selectedTeamId) ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -206,6 +210,9 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
             isLoadingTeams={isLoadingTeams}
             onSelectTeam={selectTeam}
             onCreateGroup={createGroup}
+            chatFriend={chatFriend}
+            onCloseChat={() => setChatFriend(null)}
+            onOpenTeamManager={() => setIsTeamManagerOpen(true)}
           />
         </div>
         <div className="relative min-w-0 px-4 sm:px-6 2xl:px-8">
@@ -230,7 +237,8 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </Routes>
         </div>
       </div>
-      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} />
+      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} onOpenChat={setChatFriend} />
+      <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} />
     </div>
   );
 }

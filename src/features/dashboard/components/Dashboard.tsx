@@ -6,10 +6,11 @@ import {
   getNotifications,
   getProposalStatus,
   getProposals,
+  getTeamMembers,
   getTimezones,
   markNotificationRead,
 } from "../../../lib/api";
-import type { TimezoneEntry } from "../../../lib/api";
+import type { FriendSummary, TimezoneEntry } from "../../../lib/api";
 import WorldClockStrip from "./WorldClockStrip";
 import NotificationPanel from "./NotificationPanel";
 import ProposalStatusBadge from "./ProposalStatusBadge";
@@ -20,6 +21,7 @@ import UserHandleButton from "../../workspace/components/UserHandleButton";
 import BrandMark from "../../../components/branding/BrandMark";
 import ConnectionButton from "../../workspace/components/ConnectionButton";
 import { useTeamSwitcher } from "../../workspace/useTeamSwitcher";
+import TeamManagerModal from "../../workspace/components/TeamManagerModal";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -78,20 +80,35 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [analysisTarget, setAnalysisTarget] = useState<Proposal | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
+  const [chatFriend, setChatFriend] = useState<FriendSummary | null>(null);
+  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
+  const [membersVersion, setMembersVersion] = useState(0);
   const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup } = useTeamSwitcher(user);
+  const selectedTeam = teams.find((team) => team.id === selectedTeamId) ?? null;
 
   useEffect(() => {
     if (!selectedTeamId) return;
     let cancelled = false;
 
-    getTimezones(selectedTeamId)
-      .then((list) => {
+    Promise.all([
+      getTeamMembers(selectedTeamId),
+      getTimezones(selectedTeamId).catch(() => []),
+    ])
+      .then(([profiles, timezones]) => {
         if (!cancelled) {
-          setMembers(list.map((member) => (
-            member.user_id === user.id
-              ? { ...member, name: user.name, country: user.country, timezone: user.timezone }
-              : member
-          )));
+          const timezoneById = new Map(timezones.map((member) => [member.user_id, member]));
+          setMembers(profiles.map((profile, index) => {
+            const timezoneMember = timezoneById.get(profile.user_id);
+            return {
+              user_id: profile.user_id,
+              name: profile.user_id === user.id ? user.name : profile.name,
+              country: profile.user_id === user.id ? user.country : profile.country,
+              timezone: profile.user_id === user.id ? user.timezone : profile.timezone,
+              culture_tag: profile.culture_tag,
+              role: profile.role,
+              avatarColor: timezoneMember?.avatarColor ?? ["#F2A65A", "#63C7A6", "#7C8FE0", "#E8607A"][index % 4],
+            };
+          }));
         }
       })
       .catch(() => { /* 팀이 아직 없으면 조용히 빈 상태로 둔다 */ });
@@ -121,7 +138,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     return () => {
       cancelled = true;
     };
-  }, [user, selectedTeamId]);
+  }, [user, selectedTeamId, membersVersion]);
 
   useEffect(() => {
     if (!proposalMenu) return;
@@ -150,10 +167,9 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     const target = deleteTarget;
     setDeleteTarget(null);
     try {
-      // Backend는 DRAFT 상태에서만 삭제를 허용한다(그 외 409) — 메뉴도 DRAFT일 때만 노출되지만, 그 사이 상태가 바뀌었을 수 있다.
       await deleteProposalApi(target.id);
     } catch {
-      window.alert("삭제에 실패했습니다. 이미 게시된 제안일 수 있어요.");
+      window.alert("삭제에 실패했습니다. 합의가 이미 확정됐거나 권한이 없을 수 있어요.");
       return;
     }
     setProposals((current) => current.filter((item) => item.id !== target.id));
@@ -244,12 +260,16 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
       <main className="grid min-h-[calc(100vh-65px)] w-full lg:grid-cols-[18%_82%]">
         <div className="hidden h-full border-r border-surface-3 px-4 lg:block">
           <WorkspaceSidebar
+            key={`${selectedTeamId ?? "none"}-${membersVersion}`}
             user={user}
             teams={teams}
             selectedTeamId={selectedTeamId}
             isLoadingTeams={isLoadingTeams}
             onSelectTeam={selectTeam}
             onCreateGroup={createGroup}
+            chatFriend={chatFriend}
+            onCloseChat={() => setChatFriend(null)}
+            onOpenTeamManager={() => setIsTeamManagerOpen(true)}
           />
         </div>
 
@@ -360,7 +380,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               {isComplete(proposalMenu.proposal) && (
                 <button type="button" onClick={() => { setAnalysisTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">결과 분석</button>
               )}
-              {proposalMenu.proposal.status === "DRAFT" && (
+              {!["CONSENSUS_READY", "COMPLETED"].includes(proposalMenu.proposal.status) && (
                 <>
                   <button type="button" onClick={() => onEditProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">수정하기</button>
                   <button type="button" onClick={() => { setDeleteTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
@@ -444,7 +464,8 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
           </section>
         </div>
       )}
-      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} />
+      <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} onOpenChat={setChatFriend} />
+      <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} onMembersChanged={() => setMembersVersion((value) => value + 1)} />
     </div>
   );
 }
