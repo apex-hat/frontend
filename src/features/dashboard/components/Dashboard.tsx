@@ -9,6 +9,7 @@ import {
   getTeamMembers,
   getTimezones,
   markNotificationRead,
+  ProposalError,
 } from "../../../lib/api";
 import type { FriendSummary, TimezoneEntry } from "../../../lib/api";
 import WorldClockStrip from "./WorldClockStrip";
@@ -195,8 +196,18 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     setDeleteTarget(null);
     try {
       await deleteProposalApi(target.id);
-    } catch {
-      window.alert("삭제에 실패했습니다. 합의가 이미 확정됐거나 권한이 없을 수 있어요.");
+    } catch (error) {
+      if (error instanceof ProposalError) {
+        window.alert(
+          error.code === "PROPOSAL_NOT_EDITABLE" ? "합의가 이미 확정된 제안은 삭제할 수 없습니다."
+            : error.code === "PROPOSAL_ACCESS_DENIED" ? "작성자 또는 팀 PM만 삭제할 수 있습니다."
+              : error.code === "CONFLICTING_UPDATE" ? "다른 변경사항과 충돌했습니다. 잠시 후 다시 시도해주세요."
+                : error.code === "PROPOSAL_NOT_FOUND" ? "이미 삭제된 제안입니다."
+                  : "삭제에 실패했습니다. 잠시 후 다시 시도해주세요.",
+        );
+      } else {
+        window.alert("삭제에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      }
       return;
     }
     setProposals((current) => current.filter((item) => item.id !== target.id));

@@ -856,9 +856,24 @@ export async function updateProposal(
   return toProposal(data);
 }
 
-/** DELETE /api/proposals/{proposalId} — DRAFT 상태에서만 허용(그 외 409) */
+export class ProposalError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/** DELETE /api/proposals/{proposalId} — DRAFT/OPEN/IN_PROGRESS 상태에서만 허용(CONSENSUS_READY 이상은 409) */
 export async function deleteProposal(proposalId: string): Promise<void> {
-  await httpClient.delete(`/api/proposals/${proposalId}`);
+  try {
+    await httpClient.delete(`/api/proposals/${proposalId}`);
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.data?.error) {
+      throw new ProposalError(error.response.data.error.code, error.response.data.error.message);
+    }
+    throw error;
+  }
 }
 
 /** POST /api/proposals/{proposalId}/publish — DRAFT만 허용, 성공 시 OPEN으로 전환된 Proposal을 반환 */
