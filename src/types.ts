@@ -66,6 +66,8 @@ export interface Proposal {
   deadline: string;
   created_at: string;
   completed_at?: string;
+  /** 완료 처리 시 입력된 최종 의사결정 내용. COMPLETED 상태일 때만 채워짐 */
+  decision?: string;
   /** Backend 실연동 이후에만 채워짐(Mock 데이터에는 없을 수 있어 optional) */
   content?: string;
   author_id?: string;

@@ -242,7 +242,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     }
 
     setProposals((current) => sortProposals(current.map((item) => item.id === completionTarget.id
-      ? { ...item, status: completed.status, completed_at: completed.completed_at }
+      ? { ...item, ...completed }
       : item)));
     setExpandedIds((current) => {
       const next = new Set(current);
@@ -257,7 +257,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const activeProposalCount = proposals.filter((proposal) => proposal.status === "OPEN").length;
   const analysisOpinions = analysisTarget ? opinionsByProposal[analysisTarget.id] ?? [] : [];
   const analysisSummary = buildResultSummary(analysisOpinions);
-  const finalDecision = "조건부 및 반대 의견의 우려를 반영해 실행 범위를 조정하고, 팀에 최종 내용을 공유합니다.";
+  const finalDecision = analysisTarget?.decision || "등록된 최종 결정 내용이 없습니다.";
 
   const markAllRead = () => {
     const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);

@@ -780,6 +780,7 @@ interface ProposalResponseDto {
   status: ProposalStatus;
   targetCultures: string[];
   deadline: string;
+  decision: string | null;
   completedAt: string | null;
   createdAt: string;
 }
@@ -789,6 +790,7 @@ function toProposal(dto: ProposalResponseDto): Proposal {
     id: String(dto.id),
     title: dto.title,
     content: dto.content,
+    decision: dto.decision ?? undefined,
     author_id: String(dto.authorId),
     author_name: dto.authorName,
     target_team_id: String(dto.targetTeamId),
