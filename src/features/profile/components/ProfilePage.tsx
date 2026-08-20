@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { AuthUser, Notification, SupportedLanguage } from "../../../types";
 import { getUtcOffsetLabel } from "../../../lib/timezone";
-import { getNotifications, markNotificationRead } from "../../../lib/api";
+import { getNotifications, markNotificationRead, updateCurrentUser } from "../../../lib/api";
 import { copyToClipboard } from "../../../lib/clipboard";
 import UserHandleButton from "../../workspace/components/UserHandleButton";
 import BrandMark from "../../../components/branding/BrandMark";
@@ -86,6 +86,8 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
   const [tagCopied, setTagCopied] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isConnectionManagerOpen, setIsConnectionManagerOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const userHandle = user.friend_code ? `#${user.friend_code}` : "";
   const { selectedTeamId } = useTeamSwitcher(user);
 
@@ -114,18 +116,22 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
     else onBack();
   };
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) return;
 
-    onSave({
-      ...user,
-      name: trimmedName,
-      country,
-      timezone,
-      preferred_language: language,
-    });
+    setError(null);
+    setIsSaving(true);
+    try {
+      // preferred_language는 Backend User 모델에 대응 필드가 없어 로컬 상태로만 유지한다.
+      const updated = await updateCurrentUser({ name: trimmedName, country, timeZone: timezone });
+      onSave({ ...updated, preferred_language: language });
+    } catch {
+      setError("변경사항을 저장하지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -257,11 +263,14 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
               </select>
             </div>
 
+            {error && <p className="text-xs text-alert">{error}</p>}
+
             <button
               type="submit"
-              className="mt-3 w-full rounded-lg bg-ink py-2.5 text-sm font-medium text-void transition hover:opacity-90 active:scale-[0.99]"
+              disabled={isSaving}
+              className="mt-3 w-full rounded-lg bg-ink py-2.5 text-sm font-medium text-void transition hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
             >
-              변경사항 저장
+              {isSaving ? "저장 중..." : "변경사항 저장"}
             </button>
           </form>
         </section>
