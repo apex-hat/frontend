@@ -240,9 +240,7 @@ export default function ProposalForm({ onSubmitted, proposal, teamId }: Proposal
             value={formData.content}
             onChange={(e) => handleChange("content", e.target.value)}
             placeholder="제안 내용을 입력하세요"
-            maxLength={100}
           />
-          <span className={styles.characterCount}>{formData.content.length}/100</span>
         </div>
       </div>
 
