@@ -12,6 +12,7 @@ import {
   updateOpinion,
   type TeamMemberProfile,
 } from '../../lib/api'
+import { useTeamEvents } from '../../lib/teamEvents'
 import type { ConsensusSummary } from '../../types/consensus'
 import type {
   Opinion,
@@ -118,6 +119,11 @@ function ConsensusDevPage({
   const [deleteTarget, setDeleteTarget] = useState<Opinion | null>(null)
   const [isProposalDeleteOpen, setIsProposalDeleteOpen] = useState(false)
   const [isDeletingProposal, setIsDeletingProposal] = useState(false)
+  const [realtimeTick, setRealtimeTick] = useState(0)
+
+  // 같은 팀의 다른 팀원이 의견을 등록·수정·삭제하면 서버가 WebSocket으로 알려준다 —
+  // 그 신호로 아래 목록 재조회 effect를 다시 실행해 새로고침 없이 반영한다.
+  useTeamEvents(targetTeamId, () => setRealtimeTick((tick) => tick + 1))
 
   useEffect(() => {
     let cancelled = false
@@ -141,7 +147,7 @@ function ConsensusDevPage({
     }
     // currentUser는 매 렌더마다 새 객체로 내려오는 prop이라 currentUser.id(안정적인 값)만 의존성으로 둔다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [proposalId, targetTeamId, currentUser.id])
+  }, [proposalId, targetTeamId, currentUser.id, realtimeTick])
 
   const currentUserOpinion = opinions.find(
     (opinion) => opinion.author.id === currentUser.id,
