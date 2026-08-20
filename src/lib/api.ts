@@ -237,6 +237,82 @@ export async function updateTeamName(teamId: string, name: string): Promise<Team
   return toTeam(data);
 }
 
+/** DELETE /api/teams/{teamId} — 호출자는 해당 팀의 PM이어야 함. 팀과 연관된 제안/멤버/초대/메시지가 모두 함께 삭제됨 */
+export async function deleteTeam(teamId: string): Promise<void> {
+  await httpClient.delete(`/api/teams/${teamId}`);
+}
+
+export class TeamError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/** POST /api/teams/{teamId}/pm-transfer — 호출자는 해당 팀의 PM이어야 함. 호출자는 MEMBER로, 대상은 PM으로 바뀜 */
+export async function transferTeamPm(teamId: string, newPmUserId: string): Promise<void> {
+  try {
+    await httpClient.post(`/api/teams/${teamId}/pm-transfer`, { newPmUserId: Number(newPmUserId) });
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.data?.error) {
+      throw new TeamError(error.response.data.error.code, error.response.data.error.message);
+    }
+    throw error;
+  }
+}
+
+/** DELETE /api/teams/{teamId}/leave — PM은 다른 PM이 없으면 먼저 pm-transfer로 양도해야 나갈 수 있음(409 TEAM_PM_MUST_TRANSFER_FIRST) */
+export async function leaveTeam(teamId: string): Promise<void> {
+  try {
+    await httpClient.delete(`/api/teams/${teamId}/leave`);
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.data?.error) {
+      throw new TeamError(error.response.data.error.code, error.response.data.error.message);
+    }
+    throw error;
+  }
+}
+
+export type ActivityAction = "MEMBER_REMOVED" | "MEMBER_LEFT" | "PM_TRANSFERRED" | "OPINION_UPDATED_BY_PM" | "OPINION_DELETED_BY_PM";
+
+export interface ActivityLogEntry {
+  id: string;
+  actorId: string;
+  actorName: string;
+  targetUserId: string | null;
+  targetUserName: string | null;
+  action: ActivityAction;
+  description: string;
+  createdAt: string;
+}
+
+interface ActivityLogResponseDto {
+  id: number;
+  actorId: number;
+  actorName: string;
+  targetUserId: number | null;
+  targetUserName: string | null;
+  action: ActivityAction;
+  description: string;
+  createdAt: string;
+}
+
+/** GET /api/teams/{teamId}/activity-log — 팀원이면 누구나 조회 가능(모더레이션 투명성 목적) */
+export async function getTeamActivityLog(teamId: string): Promise<ActivityLogEntry[]> {
+  const { data } = await httpClient.get<ActivityLogResponseDto[]>(`/api/teams/${teamId}/activity-log`);
+  return data.map((dto) => ({
+    id: String(dto.id),
+    actorId: String(dto.actorId),
+    actorName: dto.actorName,
+    targetUserId: dto.targetUserId !== null ? String(dto.targetUserId) : null,
+    targetUserName: dto.targetUserName,
+    action: dto.action,
+    description: dto.description,
+    createdAt: dto.createdAt,
+  }));
+}
+
 /** GET/POST /api/teams/{teamId}/members 응답 — 조인 row가 아니라 유저 프로필과 합쳐진 형태라 types.ts의 TeamMember와 다르다 */
 export interface TeamMemberProfile {
   user_id: string;
@@ -367,6 +443,23 @@ export async function getIncomingTeamInvites(): Promise<TeamInviteSummary[]> {
 /** PATCH /api/team-invites/{inviteId} — 팀 초대 수락/거절 */
 export async function respondToTeamInvite(inviteId: string, accept: boolean): Promise<TeamInviteSummary> {
   const { data } = await httpClient.patch<TeamInviteResponseDto>(`/api/team-invites/${inviteId}`, { accept });
+  return toTeamInviteSummary(data);
+}
+
+/** GET /api/teams/{teamId}/invites — 이 팀에서 보낸 초대 현황(PM만 가능) */
+export async function getTeamSentInvites(teamId: string): Promise<TeamInviteSummary[]> {
+  const { data } = await httpClient.get<TeamInviteResponseDto[]>(`/api/teams/${teamId}/invites`);
+  return data.map(toTeamInviteSummary);
+}
+
+/** DELETE /api/teams/{teamId}/invites/{inviteId} — 아직 응답하지 않은 초대를 취소(PM만 가능) */
+export async function cancelTeamInvite(teamId: string, inviteId: string): Promise<void> {
+  await httpClient.delete(`/api/teams/${teamId}/invites/${inviteId}`);
+}
+
+/** POST /api/teams/{teamId}/invites/{inviteId}/resend — 대기 중인 초대에 리마인더 알림을 다시 보냄(PM만 가능) */
+export async function resendTeamInvite(teamId: string, inviteId: string): Promise<TeamInviteSummary> {
+  const { data } = await httpClient.post<TeamInviteResponseDto>(`/api/teams/${teamId}/invites/${inviteId}/resend`);
   return toTeamInviteSummary(data);
 }
 
@@ -622,6 +715,9 @@ interface OpinionResponseDto {
   id: number;
   proposalId: number;
   userId: number;
+  userName?: string;
+  userCountry?: string;
+  userCultureTag?: string;
   stance: Stance;
   content: string;
   createdAt: string;
@@ -633,6 +729,9 @@ function toOpinion(dto: OpinionResponseDto): Opinion {
     id: String(dto.id),
     proposal_id: String(dto.proposalId),
     user_id: String(dto.userId),
+    user_name: dto.userName,
+    user_country: dto.userCountry,
+    user_culture_tag: dto.userCultureTag,
     stance: dto.stance,
     comment: dto.content,
     created_at: dto.createdAt,
@@ -668,6 +767,7 @@ interface ProposalResponseDto {
   title: string;
   content: string;
   authorId: number;
+  authorName: string;
   targetTeamId: number;
   targetTeamName: string;
   status: ProposalStatus;
@@ -683,6 +783,7 @@ function toProposal(dto: ProposalResponseDto): Proposal {
     title: dto.title,
     content: dto.content,
     author_id: String(dto.authorId),
+    author_name: dto.authorName,
     target_team_id: String(dto.targetTeamId),
     target_team_name: dto.targetTeamName,
     status: dto.status,

@@ -25,14 +25,33 @@ interface Props {
   proposalId: string
   proposalTitle: string
   proposalDescription: string
+  proposalAuthorName?: string
+  isProposalAuthor?: boolean
   targetTeamId: string
   currentUser: OpinionAuthor
   teamMemberCount: number
+  /** 작성자 본인이고 아직 합의가 확정되지 않은 제안일 때만 넘겨준다 (수정/삭제 버튼 노출용) */
+  canManageProposal?: boolean
+  onEditProposal?: () => void
+  onDeleteProposal?: () => Promise<void>
 }
 
-/** Backend OpinionResponse엔 작성자 프로필이 없어(userId만 옴), 이미 연동해둔 팀원 목록으로 이름/국가/문화권을 보강한다. */
+/**
+ * 작성자 표시는 Backend가 OpinionResponse에 함께 내려주는 프로필(userName/userCountry/userCultureTag)을 우선 쓴다.
+ * 팀원 목록(members)은 그 값이 비어있을 때만 보강용으로 쓰고, 그마저 없으면(예: 이미 팀을 나간 사용자) '팀원'으로 표시한다.
+ */
 function toDisplayOpinions(
-  apiOpinions: Array<{ id: string; user_id: string; stance: OpinionType; comment?: string; created_at: string; updated_at?: string }>,
+  apiOpinions: Array<{
+    id: string
+    user_id: string
+    user_name?: string
+    user_country?: string
+    user_culture_tag?: string
+    stance: OpinionType
+    comment?: string
+    created_at: string
+    updated_at?: string
+  }>,
   members: TeamMemberProfile[],
   currentUser: OpinionAuthor,
 ): Opinion[] {
@@ -42,9 +61,13 @@ function toDisplayOpinions(
     const author: OpinionAuthor =
       opinion.user_id === currentUser.id
         ? currentUser
-        : member
-          ? { id: member.user_id, name: member.name, company: 'Meridian', country: member.country, culturalRegion: member.culture_tag }
-          : { id: opinion.user_id, name: '팀원', company: 'Meridian' }
+        : {
+            id: opinion.user_id,
+            name: opinion.user_name ?? member?.name ?? '팀원',
+            company: 'Meridian',
+            country: opinion.user_country ?? member?.country,
+            culturalRegion: opinion.user_culture_tag ?? member?.culture_tag,
+          }
 
     return {
       id: opinion.id,
@@ -69,9 +92,14 @@ function ConsensusDevPage({
   proposalId,
   proposalTitle,
   proposalDescription,
+  proposalAuthorName,
+  isProposalAuthor,
   targetTeamId,
   currentUser,
   teamMemberCount,
+  canManageProposal,
+  onEditProposal,
+  onDeleteProposal,
 }: Props) {
   const [opinions, setOpinions] = useState<Opinion[]>([])
   const [members, setMembers] = useState<TeamMemberProfile[]>([])
@@ -85,6 +113,8 @@ function ConsensusDevPage({
   const [summaryError, setSummaryError] = useState<string | null>(null)
   const [consensus, setConsensus] = useState<ConsensusSummary | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Opinion | null>(null)
+  const [isProposalDeleteOpen, setIsProposalDeleteOpen] = useState(false)
+  const [isDeletingProposal, setIsDeletingProposal] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -113,6 +143,7 @@ function ConsensusDevPage({
   const currentUserOpinion = opinions.find(
     (opinion) => opinion.author.id === currentUser.id,
   )
+  const isCurrentUserPm = members.find((member) => member.user_id === currentUser.id)?.role === 'PM'
   const opinionCounts = useMemo(
     () =>
       opinions.reduce<Record<OpinionType, number>>(
@@ -158,8 +189,9 @@ function ConsensusDevPage({
 
   const handleOpinionDelete = (opinionId: string) => {
     const targetOpinion = opinions.find((opinion) => opinion.id === opinionId)
+    const isOwner = targetOpinion?.author.id === currentUser.id
 
-    if (targetOpinion?.author.id !== currentUser.id) {
+    if (!targetOpinion || (!isOwner && !isCurrentUserPm)) {
       return
     }
 
@@ -214,10 +246,48 @@ function ConsensusDevPage({
     setSummaryError(null)
   }
 
+  const confirmProposalDelete = async () => {
+    if (!onDeleteProposal) return
+    setIsDeletingProposal(true)
+    try {
+      await onDeleteProposal()
+    } finally {
+      setIsDeletingProposal(false)
+      setIsProposalDeleteOpen(false)
+    }
+  }
+
   return (
     <main className={styles.page} data-consensus-dev-page>
       <header className={styles.pageHeader}>
-        <h1 className={styles.title}>{proposalTitle}</h1>
+        <div className={styles.titleRow}>
+          <div>
+            <h1 className={styles.title}>{proposalTitle}</h1>
+            {proposalAuthorName && (
+              <p className={styles.author}>
+                작성자 {proposalAuthorName}{isProposalAuthor ? ' (나)' : ''}
+              </p>
+            )}
+          </div>
+          {canManageProposal && (
+            <div className={styles.headerActions}>
+              {onEditProposal && (
+                <button type="button" className={styles.headerActionButton} onClick={onEditProposal}>
+                  수정하기
+                </button>
+              )}
+              {onDeleteProposal && (
+                <button
+                  type="button"
+                  className={`${styles.headerActionButton} ${styles.headerActionDanger}`}
+                  onClick={() => setIsProposalDeleteOpen(true)}
+                >
+                  삭제하기
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <p className={styles.description}>{proposalDescription}</p>
       </header>
 
@@ -286,6 +356,7 @@ function ConsensusDevPage({
         <OpinionList
           opinions={filteredOpinions}
           currentUserId={currentUser.id}
+          canManageAll={isCurrentUserPm}
           onDelete={handleOpinionDelete}
           emptyMessage={opinionFilter ? "선택한 유형의 의견이 아직 없습니다." : "아직 작성된 의견이 없습니다."}
         />
@@ -301,7 +372,9 @@ function ConsensusDevPage({
             aria-modal="true"
             aria-labelledby="delete-opinion-title"
           >
-            <h2 id="delete-opinion-title">내 의견을 삭제할까요?</h2>
+            <h2 id="delete-opinion-title">
+              {deleteTarget.author.id === currentUser.id ? '내 의견을 삭제할까요?' : `${deleteTarget.author.name}님의 의견을 삭제할까요?`}
+            </h2>
             <p className={styles.deletePreview}>{deleteTarget.comment}</p>
             <p className={styles.deleteNotice}>삭제한 의견은 복구할 수 없습니다.</p>
             <div className={styles.dialogActions}>
@@ -314,6 +387,34 @@ function ConsensusDevPage({
                 onClick={confirmOpinionDelete}
               >
                 삭제
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isProposalDeleteOpen && (
+        <div className={styles.dialogBackdrop} role="presentation">
+          <section
+            className={styles.deleteDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-proposal-title"
+          >
+            <h2 id="delete-proposal-title">제안을 삭제할까요?</h2>
+            <p className={styles.deletePreview}>{proposalTitle}</p>
+            <p className={styles.deleteNotice}>등록된 의견과 응답 기록도 함께 삭제되며 복구할 수 없습니다.</p>
+            <div className={styles.dialogActions}>
+              <button type="button" onClick={() => setIsProposalDeleteOpen(false)} disabled={isDeletingProposal}>
+                취소
+              </button>
+              <button
+                type="button"
+                className={styles.deleteConfirmButton}
+                onClick={confirmProposalDelete}
+                disabled={isDeletingProposal}
+              >
+                {isDeletingProposal ? '삭제하는 중…' : '삭제'}
               </button>
             </div>
           </section>

@@ -2,9 +2,10 @@ interface ProposalInfoPageProps {
   title: string;
   content: string;
   deadline: string;
+  authorName?: string;
 }
 
-export default function ProposalInfoPage({ title, content, deadline }: ProposalInfoPageProps) {
+export default function ProposalInfoPage({ title, content, deadline, authorName }: ProposalInfoPageProps) {
   const deadlineLabel = new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "long",
@@ -17,6 +18,7 @@ export default function ProposalInfoPage({ title, content, deadline }: ProposalI
     <main className="mx-auto w-full max-w-[680px] px-6 py-12 text-ink">
       <article className="rounded-2xl border border-surface-3 bg-surface px-7 py-7 shadow-panel sm:px-9 sm:py-9">
         <h1 className="text-balance font-display text-[25px] font-semibold leading-[1.35] tracking-[-0.03em] text-ink sm:text-[28px]" style={{ wordBreak: "keep-all", overflowWrap: "break-word" }}>{title}</h1>
+        {authorName && <p className="mt-2 text-[12px] text-ink-faint">작성자 {authorName}</p>}
 
         <section className="mt-8">
           <h2 className="mb-3 text-[11px] font-semibold text-ink-faint">내용</h2>

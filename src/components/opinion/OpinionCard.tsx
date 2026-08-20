@@ -4,6 +4,8 @@ import styles from './OpinionCard.module.css'
 interface OpinionCardProps {
   opinion: Opinion
   canDelete?: boolean
+  /** PM이 본인 의견이 아닌 것을 모더레이션 삭제하는 경우 버튼 라벨/aria-label을 다르게 표시 */
+  isModeratorDelete?: boolean
   onDelete?: (opinionId: string) => void
 }
 
@@ -24,7 +26,7 @@ const dateFormatter = new Intl.DateTimeFormat('ko-KR', {
   timeStyle: 'short',
 })
 
-function OpinionCard({ opinion, canDelete = false, onDelete }: OpinionCardProps) {
+function OpinionCard({ opinion, canDelete = false, isModeratorDelete = false, onDelete }: OpinionCardProps) {
   return (
     <article className={`${styles.card} ${opinionCardClasses[opinion.type]}`}>
       <header className={styles.header}>
@@ -50,9 +52,9 @@ function OpinionCard({ opinion, canDelete = false, onDelete }: OpinionCardProps)
             type="button"
             className={styles.deleteButton}
             onClick={() => onDelete(opinion.id)}
-            aria-label="내 의견 삭제"
+            aria-label={isModeratorDelete ? `${opinion.author.name}님의 의견 삭제 (PM)` : '내 의견 삭제'}
           >
-            삭제
+            {isModeratorDelete ? '삭제 (PM)' : '삭제'}
           </button>
         )}
       </footer>

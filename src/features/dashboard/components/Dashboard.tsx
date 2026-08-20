@@ -91,7 +91,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
   const [membersVersion, setMembersVersion] = useState(0);
   const [realtimeTick, setRealtimeTick] = useState(0);
-  const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup, renameTeam, reload: reloadTeams } = useTeamSwitcher(user);
+  const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup, renameTeam, removeGroup, leaveGroup, reload: reloadTeams } = useTeamSwitcher(user);
   const selectedTeam = teams.find((team) => team.id === selectedTeamId) ?? null;
 
   // 같은 팀의 다른 사람이 제안/의견을 생성·수정·삭제하면 서버가 WebSocket으로 알려준다 —
@@ -348,12 +348,21 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
             {proposals.map((proposal) => {
               const isOpen = expandedIds.has(proposal.id);
               const opinions = opinionsByProposal[proposal.id] ?? [];
-              const total = members.length;
-              const proposalMembers = members.slice(0, total);
-              const proposalMemberIds = new Set(proposalMembers.map((member) => member.user_id));
-              const responded = opinions.filter((opinion) => proposalMemberIds.has(opinion.user_id)).length;
+              // CONSENSUS_READY 이상은 Backend가 "그 시점의 팀원 전원 응답 완료" 조건으로만 전이시키므로,
+              // 이후 팀에 새 팀원이 들어와도 이미 마감된 응답 현황(N/N)이 실시간 팀원 수 때문에 흔들리면 안 된다.
+              const isClosedForResponses = ["CONSENSUS_READY", "CONSENSUS_COMPLETED", "COMPLETED"].includes(proposal.status);
+              const proposalMemberIds = new Set(members.map((member) => member.user_id));
+              const total = isClosedForResponses ? opinions.length : members.length;
+              const responded = isClosedForResponses
+                ? opinions.length
+                : opinions.filter((opinion) => proposalMemberIds.has(opinion.user_id)).length;
               const isComplete = proposal.status === "COMPLETED";
-              const orderedMembers = [...proposalMembers].sort((a, b) => {
+              // 마감된 제안은 그 시점에 실제로 응답한 팀원만 펼침 목록에 남긴다 — 이후 합류한 팀원까지
+              // "응답 안 함"으로 섞여 보이면 응답 현황을 왜곡해서 보여주는 셈이 된다.
+              const displayedMembers = isClosedForResponses
+                ? members.filter((member) => opinions.some((opinion) => opinion.user_id === member.user_id))
+                : members;
+              const orderedMembers = [...displayedMembers].sort((a, b) => {
                 const aOpinion = opinions.find((opinion) => opinion.user_id === a.user_id);
                 const bOpinion = opinions.find((opinion) => opinion.user_id === b.user_id);
 
@@ -387,7 +396,12 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                             <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-ink-faint">{proposal.target_team_name}</span>
                           )}
                         </div>
-                        {selectedTeamId && <p className="mt-1 text-[11px] text-ink-faint">{responded}/{total}명 응답 완료</p>}
+                        {proposal.author_name && (
+                          <p className="mt-1 text-[11px] text-ink-faint">
+                            작성자 {proposal.author_name}{proposal.author_id === user.id ? " (나)" : ""}
+                          </p>
+                        )}
+                        {selectedTeamId && <p className="mt-0.5 text-[11px] text-ink-faint">{responded}/{total}명 응답 완료</p>}
                       </div>
                     </button>
                     <div className="flex shrink-0 items-center gap-2">
@@ -398,6 +412,18 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                         className="rounded-md border border-surface-3 px-2.5 py-1 text-[10px] font-medium text-ink-dim transition hover:bg-surface-2 hover:text-ink"
                       >
                         상세 보기
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="제안 메뉴 열기"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          const rect = event.currentTarget.getBoundingClientRect();
+                          setProposalMenu({ proposal, x: rect.left, y: rect.bottom + 4 });
+                        }}
+                        className="rounded-md border border-surface-3 px-1.5 py-1 text-[10px] font-medium text-ink-faint transition hover:bg-surface-2 hover:text-ink"
+                      >
+                        ⋮
                       </button>
                       {selectedTeamId && (
                         <button
@@ -439,40 +465,41 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
           </section>
         </div>
       </main>
-      {proposalMenu && (
-        <div
-          className="fixed z-50 w-36 overflow-hidden rounded-lg border border-surface-3 bg-surface-2 py-1 shadow-panel"
-          style={{
-            left: Math.min(proposalMenu.x, window.innerWidth - 155),
-            top: Math.min(proposalMenu.y, window.innerHeight - 145),
-          }}
-          onMouseDown={(event) => event.stopPropagation()}
-        >
-          {proposalMenu.proposal.author_id === user.id ? (
-            <>
-              {isComplete(proposalMenu.proposal) && (
-                <button type="button" onClick={() => { setAnalysisTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">결과 분석</button>
-              )}
-              {!["CONSENSUS_READY", "CONSENSUS_COMPLETED", "COMPLETED"].includes(proposalMenu.proposal.status) && (
-                <>
-                  <button type="button" onClick={() => onEditProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">수정하기</button>
-                  <button type="button" onClick={() => { setDeleteTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
-                </>
-              )}
-              {proposalMenu.proposal.status === "CONSENSUS_COMPLETED" && (
-                <button type="button" onClick={() => openCompletion(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-consensus">완료하기</button>
-              )}
-            </>
-          ) : (
-            <>
-              {isComplete(proposalMenu.proposal) && (
-                <button type="button" onClick={() => { setAnalysisTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">결과 분석</button>
-              )}
-              <button type="button" onClick={() => onViewProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">상세 정보 보기</button>
-            </>
-          )}
-        </div>
-      )}
+      {proposalMenu && (() => {
+        const isAuthor = proposalMenu.proposal.author_id === user.id;
+        // PM은 본인이 속한(=현재 선택된) 팀 안에서만 다른 사람의 제안도 관리(모더레이션)할 수 있다.
+        // 전체 보기(팀 미선택) 상태에서는 이 제안이 어느 팀 소속인지와 무관하게 PM 여부를 신뢰있게 알 수 없어 제외한다.
+        const isPmOfTeam = selectedTeamId === proposalMenu.proposal.target_team_id
+          && members.some((member) => member.user_id === user.id && member.role === "PM");
+        const canManage = isAuthor || isPmOfTeam;
+        const isEditable = !["CONSENSUS_READY", "CONSENSUS_COMPLETED", "COMPLETED"].includes(proposalMenu.proposal.status);
+
+        return (
+          <div
+            className="fixed z-50 w-36 overflow-hidden rounded-lg border border-surface-3 bg-surface-2 py-1 shadow-panel"
+            style={{
+              left: Math.min(proposalMenu.x, window.innerWidth - 155),
+              top: Math.min(proposalMenu.y, window.innerHeight - 145),
+            }}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            {isComplete(proposalMenu.proposal) && (
+              <button type="button" onClick={() => { setAnalysisTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">결과 분석</button>
+            )}
+            {canManage && isEditable && (
+              <>
+                <button type="button" onClick={() => onEditProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">수정하기</button>
+                <button type="button" onClick={() => { setDeleteTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
+              </>
+            )}
+            {isAuthor && proposalMenu.proposal.status === "CONSENSUS_COMPLETED" && (
+              <button type="button" onClick={() => openCompletion(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-consensus">완료하기</button>
+            )}
+            {/* 위 조건에 해당하는 항목이 없어 메뉴가 비어 보이는 경우(예: 합의 확정 이후 상태를 열람만 하는 경우)를 대비한 항상 뜨는 항목 */}
+            <button type="button" onClick={() => onViewProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">상세 정보 보기</button>
+          </div>
+        );
+      })()}
       {completionTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-5 backdrop-blur-sm" role="presentation">
           <section role="dialog" aria-modal="true" aria-labelledby="completion-title" className="w-full max-w-md rounded-2xl border border-surface-3 bg-surface p-6 shadow-panel">
@@ -538,7 +565,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
         </div>
       )}
       <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} onOpenChat={setChatFriend} initialMode={friendManagerMode} onTeamJoined={reloadTeams} />
-      <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} onMembersChanged={() => setMembersVersion((value) => value + 1)} onRenameTeam={renameTeam} />
+      <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} onMembersChanged={() => setMembersVersion((value) => value + 1)} onRenameTeam={renameTeam} onDeleteTeam={removeGroup} onLeaveTeam={leaveGroup} />
     </div>
   );
 }

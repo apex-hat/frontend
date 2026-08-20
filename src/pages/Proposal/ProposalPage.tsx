@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-do
 import ProposalForm from "./ProposalForm";
 import ProposalInfoPage from "./ProposalInfoPage";
 import ConsensusDevPage from "../consensus/ConsensusDevPage";
-import { getNotifications, getProposal, getTeamMembers, markNotificationRead, type FriendSummary } from "../../lib/api";
+import { deleteProposal, getNotifications, getProposal, getTeamMembers, markNotificationRead, type FriendSummary } from "../../lib/api";
 import type { AuthUser, Notification, Proposal } from "../../types";
 import WorkspaceSidebar from "../../features/workspace/components/WorkspaceSidebar";
 import UserHandleButton from "../../features/workspace/components/UserHandleButton";
@@ -27,26 +27,37 @@ function ProposalFormRoute({ teamId, isLoadingTeams, onSubmitted }: { teamId: st
   return <ProposalForm teamId={teamId} onSubmitted={onSubmitted} />;
 }
 
-/** 작성자 본인의 작성 중/응답 진행 중 제안만 수정할 수 있다. 합의가 확정된 기록은 잠근다. */
+const LOCKED_PROPOSAL_STATUSES = ["CONSENSUS_READY", "CONSENSUS_COMPLETED", "COMPLETED"];
+
+/** 작성자 본인이거나 대상 팀 PM이면 작성 중/응답 진행 중인 제안을 수정할 수 있다. 합의가 확정된 기록은 잠근다. */
 function ProposalEditRoute({ userId, onSubmitted }: { userId: string; onSubmitted: () => void }) {
   const { proposalId } = useParams();
   const [proposal, setProposal] = useState<Proposal | null | undefined>(null);
+  const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
     if (!proposalId) return;
     let cancelled = false;
     getProposal(proposalId)
-      .then((item) => {
+      .then(async (item) => {
+        if (cancelled) return;
+        if (item.author_id === userId) {
+          setCanEdit(true);
+        } else {
+          const members = await getTeamMembers(item.target_team_id).catch(() => []);
+          if (cancelled) return;
+          setCanEdit(members.some((member) => member.user_id === userId && member.role === "PM"));
+        }
         if (!cancelled) setProposal(item);
       })
       .catch(() => {
         if (!cancelled) setProposal(undefined);
       });
     return () => { cancelled = true; };
-  }, [proposalId]);
+  }, [proposalId, userId]);
 
   if (proposal === null) return <p className="py-16 text-center text-sm text-ink-dim">불러오는 중...</p>;
-  if (!proposalId || !proposal || proposal.author_id !== userId || ["CONSENSUS_READY", "CONSENSUS_COMPLETED", "COMPLETED"].includes(proposal.status)) {
+  if (!proposalId || !proposal || !canEdit || LOCKED_PROPOSAL_STATUSES.includes(proposal.status)) {
     return <Navigate to="/dashboard" replace />;
   }
   return <ProposalForm proposal={proposal} onSubmitted={onSubmitted} />;
@@ -54,7 +65,7 @@ function ProposalEditRoute({ userId, onSubmitted }: { userId: string; onSubmitte
 
 function ProposalInfoRoute() {
   const { proposalId } = useParams();
-  const [proposal, setProposal] = useState<{ title: string; content: string; deadline: string } | null | undefined>(null);
+  const [proposal, setProposal] = useState<{ title: string; content: string; deadline: string; authorName?: string } | null | undefined>(null);
 
   useEffect(() => {
     if (!proposalId) return;
@@ -66,6 +77,7 @@ function ProposalInfoRoute() {
           title: item.title,
           content: item.content ?? "등록된 제안 내용이 없습니다.",
           deadline: item.deadline,
+          authorName: item.author_name,
         });
       })
       .catch(() => {
@@ -79,9 +91,12 @@ function ProposalInfoRoute() {
   return <ProposalInfoPage {...proposal} />;
 }
 
+const LOCKED_STATUSES = ["CONSENSUS_READY", "CONSENSUS_COMPLETED", "COMPLETED"];
+
 function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
+  const navigate = useNavigate();
   const { proposalId } = useParams();
-  const [proposal, setProposal] = useState<{ id: string; title: string; content: string; targetTeamId: string; teamMemberCount: number } | null | undefined>(null);
+  const [proposal, setProposal] = useState<{ id: string; title: string; content: string; targetTeamId: string; teamMemberCount: number; authorId?: string; authorName?: string; status: string; isPm: boolean } | null | undefined>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +114,10 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
           content: item.content ?? "제안 내용을 확인하고 의견을 남겨주세요.",
           targetTeamId: item.target_team_id,
           teamMemberCount: Math.max(1, members.length),
+          authorId: item.author_id,
+          authorName: item.author_name,
+          status: item.status,
+          isPm: members.some((member) => member.user_id === user.id && member.role === "PM"),
         });
       })
       .catch(() => {
@@ -108,7 +127,7 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
     return () => {
       cancelled = true;
     };
-  }, [proposalId]);
+  }, [proposalId, user.id]);
 
   if (!proposalId) return <Navigate to="/dashboard" replace />;
   if (proposal === null) {
@@ -118,13 +137,23 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
     return <Navigate to="/dashboard" replace />;
   }
 
+  const canManageProposal = (proposal.authorId === user.id || proposal.isPm) && !LOCKED_STATUSES.includes(proposal.status);
+
   return (
     <ConsensusDevPage
       proposalId={proposal.id}
       proposalTitle={proposal.title}
       proposalDescription={proposal.content}
+      proposalAuthorName={proposal.authorName}
+      isProposalAuthor={proposal.authorId === user.id}
       targetTeamId={proposal.targetTeamId}
       teamMemberCount={proposal.teamMemberCount}
+      canManageProposal={canManageProposal}
+      onEditProposal={canManageProposal ? () => navigate(`/proposals/${proposal.id}/edit`) : undefined}
+      onDeleteProposal={canManageProposal ? async () => {
+        await deleteProposal(proposal.id);
+        navigate("/dashboard");
+      } : undefined}
       currentUser={{
         id: user.id,
         name: user.name,
@@ -143,7 +172,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
   const [friendManagerMode, setFriendManagerMode] = useState<"friend" | "team">("friend");
   const [chatFriend, setChatFriend] = useState<FriendSummary | null>(null);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
-  const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup, renameTeam, reload: reloadTeams } = useTeamSwitcher(user);
+  const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup, renameTeam, removeGroup, leaveGroup, reload: reloadTeams } = useTeamSwitcher(user);
   const selectedTeam = teams.find((team) => team.id === selectedTeamId) ?? null;
 
   useEffect(() => {
@@ -244,7 +273,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
         </div>
       </div>
       <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} onOpenChat={setChatFriend} initialMode={friendManagerMode} onTeamJoined={reloadTeams} />
-      <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} onRenameTeam={renameTeam} />
+      <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} onRenameTeam={renameTeam} onDeleteTeam={removeGroup} onLeaveTeam={leaveGroup} />
     </div>
   );
 }

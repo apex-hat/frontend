@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { createTeam, getTeams, updateTeamName } from "../../lib/api";
+import { createTeam, deleteTeam, getTeams, leaveTeam, updateTeamName } from "../../lib/api";
 import type { AuthUser, Team } from "../../types";
 
 const SELECTED_TEAM_KEY = "meridian.selected-team-id";
@@ -87,5 +87,17 @@ export function useTeamSwitcher(user: AuthUser) {
     return updated;
   }, []);
 
-  return { teams, selectedTeamId, isLoading, selectTeam, createGroup, renameTeam, reload };
+  const removeGroup = useCallback(async (teamId: string) => {
+    await deleteTeam(teamId);
+    setTeams((current) => current.filter((team) => team.id !== teamId));
+    if (selectedTeamId === teamId) selectTeam(null);
+  }, [selectedTeamId, selectTeam]);
+
+  const leaveGroup = useCallback(async (teamId: string) => {
+    await leaveTeam(teamId);
+    setTeams((current) => current.filter((team) => team.id !== teamId));
+    if (selectedTeamId === teamId) selectTeam(null);
+  }, [selectedTeamId, selectTeam]);
+
+  return { teams, selectedTeamId, isLoading, selectTeam, createGroup, renameTeam, removeGroup, leaveGroup, reload };
 }

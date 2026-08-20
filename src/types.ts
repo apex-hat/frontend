@@ -18,7 +18,11 @@ export type NotificationType =
   | "DEADLINE_APPROACHING"
   | "CONSENSUS_SUMMARY_COMPLETED"
   | "FRIEND_REQUEST"
-  | "TEAM_INVITE";
+  | "TEAM_INVITE"
+  | "OPINION_UPDATED_BY_PM"
+  | "OPINION_DELETED_BY_PM"
+  | "PROPOSAL_UPDATED_BY_PM"
+  | "PROPOSAL_DELETED_BY_PM";
 
 export interface User {
   id: string;
@@ -65,6 +69,8 @@ export interface Proposal {
   /** Backend 실연동 이후에만 채워짐(Mock 데이터에는 없을 수 있어 optional) */
   content?: string;
   author_id?: string;
+  /** Backend 실연동 이후에만 채워짐(Mock 데이터에는 없을 수 있어 optional) */
+  author_name?: string;
   /** AI 문화 맥락 분석 대상 문화권(국가 코드). Backend 실연동 이후에만 채워짐 */
   target_cultures?: string[];
 }
@@ -73,6 +79,10 @@ export interface Opinion {
   id: string;
   proposal_id: string;
   user_id: string;
+  /** Backend가 함께 내려주는 작성자 프로필(팀 탈퇴 등으로 팀원 목록에서 못 찾는 경우를 대비한 기본값) */
+  user_name?: string;
+  user_country?: string;
+  user_culture_tag?: string;
   stance: Stance;
   comment?: string;
   original_language?: SupportedLanguage;

@@ -5,6 +5,8 @@ import styles from './OpinionList.module.css'
 interface OpinionListProps {
   opinions: Opinion[]
   currentUserId: string
+  /** 팀 PM이면 본인이 작성하지 않은 의견도 모더레이션 목적으로 삭제할 수 있다 */
+  canManageAll?: boolean
   onDelete: (opinionId: string) => void
   emptyMessage?: string
 }
@@ -12,6 +14,7 @@ interface OpinionListProps {
 function OpinionList({
   opinions,
   currentUserId,
+  canManageAll = false,
   onDelete,
   emptyMessage = '아직 등록된 의견이 없습니다.',
 }: OpinionListProps) {
@@ -25,7 +28,8 @@ function OpinionList({
         <li key={opinion.id}>
           <OpinionCard
             opinion={opinion}
-            canDelete={opinion.author.id === currentUserId}
+            canDelete={opinion.author.id === currentUserId || canManageAll}
+            isModeratorDelete={opinion.author.id !== currentUserId && canManageAll}
             onDelete={onDelete}
           />
         </li>
