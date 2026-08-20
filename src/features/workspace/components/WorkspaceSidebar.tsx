@@ -184,9 +184,14 @@ export default function WorkspaceSidebar({ user, teams, selectedTeamId, isLoadin
     setIsSendingTeamMessage(true);
     setTeamMessageError(null);
     try {
-      const sent = await sendTeamMessage(selectedTeamId, content);
-      setTeamMessages((current) => [...current, sent]);
+      await sendTeamMessage(selectedTeamId, content);
       setTeamMessageText("");
+      try {
+        const latestMessages = await getTeamMessages(selectedTeamId);
+        setTeamMessages(latestMessages);
+      } catch {
+        setTeamMessageError("메시지는 전송됐지만 대화 목록을 새로고침하지 못했습니다.");
+      }
     } catch {
       setTeamMessageError("메시지를 보내지 못했습니다. 팀 소속인지 확인해주세요.");
     } finally {
