@@ -22,6 +22,7 @@ import BrandMark from "../../../components/branding/BrandMark";
 import ConnectionButton from "../../workspace/components/ConnectionButton";
 import { useTeamSwitcher } from "../../workspace/useTeamSwitcher";
 import TeamManagerModal from "../../workspace/components/TeamManagerModal";
+import { useTeamEvents } from "../../../lib/teamEvents";
 
 const STANCE_ORDER: Record<Opinion["stance"], number> = {
   AGREE: 0,
@@ -70,7 +71,12 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [members, setMembers] = useState<TimezoneEntry[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) => setExpandedIds((current) => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
   const [opinionsByProposal, setOpinionsByProposal] = useState<Record<string, Opinion[]>>({});
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
   const [proposalMenu, setProposalMenu] = useState<{ proposal: Proposal; x: number; y: number } | null>(null);
@@ -83,62 +89,74 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [chatFriend, setChatFriend] = useState<FriendSummary | null>(null);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
   const [membersVersion, setMembersVersion] = useState(0);
-  const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup } = useTeamSwitcher(user);
+  const [realtimeTick, setRealtimeTick] = useState(0);
+  const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup, renameTeam } = useTeamSwitcher(user);
   const selectedTeam = teams.find((team) => team.id === selectedTeamId) ?? null;
+
+  // 같은 팀의 다른 사람이 제안/의견을 생성·수정·삭제하면 서버가 WebSocket으로 알려준다 —
+  // 폴링 간격(10초)을 기다리지 않고 즉시 아래 useEffect의 목록 재조회를 트리거한다.
+  useTeamEvents(selectedTeamId, () => setRealtimeTick((tick) => tick + 1));
 
   useEffect(() => {
     if (!selectedTeamId) return;
     let cancelled = false;
 
-    Promise.all([
-      getTeamMembers(selectedTeamId),
-      getTimezones(selectedTeamId).catch(() => []),
-    ])
-      .then(([profiles, timezones]) => {
-        if (!cancelled) {
-          const timezoneById = new Map(timezones.map((member) => [member.user_id, member]));
-          setMembers(profiles.map((profile, index) => {
-            const timezoneMember = timezoneById.get(profile.user_id);
-            return {
-              user_id: profile.user_id,
-              name: profile.user_id === user.id ? user.name : profile.name,
-              country: profile.user_id === user.id ? user.country : profile.country,
-              timezone: profile.user_id === user.id ? user.timezone : profile.timezone,
-              culture_tag: profile.culture_tag,
-              role: profile.role,
-              avatarColor: timezoneMember?.avatarColor ?? ["#F2A65A", "#63C7A6", "#7C8FE0", "#E8607A"][index % 4],
-            };
-          }));
-        }
-      })
-      .catch(() => { /* 팀이 아직 없으면 조용히 빈 상태로 둔다 */ });
+    const load = () => {
+      Promise.all([
+        getTeamMembers(selectedTeamId),
+        getTimezones(selectedTeamId).catch(() => []),
+      ])
+        .then(([profiles, timezones]) => {
+          if (!cancelled) {
+            const timezoneById = new Map(timezones.map((member) => [member.user_id, member]));
+            setMembers(profiles.map((profile, index) => {
+              const timezoneMember = timezoneById.get(profile.user_id);
+              return {
+                user_id: profile.user_id,
+                name: profile.user_id === user.id ? user.name : profile.name,
+                country: profile.user_id === user.id ? user.country : profile.country,
+                timezone: profile.user_id === user.id ? user.timezone : profile.timezone,
+                culture_tag: profile.culture_tag,
+                role: profile.role,
+                avatarColor: timezoneMember?.avatarColor ?? ["#F2A65A", "#63C7A6", "#7C8FE0", "#E8607A"][index % 4],
+              };
+            }));
+          }
+        })
+        .catch(() => { /* 팀이 아직 없으면 조용히 빈 상태로 둔다 */ });
 
-    getNotifications().then((list) => {
-      if (!cancelled) setNotifications(list);
-    });
+      getNotifications().then((list) => {
+        if (!cancelled) setNotifications(list);
+      });
 
-    getProposals().then(async (list) => {
-      const results = await Promise.all(
-        list.map((proposal) => getProposalStatus(proposal.id).catch(() => null)),
-      );
-      if (cancelled) return;
+      getProposals().then(async (list) => {
+        const results = await Promise.all(
+          list.map((proposal) => getProposalStatus(proposal.id).catch(() => null)),
+        );
+        if (cancelled) return;
 
-      const opinionMap = results.reduce<Record<string, Opinion[]>>((acc, result) => {
-        if (result) acc[result.proposal.id] = result.opinions;
-        return acc;
-      }, {});
+        const opinionMap = results.reduce<Record<string, Opinion[]>>((acc, result) => {
+          if (result) acc[result.proposal.id] = result.opinions;
+          return acc;
+        }, {});
 
-      const now = Date.now();
-      const visible = list.filter((proposal) => !isComplete(proposal)
-        || now - new Date(proposal.completed_at ?? proposal.deadline).getTime() < COMPLETED_VISIBLE_MS);
-      setOpinionsByProposal(opinionMap);
-      setProposals(sortProposals(visible));
-    });
+        const now = Date.now();
+        const visible = list.filter((proposal) => !isComplete(proposal)
+          || now - new Date(proposal.completed_at ?? proposal.deadline).getTime() < COMPLETED_VISIBLE_MS);
+        setOpinionsByProposal(opinionMap);
+        setProposals(sortProposals(visible));
+      });
+    };
+
+    load();
+    // 팀원이 새 제안을 올려도 새로고침 없이 보이도록 주기적으로 다시 조회한다.
+    const intervalId = window.setInterval(load, 10_000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
     };
-  }, [user, selectedTeamId, membersVersion]);
+  }, [user, selectedTeamId, membersVersion, realtimeTick]);
 
   useEffect(() => {
     if (!proposalMenu) return;
@@ -173,7 +191,12 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
       return;
     }
     setProposals((current) => current.filter((item) => item.id !== target.id));
-    setExpandedId((current) => current === target.id ? null : current);
+    setExpandedIds((current) => {
+      if (!current.has(target.id)) return current;
+      const next = new Set(current);
+      next.delete(target.id);
+      return next;
+    });
   };
 
   const openCompletion = (proposal: Proposal) => {
@@ -201,7 +224,11 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
     setProposals((current) => sortProposals(current.map((item) => item.id === completionTarget.id
       ? { ...item, status: completed.status, completed_at: completed.completed_at }
       : item)));
-    setExpandedId(null);
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      next.delete(completionTarget.id);
+      return next;
+    });
     setCompletionTarget(null);
     setCompletionComment("");
     setIsCompleting(false);
@@ -230,7 +257,10 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
       setIsFriendManagerOpen(true);
       return;
     }
-    if (notification.proposal_id) setExpandedId(notification.proposal_id);
+    if (notification.proposal_id) {
+      const proposalId = notification.proposal_id;
+      setExpandedIds((current) => new Set(current).add(proposalId));
+    }
   };
 
   return (
@@ -293,7 +323,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
 
           <div className="space-y-3">
             {proposals.map((proposal) => {
-              const isOpen = expandedId === proposal.id;
+              const isOpen = expandedIds.has(proposal.id);
               const opinions = opinionsByProposal[proposal.id] ?? [];
               const total = members.length;
               const proposalMembers = members.slice(0, total);
@@ -325,19 +355,33 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                     setProposalMenu({ proposal, x: event.clientX, y: event.clientY });
                   }}
                 >
-                  <div className="flex items-center px-5 py-4 transition hover:bg-surface-2/60">
-                    <button onClick={() => setExpandedId(isOpen ? null : proposal.id)} className="flex min-w-0 flex-1 items-center justify-between gap-4 text-left">
+                  <div className="flex items-center gap-3 px-5 py-4 transition hover:bg-surface-2/60">
+                    <button type="button" onClick={() => toggleExpanded(proposal.id)} className="flex min-w-0 flex-1 items-center text-left">
                       <div className="min-w-0">
                         <p className="line-clamp-2 text-sm leading-5 text-ink" style={{ wordBreak: "keep-all", overflowWrap: "break-word", textWrap: "pretty" }}>{proposal.title}</p>
                         <p className="mt-1 text-[11px] text-ink-faint">{responded}/{total}명 응답 완료</p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <ProposalStatusBadge status={proposal.status} />
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-ink-faint transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true">
+                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <ProposalStatusBadge status={proposal.status} />
+                      <button
+                        type="button"
+                        onClick={() => onOpenProposal(proposal.id)}
+                        className="rounded-md border border-surface-3 px-2.5 py-1 text-[10px] font-medium text-ink-dim transition hover:bg-surface-2 hover:text-ink"
+                      >
+                        상세 보기
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(proposal.id)}
+                        aria-label={isOpen ? "접기" : "펼치기"}
+                        className="p-1 text-ink-faint transition hover:text-ink"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true">
                           <path d="M6 9l6 6 6-6" />
                         </svg>
-                      </div>
-                    </button>
+                      </button>
+                    </div>
                   </div>
 
                   {isOpen && (
@@ -352,7 +396,6 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                             opinion={opinion}
                             viewerTimezone={user.timezone}
                             viewerLanguage={user.preferred_language}
-                            onWriteOpinion={!isComplete && member.user_id === user.id ? () => onOpenProposal(proposal.id) : undefined}
                           />
                         );
                       })}
@@ -380,13 +423,13 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
               {isComplete(proposalMenu.proposal) && (
                 <button type="button" onClick={() => { setAnalysisTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">결과 분석</button>
               )}
-              {!["CONSENSUS_READY", "COMPLETED"].includes(proposalMenu.proposal.status) && (
+              {!["CONSENSUS_READY", "CONSENSUS_COMPLETED", "COMPLETED"].includes(proposalMenu.proposal.status) && (
                 <>
                   <button type="button" onClick={() => onEditProposal(proposalMenu.proposal.id)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink">수정하기</button>
                   <button type="button" onClick={() => { setDeleteTarget(proposalMenu.proposal); setProposalMenu(null); }} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-alert">삭제하기</button>
                 </>
               )}
-              {proposalMenu.proposal.status === "CONSENSUS_READY" && (
+              {proposalMenu.proposal.status === "CONSENSUS_COMPLETED" && (
                 <button type="button" onClick={() => openCompletion(proposalMenu.proposal)} className="w-full px-3 py-2 text-left text-xs text-ink-dim transition hover:bg-surface-3 hover:text-consensus">완료하기</button>
               )}
             </>
@@ -465,7 +508,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
         </div>
       )}
       <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} onOpenChat={setChatFriend} />
-      <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} onMembersChanged={() => setMembersVersion((value) => value + 1)} />
+      <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} onMembersChanged={() => setMembersVersion((value) => value + 1)} onRenameTeam={renameTeam} />
     </div>
   );
 }

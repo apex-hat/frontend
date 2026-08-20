@@ -45,7 +45,7 @@ function ProposalEditRoute({ userId, onSubmitted }: { userId: string; onSubmitte
   }, [proposalId]);
 
   if (proposal === null) return <p className="py-16 text-center text-sm text-ink-dim">불러오는 중...</p>;
-  if (!proposalId || !proposal || proposal.author_id !== userId || ["CONSENSUS_READY", "COMPLETED"].includes(proposal.status)) {
+  if (!proposalId || !proposal || proposal.author_id !== userId || ["CONSENSUS_READY", "CONSENSUS_COMPLETED", "COMPLETED"].includes(proposal.status)) {
     return <Navigate to="/dashboard" replace />;
   }
   return <ProposalForm proposal={proposal} onSubmitted={onSubmitted} />;
@@ -141,7 +141,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
   const [isFriendManagerOpen, setIsFriendManagerOpen] = useState(false);
   const [chatFriend, setChatFriend] = useState<FriendSummary | null>(null);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
-  const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup } = useTeamSwitcher(user);
+  const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup, renameTeam } = useTeamSwitcher(user);
   const selectedTeam = teams.find((team) => team.id === selectedTeamId) ?? null;
 
   useEffect(() => {
@@ -238,7 +238,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
         </div>
       </div>
       <FriendManagerModal open={isFriendManagerOpen} onClose={() => setIsFriendManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} onOpenChat={setChatFriend} />
-      <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} />
+      <TeamManagerModal open={isTeamManagerOpen} onClose={() => setIsTeamManagerOpen(false)} user={user} team={selectedTeam} onRenameTeam={renameTeam} />
     </div>
   );
 }

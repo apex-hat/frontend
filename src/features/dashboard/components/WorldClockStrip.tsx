@@ -47,10 +47,23 @@ export default function WorldClockStrip({ members, title = "지금, 팀은 어�
     return () => clearInterval(id);
   }, []);
 
+  // 같은 시간대(또는 UTC 오프셋이 같은 시간대)의 팀원은 pct가 정확히 같아 마커가 완전히
+  // 겹쳐 하나만 보이므로, 같은 슬롯 안에서는 좌우로 살짝 흩어 각자 눈에 띄게 한다.
+  const slots = new Map<number, TimezoneEntry[]>();
+  members.forEach((m) => {
+    const { hour, minute } = getLocalTimeParts(m.timezone, now);
+    const key = hour * 60 + minute;
+    const slot = slots.get(key);
+    if (slot) slot.push(m);
+    else slots.set(key, [m]);
+  });
+
   const positioned = members.map((m) => {
     const { hour, minute } = getLocalTimeParts(m.timezone, now);
     const pct = ((hour + minute / 60) / 24) * 100;
-    return { member: m, pct, phase: getDayPhase(hour) };
+    const slot = slots.get(hour * 60 + minute)!;
+    const offsetPx = slot.length > 1 ? (slot.indexOf(m) - (slot.length - 1) / 2) * 18 : 0;
+    return { member: m, pct, offsetPx, phase: getDayPhase(hour) };
   });
 
   return (
@@ -82,14 +95,14 @@ export default function WorldClockStrip({ members, title = "지금, 팀은 어�
         </div>
 
         {/* 팀원 마커 */}
-        {positioned.map(({ member, pct, phase }) => {
+        {positioned.map(({ member, pct, offsetPx, phase }) => {
           const isAvailable = !getUnavailabilityHint(member.timezone, now);
 
           return (
             <div
               key={member.user_id}
-              className="group absolute -translate-x-1/2 cursor-default"
-              style={{ left: `${pct}%`, top: "0" }}
+              className="group absolute -translate-x-1/2 cursor-default hover:z-30"
+              style={{ left: `calc(${pct}% + ${offsetPx}px)`, top: "0" }}
             >
               <div className="flex flex-col items-center">
                 <div
