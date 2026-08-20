@@ -509,6 +509,49 @@ export async function getConversation(friendUserId: string): Promise<MessageSumm
   return data.map(toMessageSummary);
 }
 
+// --- Team Messages ----------------------------------------------------
+
+export interface TeamMessageSummary {
+  id: string;
+  teamId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
+}
+
+interface TeamMessageResponseDto {
+  id: number;
+  teamId: number;
+  senderId: number;
+  senderName: string;
+  content: string;
+  createdAt: string;
+}
+
+function toTeamMessageSummary(dto: TeamMessageResponseDto): TeamMessageSummary {
+  return {
+    id: String(dto.id),
+    teamId: String(dto.teamId),
+    senderId: String(dto.senderId),
+    senderName: dto.senderName,
+    content: dto.content,
+    createdAt: dto.createdAt,
+  };
+}
+
+/** POST /api/teams/{teamId}/messages — 해당 팀 소속 사용자만 전송 가능(그 외 403 TEAM_ACCESS_DENIED) */
+export async function sendTeamMessage(teamId: string, content: string): Promise<TeamMessageSummary> {
+  const { data } = await httpClient.post<TeamMessageResponseDto>(`/api/teams/${teamId}/messages`, { content });
+  return toTeamMessageSummary(data);
+}
+
+/** GET /api/teams/{teamId}/messages — 해당 팀의 전체 대화 내역(시간순) */
+export async function getTeamMessages(teamId: string): Promise<TeamMessageSummary[]> {
+  const { data } = await httpClient.get<TeamMessageResponseDto[]>(`/api/teams/${teamId}/messages`);
+  return data.map(toTeamMessageSummary);
+}
+
 // --- Dashboard ------------------------------------------------------------
 
 export interface TimezoneEntry {
@@ -626,6 +669,7 @@ interface ProposalResponseDto {
   content: string;
   authorId: number;
   targetTeamId: number;
+  targetTeamName: string;
   status: ProposalStatus;
   targetCultures: string[];
   deadline: string;
@@ -640,6 +684,7 @@ function toProposal(dto: ProposalResponseDto): Proposal {
     content: dto.content,
     author_id: String(dto.authorId),
     target_team_id: String(dto.targetTeamId),
+    target_team_name: dto.targetTeamName,
     status: dto.status,
     target_cultures: dto.targetCultures,
     deadline: dto.deadline,
@@ -648,9 +693,11 @@ function toProposal(dto: ProposalResponseDto): Proposal {
   };
 }
 
-/** GET /api/proposals — Backend가 인증된 사용자 기준으로 알아서 필터링하므로 teamId 파라미터가 없다 */
-export async function getProposals(): Promise<Proposal[]> {
-  const { data } = await httpClient.get<ProposalResponseDto[]>("/api/proposals");
+/** GET /api/proposals?teamId= — teamId 생략 시 소속된 모든 팀의 제안을 모아서 반환한다(전체 보기) */
+export async function getProposals(teamId?: string): Promise<Proposal[]> {
+  const { data } = await httpClient.get<ProposalResponseDto[]>("/api/proposals", {
+    params: teamId ? { teamId: Number(teamId) } : undefined,
+  });
   return data.map(toProposal);
 }
 

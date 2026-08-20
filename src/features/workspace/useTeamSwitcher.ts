@@ -16,19 +16,28 @@ function saveSelectedTeamId(teamId: string) {
   window.localStorage.setItem(SELECTED_TEAM_KEY, teamId);
 }
 
+function clearSelectedTeamId() {
+  try {
+    window.localStorage.removeItem(SELECTED_TEAM_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * 로그인한 사용자가 속한 팀(그룹) 목록과 "현재 보고 있는 팀"을 관리한다.
  * 팀이 하나도 없으면(첫 로그인) "{이름}의 팀"을 자동 생성해 기본 팀으로 삼는다.
  * 선택된 팀은 localStorage에 저장해 새로고침/다른 화면 이동 후에도 유지된다.
+ * 저장된 선택이 없으면(첫 로그인 등) selectedTeamId는 null — 모든 팀의 제안을 모아보는 "전체 보기" 상태다.
  */
 export function useTeamSwitcher(user: AuthUser) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const selectTeam = useCallback((teamId: string) => {
+  const selectTeam = useCallback((teamId: string | null) => {
     setSelectedTeamId(teamId);
-    saveSelectedTeamId(teamId);
+    if (teamId) saveSelectedTeamId(teamId); else clearSelectedTeamId();
   }, []);
 
   useEffect(() => {
@@ -43,7 +52,7 @@ export function useTeamSwitcher(user: AuthUser) {
         if (cancelled) return;
         setTeams(list);
         const stored = loadSelectedTeamId();
-        const nextSelected = stored && list.some((team) => team.id === stored) ? stored : list[0].id;
+        const nextSelected = stored && list.some((team) => team.id === stored) ? stored : null;
         setSelectedTeamId(nextSelected);
       })
       .finally(() => {

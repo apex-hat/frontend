@@ -21,8 +21,9 @@ interface Props {
   onLogout: () => void;
 }
 
-function ProposalFormRoute({ teamId, onSubmitted }: { teamId: string | null; onSubmitted: () => void }) {
-  if (!teamId) return <p className="py-16 text-center text-sm text-ink-dim">팀 정보를 불러오는 중...</p>;
+function ProposalFormRoute({ teamId, isLoadingTeams, onSubmitted }: { teamId: string | null; isLoadingTeams: boolean; onSubmitted: () => void }) {
+  if (isLoadingTeams) return <p className="py-16 text-center text-sm text-ink-dim">불러오는 중...</p>;
+  if (!teamId) return <p className="py-16 text-center text-sm text-ink-dim">팀을 선택한 뒤 제안을 작성할 수 있어요.</p>;
   return <ProposalForm teamId={teamId} onSubmitted={onSubmitted} />;
 }
 
@@ -234,7 +235,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
           </button>
           <Routes>
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="new" element={<ProposalFormRoute teamId={selectedTeamId} onSubmitted={onBackToDashboard} />} />
+            <Route path="new" element={<ProposalFormRoute teamId={selectedTeamId} isLoadingTeams={isLoadingTeams} onSubmitted={onBackToDashboard} />} />
             <Route path=":proposalId/edit" element={<ProposalEditRoute userId={user.id} onSubmitted={onBackToDashboard} />} />
             <Route path=":proposalId/detail" element={<ProposalInfoRoute />} />
             <Route path=":proposalId/opinions" element={<ProposalOpinionsRoute user={user} />} />
