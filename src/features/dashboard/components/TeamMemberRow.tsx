@@ -7,7 +7,6 @@ interface TeamMemberRowProps {
   opinion: Opinion | undefined;
   viewerTimezone: string;
   viewerLanguage: SupportedLanguage;
-  onWriteOpinion?: () => void;
 }
 
 const STATUS_ICON: Record<Stance, { symbol: string; className: string }> = {
@@ -60,7 +59,7 @@ function formatSubmittedAt(createdAt: string, timezone: string, language: Suppor
 }
 
 /** 응답 현황 대시보드에서 팀원의 응답 여부와 의견을 보여주는 한 줄 */
-export default function TeamMemberRow({ member, opinion, viewerTimezone, viewerLanguage, onWriteOpinion }: TeamMemberRowProps) {
+export default function TeamMemberRow({ member, opinion, viewerTimezone, viewerLanguage }: TeamMemberRowProps) {
   const icon = opinion ? STATUS_ICON[opinion.stance] : NO_RESPONSE_ICON;
   const displayedComment = opinion?.comment
     ? opinion.translations?.[viewerLanguage]
@@ -90,16 +89,6 @@ export default function TeamMemberRow({ member, opinion, viewerTimezone, viewerL
           <p className="text-xs text-ink-dim mt-0.5 leading-snug">{displayedComment}</p>
         )}
       </div>
-
-      {onWriteOpinion && (
-        <button
-          type="button"
-          onClick={onWriteOpinion}
-          className="shrink-0 rounded-md px-2 py-1 text-[10px] font-medium text-ink-dim transition hover:bg-surface-2 hover:text-ink"
-        >
-          {opinion ? "의견 수정" : "의견 작성"}
-        </button>
-      )}
 
       <span
         className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-[11px] font-semibold ${icon.className}`}

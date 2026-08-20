@@ -5,7 +5,7 @@
 
 export type TeamRole = "PM" | "MEMBER";
 
-export type ProposalStatus = "DRAFT" | "OPEN" | "IN_PROGRESS" | "CONSENSUS_READY" | "COMPLETED";
+export type ProposalStatus = "DRAFT" | "OPEN" | "IN_PROGRESS" | "CONSENSUS_READY" | "CONSENSUS_COMPLETED" | "COMPLETED";
 
 export type Stance = "AGREE" | "DISAGREE" | "CONDITIONAL_AGREE";
 
@@ -13,6 +13,7 @@ export type SupportedLanguage = "ko" | "en" | "ja" | "de" | "pt";
 
 export type NotificationType =
   | "PROPOSAL_CREATED"
+  | "PROPOSAL_UPDATED"
   | "OPINION_REQUESTED"
   | "DEADLINE_APPROACHING"
   | "CONSENSUS_SUMMARY_COMPLETED"
