@@ -1,9 +1,31 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { FirebaseError } from "firebase/app";
 import AuthLayout from "./AuthLayout";
 import type { AuthUser, SupportedLanguage } from "../../../types";
 import { getUtcOffsetLabel } from "../../../lib/timezone";
 import { signup } from "../../../lib/api";
+
+/** Firebase Auth REST가 signUp 400에 담아 보내는 코드를 사용자가 이해할 수 있는 문구로 바꾼다. */
+function describeSignupError(error: unknown): string {
+  if (error instanceof FirebaseError) {
+    switch (error.code) {
+      case "auth/email-already-in-use":
+        return "이미 가입된 이메일이에요. 로그인을 이용해주세요.";
+      case "auth/invalid-email":
+        return "이메일 형식이 올바르지 않아요.";
+      case "auth/weak-password":
+        return "비밀번호는 6자 이상이어야 해요.";
+      case "auth/operation-not-allowed":
+        return "이메일/비밀번호 회원가입이 비활성화되어 있어요. 관리자에게 문의해주세요.";
+      case "auth/network-request-failed":
+        return "네트워크 연결을 확인해주세요.";
+      default:
+        return `회원가입에 실패했어요. (${error.code})`;
+    }
+  }
+  return "회원가입에 실패했어요. 잠시 후 다시 시도해주세요.";
+}
 
 interface SignupPageProps {
   onSignup: (user: AuthUser) => void;
@@ -91,14 +113,18 @@ export default function SignupPage({ onSignup, onNavigateLogin }: SignupPageProp
       setError("모든 필드를 입력해주세요.");
       return;
     }
+    if (password.length < 6) {
+      setError("비밀번호는 6자 이상이어야 해요.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       // language는 Backend User 모델에 대응 필드가 없어 로컬 상태로만 유지한다.
       const user = await signup(name, email, password, country, timezone);
       onSignup(user);
-    } catch {
-      setError("회원가입에 실패했어요. 잠시 후 다시 시도해주세요.");
+    } catch (err) {
+      setError(describeSignupError(err));
     } finally {
       setIsSubmitting(false);
     }
