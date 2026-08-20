@@ -25,6 +25,8 @@ interface Props {
   proposalId: string
   proposalTitle: string
   proposalDescription: string
+  /** ISO 문자열. 없으면(마감 미설정) 배지를 표시하지 않는다. */
+  deadline?: string
   proposalAuthorName?: string
   isProposalAuthor?: boolean
   targetTeamId: string
@@ -92,6 +94,7 @@ function ConsensusDevPage({
   proposalId,
   proposalTitle,
   proposalDescription,
+  deadline,
   proposalAuthorName,
   isProposalAuthor,
   targetTeamId,
@@ -259,110 +262,123 @@ function ConsensusDevPage({
 
   return (
     <main className={styles.page} data-consensus-dev-page>
-      <header className={styles.pageHeader}>
-        <div className={styles.titleRow}>
-          <div>
-            <h1 className={styles.title}>{proposalTitle}</h1>
-            {proposalAuthorName && (
-              <p className={styles.author}>
-                작성자 {proposalAuthorName}{isProposalAuthor ? ' (나)' : ''}
-              </p>
-            )}
-          </div>
-          {canManageProposal && (
-            <div className={styles.headerActions}>
-              {onEditProposal && (
-                <button type="button" className={styles.headerActionButton} onClick={onEditProposal}>
-                  수정하기
-                </button>
-              )}
-              {onDeleteProposal && (
-                <button
-                  type="button"
-                  className={`${styles.headerActionButton} ${styles.headerActionDanger}`}
-                  onClick={() => setIsProposalDeleteOpen(true)}
-                >
-                  삭제하기
-                </button>
+      <div className={styles.layout}>
+        <div className={styles.mainColumn}>
+          <header className={styles.pageHeader}>
+            <div className={styles.titleRow}>
+              <div>
+                <h1 className={styles.title}>{proposalTitle}</h1>
+                {proposalAuthorName && (
+                  <p className={styles.author}>
+                    작성자 {proposalAuthorName}{isProposalAuthor ? ' (나)' : ''}
+                  </p>
+                )}
+              </div>
+              {canManageProposal && (
+                <div className={styles.headerActions}>
+                  {onEditProposal && (
+                    <button type="button" className={styles.headerActionButton} onClick={onEditProposal}>
+                      수정하기
+                    </button>
+                  )}
+                  {onDeleteProposal && (
+                    <button
+                      type="button"
+                      className={`${styles.headerActionButton} ${styles.headerActionDanger}`}
+                      onClick={() => setIsProposalDeleteOpen(true)}
+                    >
+                      삭제하기
+                    </button>
+                  )}
+                </div>
               )}
             </div>
+            <p className={styles.description}>{proposalDescription}</p>
+            {deadline && (
+              <p className={styles.deadline}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                  <path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+                </svg>
+                기한{' '}
+                {new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(deadline))}
+              </p>
+            )}
+          </header>
+
+          {isLoading && <p className={styles.status} role="status">의견을 불러오는 중...</p>}
+          {!isLoading && loadError && <p className={styles.status} role="alert">{loadError}</p>}
+
+          {!isLoading && !loadError && (
+            <section className={styles.section} aria-label="의견 작성 폼">
+              <OpinionForm
+                key={
+                  currentUserOpinion?.updatedAt ??
+                  currentUserOpinion?.id ??
+                  'new-opinion'
+                }
+                existingOpinion={currentUserOpinion}
+                isSubmitting={isSubmitting}
+                onSubmit={handleOpinionSubmit}
+              />
+              {formStatus && (
+                <p className={styles.status} role="status">
+                  {formStatus}
+                </p>
+              )}
+            </section>
           )}
         </div>
-        <p className={styles.description}>{proposalDescription}</p>
-      </header>
 
-      {isLoading && <p className={styles.status} role="status">의견을 불러오는 중...</p>}
-      {!isLoading && loadError && <p className={styles.status} role="alert">{loadError}</p>}
-
-      {!isLoading && !loadError && (
-      <>
-      <section className={styles.section} aria-label="의견 작성 폼">
-        <OpinionForm
-          key={
-            currentUserOpinion?.updatedAt ??
-            currentUserOpinion?.id ??
-            'new-opinion'
-          }
-          existingOpinion={currentUserOpinion}
-          isSubmitting={isSubmitting}
-          onSubmit={handleOpinionSubmit}
-        />
-        {formStatus && (
-          <p className={styles.status} role="status">
-            {formStatus}
-          </p>
-        )}
-      </section>
-
-      <section className={styles.section} aria-labelledby="opinion-list-title">
-        <div className={styles.listHeader}>
-          <h2 id="opinion-list-title" className={styles.sectionTitle}>
-            팀원 의견 <span>{participantCount}/{teamMemberCount}</span>
-          </h2>
-          <button
-            type="button"
-            className={styles.summaryButton}
-            onClick={handleSummaryOpen}
-            disabled={opinions.length === 0 || isSummaryLoading}
-          >
-            {isSummaryLoading ? '요약 중...' : '의견 요약'}
-          </button>
-        </div>
-        <div className={styles.filters} aria-label="의견 유형 필터">
-          {filterOptions.map((option) => {
-            const count =
-              opinionCounts[option.value]
-
-            return (
+        {!isLoading && !loadError && (
+          <aside className={styles.sideColumn} aria-labelledby="opinion-list-title">
+            <div className={styles.listHeader}>
+              <h2 id="opinion-list-title" className={styles.sectionTitle}>
+                팀원 의견 <span>{participantCount}/{teamMemberCount}</span>
+              </h2>
               <button
-                key={option.value}
                 type="button"
-                className={`${styles.filterButton} ${
-                  opinionFilter === option.value ? styles.filterSelected : ''
-                }`}
-                aria-pressed={opinionFilter === option.value}
-                onClick={() =>
-                  setOpinionFilter((currentFilter) =>
-                    currentFilter === option.value ? null : option.value,
-                  )
-                }
+                className={styles.summaryButton}
+                onClick={handleSummaryOpen}
+                disabled={opinions.length === 0 || isSummaryLoading}
               >
-                <span>{option.label}</span>
-                <strong>{count}</strong>
+                {isSummaryLoading ? '요약 중...' : '의견 요약'}
               </button>
-            )
-          })}
-        </div>
-        <OpinionList
-          opinions={filteredOpinions}
-          currentUserId={currentUser.id}
-          canManageAll={isCurrentUserPm}
-          onDelete={handleOpinionDelete}
-          emptyMessage={opinionFilter ? "선택한 유형의 의견이 아직 없습니다." : "아직 작성된 의견이 없습니다."}
-        />
-      </section>
-      </>
-      )}
+            </div>
+            <div className={styles.filters} aria-label="의견 유형 필터">
+              {filterOptions.map((option) => {
+                const count =
+                  opinionCounts[option.value]
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`${styles.filterButton} ${
+                      opinionFilter === option.value ? styles.filterSelected : ''
+                    }`}
+                    aria-pressed={opinionFilter === option.value}
+                    onClick={() =>
+                      setOpinionFilter((currentFilter) =>
+                        currentFilter === option.value ? null : option.value,
+                      )
+                    }
+                  >
+                    <span>{option.label}</span>
+                    <strong>{count}</strong>
+                  </button>
+                )
+              })}
+            </div>
+            <OpinionList
+              opinions={filteredOpinions}
+              currentUserId={currentUser.id}
+              canManageAll={isCurrentUserPm}
+              onDelete={handleOpinionDelete}
+              emptyMessage={opinionFilter ? "선택한 유형의 의견이 아직 없습니다." : "아직 작성된 의견이 없습니다."}
+            />
+          </aside>
+        )}
+      </div>
 
       {deleteTarget && (
         <div className={styles.dialogBackdrop} role="presentation">

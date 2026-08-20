@@ -114,7 +114,6 @@ export default function App() {
             <Dashboard
               user={user}
               onCreateProposal={() => navigate("/proposals/new")}
-              onOpenProposal={(proposalId) => navigate(`/proposals/${proposalId}/opinions`)}
               onEditProposal={(proposalId) => navigate(`/proposals/${proposalId}/edit`)}
               onViewProposal={(proposalId) => navigate(`/proposals/${proposalId}/detail`)}
               onOpenProfile={() => navigate("/profile")}

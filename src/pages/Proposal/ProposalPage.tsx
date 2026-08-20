@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import ProposalForm from "./ProposalForm";
-import ProposalInfoPage from "./ProposalInfoPage";
 import ConsensusDevPage from "../consensus/ConsensusDevPage";
 import { deleteProposal, getNotifications, getProposal, getTeamMembers, markNotificationRead, type FriendSummary } from "../../lib/api";
 import type { AuthUser, Notification, Proposal } from "../../types";
@@ -63,40 +62,16 @@ function ProposalEditRoute({ userId, onSubmitted }: { userId: string; onSubmitte
   return <ProposalForm proposal={proposal} onSubmitted={onSubmitted} />;
 }
 
-function ProposalInfoRoute() {
-  const { proposalId } = useParams();
-  const [proposal, setProposal] = useState<{ title: string; content: string; deadline: string; authorName?: string } | null | undefined>(null);
-
-  useEffect(() => {
-    if (!proposalId) return;
-    let cancelled = false;
-    getProposal(proposalId)
-      .then((item) => {
-        if (cancelled) return;
-        setProposal({
-          title: item.title,
-          content: item.content ?? "등록된 제안 내용이 없습니다.",
-          deadline: item.deadline,
-          authorName: item.author_name,
-        });
-      })
-      .catch(() => {
-        if (!cancelled) setProposal(undefined);
-      });
-    return () => { cancelled = true; };
-  }, [proposalId]);
-
-  if (proposal === null) return <p className="py-16 text-center text-sm text-ink-dim">불러오는 중...</p>;
-  if (!proposal) return <Navigate to="/dashboard" replace />;
-  return <ProposalInfoPage {...proposal} />;
-}
-
 const LOCKED_STATUSES = ["CONSENSUS_READY", "CONSENSUS_COMPLETED", "COMPLETED"];
 
-function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
+/**
+ * "상세 보기"(구 /opinions)와 "상세 정보 보기"(구 /detail)가 서로 겹치는 내용을 따로 보여주던 것을
+ * 하나로 합쳤다 — 제안 정보(제목/작성자/내용/마감)와 의견 선택/팀원 의견/의견 요약을 모두 이 화면에서 본다.
+ */
+function ProposalDetailRoute({ user }: Pick<Props, "user">) {
   const navigate = useNavigate();
   const { proposalId } = useParams();
-  const [proposal, setProposal] = useState<{ id: string; title: string; content: string; targetTeamId: string; teamMemberCount: number; authorId?: string; authorName?: string; status: string; isPm: boolean } | null | undefined>(null);
+  const [proposal, setProposal] = useState<{ id: string; title: string; content: string; deadline: string; targetTeamId: string; teamMemberCount: number; authorId?: string; authorName?: string; status: string; isPm: boolean } | null | undefined>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,6 +87,7 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
           id: item.id,
           title: item.title,
           content: item.content ?? "제안 내용을 확인하고 의견을 남겨주세요.",
+          deadline: item.deadline,
           targetTeamId: item.target_team_id,
           teamMemberCount: Math.max(1, members.length),
           authorId: item.author_id,
@@ -144,6 +120,7 @@ function ProposalOpinionsRoute({ user }: Pick<Props, "user">) {
       proposalId={proposal.id}
       proposalTitle={proposal.title}
       proposalDescription={proposal.content}
+      deadline={proposal.deadline}
       proposalAuthorName={proposal.authorName}
       isProposalAuthor={proposal.authorId === user.id}
       targetTeamId={proposal.targetTeamId}
@@ -203,7 +180,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
       setFriendManagerMode("team");
       setIsFriendManagerOpen(true);
     } else if (notification.proposal_id) {
-      navigate(`/proposals/${notification.proposal_id}/opinions`);
+      navigate(`/proposals/${notification.proposal_id}/detail`);
     }
   };
 
@@ -266,8 +243,7 @@ export default function ProposalPage({ user, onBackToDashboard, onOpenProfile, o
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="new" element={<ProposalFormRoute teamId={selectedTeamId} isLoadingTeams={isLoadingTeams} onSubmitted={onBackToDashboard} />} />
             <Route path=":proposalId/edit" element={<ProposalEditRoute userId={user.id} onSubmitted={onBackToDashboard} />} />
-            <Route path=":proposalId/detail" element={<ProposalInfoRoute />} />
-            <Route path=":proposalId/opinions" element={<ProposalOpinionsRoute user={user} />} />
+            <Route path=":proposalId/detail" element={<ProposalDetailRoute user={user} />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>

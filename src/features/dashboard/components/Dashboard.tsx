@@ -62,12 +62,11 @@ interface DashboardProps {
   onLogout: () => void;
   onCreateProposal: () => void;
   onOpenProfile: () => void;
-  onOpenProposal: (proposalId: string) => void;
   onEditProposal: (proposalId: string) => void;
   onViewProposal: (proposalId: string) => void;
 }
 
-export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProfile, onOpenProposal, onEditProposal, onViewProposal }: DashboardProps) {
+export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProfile, onEditProposal, onViewProposal }: DashboardProps) {
   const [members, setMembers] = useState<TimezoneEntry[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -89,6 +88,7 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
   const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
   const [chatFriend, setChatFriend] = useState<FriendSummary | null>(null);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [membersVersion, setMembersVersion] = useState(0);
   const [realtimeTick, setRealtimeTick] = useState(0);
   const { teams, selectedTeamId, isLoading: isLoadingTeams, selectTeam, createGroup, renameTeam, removeGroup, leaveGroup, reload: reloadTeams } = useTeamSwitcher(user);
@@ -283,6 +283,18 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
       <header className="sticky top-0 z-20 backdrop-blur bg-void/80 border-b border-surface-3">
         <div className="flex w-full items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              aria-label="팀 목록 열기"
+              className="-ml-1 flex h-8 w-8 items-center justify-center rounded-md text-ink-dim hover:bg-surface-2 hover:text-ink lg:hidden"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
             <BrandMark />
             <span className="font-display text-lg text-ink">Meridian</span>
           </div>
@@ -317,6 +329,36 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
             onOpenTeamManager={() => setIsTeamManagerOpen(true)}
           />
         </div>
+
+        {/* lg 미만에서는 사이드바가 숨겨지므로(위 hidden lg:block), 팀 목록에 접근할 방법이 없었다 —
+            같은 WorkspaceSidebar를 슬라이드오버로 재사용해 헤더의 메뉴 버튼으로 열고 닫는다. */}
+        {isMobileSidebarOpen && (
+          <div className="fixed inset-0 z-50 flex lg:hidden" role="presentation">
+            <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={() => setIsMobileSidebarOpen(false)} />
+            <div className="relative flex h-full w-72 max-w-[85vw] flex-col border-r border-surface-3 bg-void px-4 py-4 shadow-panel">
+              <button
+                type="button"
+                onClick={() => setIsMobileSidebarOpen(false)}
+                aria-label="팀 목록 닫기"
+                className="self-end text-lg text-ink-dim hover:text-ink"
+              >
+                ×
+              </button>
+              <WorkspaceSidebar
+                key={`mobile-${selectedTeamId ?? "none"}-${membersVersion}`}
+                user={user}
+                teams={teams}
+                selectedTeamId={selectedTeamId}
+                isLoadingTeams={isLoadingTeams}
+                onSelectTeam={(teamId) => { selectTeam(teamId); setIsMobileSidebarOpen(false); }}
+                onCreateGroup={createGroup}
+                chatFriend={chatFriend}
+                onCloseChat={() => setChatFriend(null)}
+                onOpenTeamManager={() => { setIsMobileSidebarOpen(false); setIsTeamManagerOpen(true); }}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="min-w-0 space-y-8 px-4 py-8 sm:px-6 2xl:px-8">
           {selectedTeamId ? (
@@ -406,13 +448,6 @@ export default function Dashboard({ user, onLogout, onCreateProposal, onOpenProf
                     </button>
                     <div className="flex shrink-0 items-center gap-2">
                       <ProposalStatusBadge status={proposal.status} />
-                      <button
-                        type="button"
-                        onClick={() => onOpenProposal(proposal.id)}
-                        className="rounded-md border border-surface-3 px-2.5 py-1 text-[10px] font-medium text-ink-dim transition hover:bg-surface-2 hover:text-ink"
-                      >
-                        상세 보기
-                      </button>
                       <button
                         type="button"
                         aria-label="제안 메뉴 열기"
