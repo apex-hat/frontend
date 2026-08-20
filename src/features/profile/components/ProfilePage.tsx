@@ -90,7 +90,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const userHandle = user.friend_code ? `#${user.friend_code}` : "";
-  const { selectedTeamId } = useTeamSwitcher(user);
+  const { selectedTeamId, reload: reloadTeams } = useTeamSwitcher(user);
 
   useEffect(() => {
     let cancelled = false;
@@ -284,7 +284,7 @@ export default function ProfilePage({ user, onSave, onBack, onLogout }: ProfileP
         </section>
         </div>
       </main>
-      <FriendManagerModal open={isConnectionManagerOpen} onClose={() => setIsConnectionManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} initialMode={friendManagerMode} />
+      <FriendManagerModal open={isConnectionManagerOpen} onClose={() => setIsConnectionManagerOpen(false)} currentUserId={user.id} teamId={selectedTeamId} initialMode={friendManagerMode} onTeamJoined={reloadTeams} />
     </div>
   );
 }

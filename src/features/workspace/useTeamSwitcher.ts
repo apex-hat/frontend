@@ -26,6 +26,11 @@ export function useTeamSwitcher(user: AuthUser) {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const selectTeam = useCallback((teamId: string) => {
+    setSelectedTeamId(teamId);
+    saveSelectedTeamId(teamId);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -51,10 +56,14 @@ export function useTeamSwitcher(user: AuthUser) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id]);
 
-  const selectTeam = useCallback((teamId: string) => {
-    setSelectedTeamId(teamId);
-    saveSelectedTeamId(teamId);
-  }, []);
+  /** 팀 초대 수락처럼, 외부 이벤트로 소속 팀이 바뀐 뒤 목록을 다시 불러온다. 지정하면 해당 팀으로 전환도 함께 한다. */
+  const reload = useCallback(async (selectTeamIdAfter?: string) => {
+    const list = await getTeams();
+    setTeams(list);
+    if (selectTeamIdAfter && list.some((team) => team.id === selectTeamIdAfter)) {
+      selectTeam(selectTeamIdAfter);
+    }
+  }, [selectTeam]);
 
   const createGroup = useCallback(async (name: string) => {
     const created = await createTeam(name, user.country, user.culture_tag);
@@ -69,5 +78,5 @@ export function useTeamSwitcher(user: AuthUser) {
     return updated;
   }, []);
 
-  return { teams, selectedTeamId, isLoading, selectTeam, createGroup, renameTeam };
+  return { teams, selectedTeamId, isLoading, selectTeam, createGroup, renameTeam, reload };
 }

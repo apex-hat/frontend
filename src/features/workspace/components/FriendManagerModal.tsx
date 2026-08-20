@@ -30,6 +30,8 @@ interface FriendManagerModalProps {
   onOpenChat?: (friend: FriendSummary) => void;
   /** 알림(FRIEND_REQUEST/TEAM_INVITE) 클릭처럼, 열릴 때 특정 탭을 보여줘야 할 때 지정. */
   initialMode?: "friend" | "team";
+  /** 팀 초대를 수락해 새로운 팀에 합류했을 때, 팀 목록을 다시 불러오도록 알리는 콜백. */
+  onTeamJoined?: (teamId: string) => void;
 }
 
 const CHAT_POLL_INTERVAL_MS = 3000;
@@ -38,7 +40,7 @@ function formatMessageTime(iso: string) {
   return new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 }
 
-export default function FriendManagerModal({ open, onClose, currentUserId, teamId, onOpenChat: onOpenSidebarChat, initialMode }: FriendManagerModalProps) {
+export default function FriendManagerModal({ open, onClose, currentUserId, teamId, onOpenChat: onOpenSidebarChat, initialMode, onTeamJoined }: FriendManagerModalProps) {
   const [mode, setMode] = useState<"friend" | "team">("friend");
   const [friendHandle, setFriendHandle] = useState("");
   const [isSendingRequest, setIsSendingRequest] = useState(false);
@@ -266,12 +268,13 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
     }
   };
 
-  const respondTeamInvite = async (inviteId: string, accept: boolean, teamName: string) => {
+  const respondTeamInvite = async (inviteId: string, accept: boolean, teamName: string, respondingTeamId: string) => {
     setRespondingTeamInviteId(inviteId);
     try {
       await respondToTeamInvite(inviteId, accept);
       setIncomingTeamInvites((current) => current.filter((invite) => invite.id !== inviteId));
       setStatus(accept ? `'${teamName}' 팀 초대를 수락했습니다.` : `'${teamName}' 팀 초대를 거절했습니다.`);
+      if (accept) onTeamJoined?.(respondingTeamId);
     } catch {
       setStatus("초대 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
@@ -473,7 +476,7 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
                       <div className="flex shrink-0 gap-1.5">
                         <button
                           type="button"
-                          onClick={() => respondTeamInvite(invite.id, true, invite.teamName)}
+                          onClick={() => respondTeamInvite(invite.id, true, invite.teamName, invite.teamId)}
                           disabled={respondingTeamInviteId === invite.id}
                           className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-dim hover:text-ink disabled:opacity-50"
                         >
@@ -481,7 +484,7 @@ export default function FriendManagerModal({ open, onClose, currentUserId, teamI
                         </button>
                         <button
                           type="button"
-                          onClick={() => respondTeamInvite(invite.id, false, invite.teamName)}
+                          onClick={() => respondTeamInvite(invite.id, false, invite.teamName, invite.teamId)}
                           disabled={respondingTeamInviteId === invite.id}
                           className="rounded-md border border-surface-3 px-3 py-1.5 text-xs text-ink-faint hover:text-ink disabled:opacity-50"
                         >
